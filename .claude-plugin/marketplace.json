@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "vb6decompiler",
+  "description": "Evidence-based recovery of native-compiled VB6 programs, with coding agents.",
+  "owner": {
+    "name": "vb6decompiler authors",
+    "url": "https://github.com/47Hunter47"
+  },
+  "plugins": [
+    {
+      "name": "vb6decompiler",
+      "description": "Evidence-based recovery of native-compiled VB6 programs: procedure table, BSTR literals, SQL stitching, form blobs, DataReport layouts.",
+      "source": "./",
+      "category": "development"
+    }
+  ]
+}

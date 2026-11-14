@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+dist/
+*.egg-info/
+.venv/
+
+# Target material never belongs in this repo: no executables, no decompiler
+# output, no generated inventories.
+*.exe
+*.dll
+*.ocx
+*.tlb
+*.mdb
+decompile/
+out/
+analysis/
+*.csv
+!tests/fixtures/*.csv
