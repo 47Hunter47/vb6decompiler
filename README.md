@@ -135,6 +135,23 @@ Claude Code and Codex read — and says when the tool applies, how to parse its
 output and which traps to avoid; the plugin manifests point at that single copy.
 Agents editing the repository itself follow `AGENTS.md`.
 
+## Try it without a target
+
+Three stages need no executable: they read text the toolkit parses directly, so
+you can see the output shape before pointing it at anything. Real output from
+this checkout:
+
+```
+$ vb6d frm tests/fixtures
+# 4 files: 3 parsed, 1 without a design block, 0 failed
+fSynthArray	(6000, 3000)	controls=8
+fSynthTab	(4000, 2000)	controls=4
+fKesik	unknown	controls=1
+```
+
+The other stages need a VB6 binary or a decompiler listing of your own;
+`vb6d <stage> --help` states what each one expects.
+
 ## Quick start
 
 ```
