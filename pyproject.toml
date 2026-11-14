@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vb6decompiler"
+version = "0.2.0"
+description = "Evidence-based recovery of native-compiled VB6 programs: procedures, literals, SQL, form blobs, DataReports"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "vb6decompiler authors" }]
+keywords = ["vb6", "reverse-engineering", "decompiler", "pe", "sql-server"]
+
+[project.urls]
+Homepage = "https://github.com/47Hunter47/vb6decompiler"
+
+[project.optional-dependencies]
+pe = ["pefile>=2023.2.7"]
+asm = ["capstone>=5"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+vb6d = "vb6decompiler.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["vb6decompiler*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
