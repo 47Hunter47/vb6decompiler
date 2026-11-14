@@ -19,4 +19,4 @@ jobs:
       - run: python -c "import pathlib,sys,tomllib,os; v=tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version']; raise SystemExit(0 if 'v'+v==os.environ['GITHUB_REF_NAME'] else 1)"
       - run: python -m build
       - run: twine check dist/*
-      - run: twine upload --no-verbose --skip-existing dist/*
+      - uses: pypa/gh-action-pypi-publish@release/v1
