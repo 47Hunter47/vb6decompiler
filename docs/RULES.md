@@ -60,6 +60,15 @@ project that uses these tools.
   that is not in it, add it there with the measurement, not in a code comment that
   nobody reads.
 
+## Releasing
+
+Every push to `master` ships a release: CI bumps the patch version, commits and
+tags it, and publishes to PyPI through trusted publishing (no token in the
+repository). A push that raises `version` in `pyproject.toml` itself ships that
+exact version — that is the manual path for a minor or major release. Do not
+upload by hand: the runner owns the version sequence, and re-uploading a
+version the runner already burned just fails.
+
 ## Before you finish
 
 ```
