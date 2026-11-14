@@ -69,6 +69,12 @@ exact version — that is the manual path for a minor or major release. Do not
 upload by hand: the runner owns the version sequence, and re-uploading a
 version the runner already burned just fails.
 
+GitHub skips every workflow for a commit whose message contains a literal skip
+marker (`[skip ci]` and friends) — quoting the marker inside a sentence, e.g.
+when describing the pipeline, suppresses CI for that push. The release pipeline
+uses the marker deliberately for its own bump commit; do not put it in your
+commit messages.
+
 ## Before you finish
 
 ```
