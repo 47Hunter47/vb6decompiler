@@ -6,6 +6,15 @@ dist/
 *.egg-info/
 .venv/
 
+# Credentials never belong in this repository; keep them out of any commit.
+.env
+.env.*
+*.pem
+*.key
+.pypirc
+.npmrc
+.netrc
+
 # Target material never belongs in this repo: no executables, no decompiler
 # output, no generated inventories.
 *.exe
