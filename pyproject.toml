@@ -11,6 +11,16 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "vb6decompiler authors" }]
 keywords = ["vb6", "reverse-engineering", "decompiler", "pe", "sql-server"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Disassemblers",
+]
 
 [project.urls]
 Homepage = "https://github.com/47Hunter47/vb6decompiler"

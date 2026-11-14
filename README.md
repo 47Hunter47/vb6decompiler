@@ -1,5 +1,9 @@
 # vb6decompiler
 
+[![PyPI](https://img.shields.io/pypi/v/vb6decompiler)](https://pypi.org/project/vb6decompiler/)
+[![Tests](https://github.com/47Hunter47/vb6decompiler/actions/workflows/test.yml/badge.svg)](https://github.com/47Hunter47/vb6decompiler/actions/workflows/test.yml)
+[![Python](https://img.shields.io/pypi/pyversions/vb6decompiler)](https://pypi.org/project/vb6decompiler/)
+
 Recovering what a native-compiled VB6 program actually does, with evidence.
 
 Commercial VB6 decompilers stop at one of two walls: they give you forms without
