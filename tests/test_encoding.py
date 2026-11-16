@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from vb6decompiler import encoding, literals, procs
+from vb6decompiler import blob, encoding, literals, procs
 
 
 # --------------------------------------------------------------------- source order
@@ -116,3 +116,27 @@ def test_literals_from_a_listing_are_decoded_with_the_requested_code_page(tmp_pa
     assert [l.text for l in lits] == ["Выберите запись"]
     # The default is unchanged: CP1254 reading the same bytes gives different text.
     assert literals.scan_listings(str(tmp_path))[0].text != "Выберите запись"
+
+
+def test_a_blob_string_is_decoded_in_the_given_code_page():
+    raw = b"\x06\x00" + "Привет".encode("cp1251") + b"\x00"
+    assert blob.read_str(raw, 0, "cp1251") == ("Привет", len(raw))
+
+
+def test_a_frm_caption_is_read_in_the_given_code_page(tmp_path):
+    path = tmp_path / "fDemo.frm"
+    path.write_bytes(
+        "VERSION 5.00\n"
+        "Begin VB.Form fDemo\n"
+        "   Begin VB.CommandButton cmdGo \n"
+        '      Caption         =   "Готово"\n'
+        "      Left            =   120\n"
+        "      Top             =   240\n"
+        "      Width           =   1215\n"
+        "      Height          =   495\n"
+        "   End\n"
+        "End\n"
+        "Attribute VB_Name = \"fDemo\"\n".encode("cp1251")
+    )
+    _name, controls, _props = blob.parse_frm(str(path), encoding="cp1251")
+    assert [c.caption for c in controls] == ["Готово"]

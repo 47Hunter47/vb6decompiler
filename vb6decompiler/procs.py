@@ -268,6 +268,16 @@ class VBProject:
         }
 
 
+def image_lcid(data: bytes) -> int | None:
+    """LCID of an image already in memory, without parsing its object table.
+
+    Used by modules that have the file bytes anyway (``blob``) and only need the
+    header hint to pick a code page; ``None`` when the image has no VB5 header.
+    """
+    hdr = _vb_header(data)
+    return hdr["lcid"] if hdr else None
+
+
 def read(path: str, encoding: str | None = None) -> VBProject:
     """Decode the VB6 header chain of one executable or DLL.
 

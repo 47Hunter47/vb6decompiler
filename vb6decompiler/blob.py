@@ -37,8 +37,9 @@ Record grammar (measured; the layout below is what the parser implements)
 * Geometry widens to ``4 x int32`` when a value does not fit in int16: the
   property is then ``<pid> 0x00 0x80 <4 x int32>`` (the ``0x8000`` marker is a
   uint16 flag after the pid byte).
-* Strings are ``<len:uint16> <bytes> 0x00`` in CP1254 (Turkish code page) for
-  control properties, and UTF-16LE for ``SSTab`` page data.
+* Strings are ``<len:uint16> <bytes> 0x00`` in the build's ANSI code page for
+  control properties (CP1254 on a Turkish build — see
+  :mod:`vb6decompiler.encoding`), and UTF-16LE for ``SSTab`` page data.
 * A blob may contain more than one form object (class ``0x0D``): the main form
   plus nested form objects.  Each one opens a segment, and controls belong to
   the segment they appear in.
@@ -103,6 +104,9 @@ import re
 import struct
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
+
+from .encoding import DEFAULT_CODEPAGE, resolve_encoding
+from .procs import image_lcid
 
 # --------------------------------------------------------------------------
 # Class tables
@@ -338,6 +342,11 @@ def iter_form_blobs(path: str) -> list[FormBlob]:
     parent record inside the same declared size.
     """
     data, _sections = load_sections(path)
+    return blobs_from(data)
+
+
+def blobs_from(data: bytes) -> list[FormBlob]:
+    """Same as :func:`iter_form_blobs` for an image already in memory."""
     records = find_form_records(data)
     blobs = []
     for i, (start, _name_pos, name, size) in enumerate(records):
@@ -479,8 +488,13 @@ class ValidationReport:
 # --------------------------------------------------------------------------
 # Primitive readers
 # --------------------------------------------------------------------------
-def read_str(b: bytes, p: int) -> tuple[str | None, int]:
-    """Read ``<len16> <bytes> 0x00`` as CP1254; ``(None, p)`` if not one."""
+def read_str(b: bytes, p: int, encoding: str = DEFAULT_CODEPAGE) -> tuple[str | None, int]:
+    """Read ``<len16> <bytes> 0x00`` in ``encoding``; ``(None, p)`` if not one.
+
+    The bytes are ANSI: the code page of the machine that compiled the project,
+    which is why this is a parameter and not a constant (see
+    :mod:`vb6decompiler.encoding`).
+    """
     if p + 2 > len(b):
         return None, p
     n, = struct.unpack_from("<H", b, p)
@@ -491,7 +505,7 @@ def read_str(b: bytes, p: int) -> tuple[str | None, int]:
         return None, p
     if any(c < 0x20 and c != 0x09 for c in raw):
         return None, p
-    return raw.decode("cp1254", "replace"), p + 3 + n
+    return raw.decode(encoding, "replace"), p + 3 + n
 
 
 def read_utf16(b: bytes, p: int) -> tuple[str | None, int]:
@@ -651,12 +665,12 @@ def _is_embedded_object(type_name: str) -> bool:
 
 
 def _parse_control(b: bytes, name: str, cls_p: int, hdr_index: int | None,
-                   end: int) -> Control | None:
+                   end: int, encoding: str = DEFAULT_CODEPAGE) -> Control | None:
     """Decode one control record; ``None`` when it carries no recoverable geometry."""
     cls_byte = b[cls_p]
     p = cls_p + 1
     if cls_byte == 0xFF:
-        type_name, p = read_str(b, p)
+        type_name, p = read_str(b, p, encoding)
         if type_name is None:
             return None
     else:
@@ -673,7 +687,7 @@ def _parse_control(b: bytes, name: str, cls_p: int, hdr_index: int | None,
     # array element the same slot can hold the index as a uint16, hence the
     # 3-byte skip when no string shape matches.
     if p < len(b) and b[p] == 0x01:
-        cap, nxt = read_str(b, p + 1)
+        cap, nxt = read_str(b, p + 1, encoding)
         if cap is not None:
             caption = cap
             p = nxt
@@ -731,7 +745,7 @@ def _form_client_size(b: bytes, name_pos: int, end: int) -> tuple[int, int, int,
 # --------------------------------------------------------------------------
 # Blob -> Form
 # --------------------------------------------------------------------------
-def extract_form(blob: FormBlob) -> Form | None:
+def extract_form(blob: FormBlob, encoding: str = DEFAULT_CODEPAGE) -> Form | None:
     """Parse one blob into a :class:`Form`; ``None`` if no records are found."""
     b = blob.data
     starts = record_starts(b)
@@ -760,7 +774,7 @@ def extract_form(blob: FormBlob) -> Form | None:
             continue
         end = starts[i + 1][0] if i + 1 < len(starts) else len(b)
         end = min(end, seg_end)
-        ctrl = _parse_control(b, name, cls_p, idx, end)
+        ctrl = _parse_control(b, name, cls_p, idx, end, encoding)
         if ctrl is not None:
             controls.append(ctrl)
 
@@ -787,11 +801,18 @@ def extract_form(blob: FormBlob) -> Form | None:
     return form
 
 
-def extract_forms(path: str) -> list[Form]:
-    """Parse every form blob in ``path`` (one :class:`Form` per blob)."""
+def extract_forms(path: str, encoding: str | None = None) -> list[Form]:
+    """Parse every form blob in ``path`` (one :class:`Form` per blob).
+
+    ``encoding=None`` asks the build: the VB5 header's LCID picks the ANSI code page
+    for captions and OCX class names. The file is read once, for both the blobs and
+    the header hint.
+    """
+    data, _sections = load_sections(path)
+    codec = resolve_encoding(encoding, image_lcid(data))[0]
     forms = []
-    for blob in iter_form_blobs(path):
-        form = extract_form(blob)
+    for blob in blobs_from(data):
+        form = extract_form(blob, encoding=codec)
         if form is not None:
             forms.append(form)
     return forms
@@ -836,7 +857,7 @@ class TruthControl:
     parent: str | None = None
 
 
-def parse_frm(path: str) -> tuple[str | None, list[TruthControl], dict | None]:
+def parse_frm(path: str, encoding: str = DEFAULT_CODEPAGE) -> tuple[str | None, list[TruthControl], dict | None]:
     """Parse the design block of a ``.frm`` file.
 
     Returns ``(form_name, controls, form_props)``.  Only controls that declare
@@ -844,12 +865,15 @@ def parse_frm(path: str) -> tuple[str | None, list[TruthControl], dict | None]:
     can represent (lines, timers and menus are out of scope on both sides).
     The nesting stack gives each control its parent, which is what ``SSTab``
     membership is derived from.
+
+    ``.frm`` text is ANSI in the IDE's code page and carries no header, so the
+    code page is a parameter (``--encoding``), defaulting to CP1254.
     """
     stack: list[dict] = []
     flat: list[dict] = []
     form_name = None
     form_props: dict | None = None
-    with open(path, encoding="cp1254", errors="replace") as fh:
+    with open(path, encoding=encoding, errors="replace") as fh:
         for raw_line in fh:
             if raw_line.startswith("Attribute VB_Name"):
                 break
@@ -910,7 +934,8 @@ def _sstab_truth(controls: list[TruthControl]) -> dict[str, dict[str, int]]:
 # --------------------------------------------------------------------------
 # Validation
 # --------------------------------------------------------------------------
-def validate(exe_path: str, frm_dir: str | None = None) -> ValidationReport:
+def validate(exe_path: str, frm_dir: str | None = None,
+             encoding: str | None = None) -> ValidationReport:
     """Measure the parser against ``.frm`` ground truth.
 
     ``frm_dir`` is the directory holding the ``.frm`` design text of the same
@@ -922,9 +947,16 @@ def validate(exe_path: str, frm_dir: str | None = None) -> ValidationReport:
     VB identifiers are; the compared fields are type and the four geometry
     values.  Captions are counted as a separate diff so a caption mismatch
     cannot hide a correct geometry.
+
+    Both sides are decoded with one code page: the explicit one, else the
+    executable's header LCID, else CP1254.  The ``.frm`` text of a build was saved
+    by the same IDE, so sharing the code page is the closest evidence there is; a
+    build whose sources were saved on another machine needs ``--encoding``.
     """
     report = ValidationReport()
-    blobs = iter_form_blobs(exe_path)
+    data, _sections = load_sections(exe_path)
+    codec = resolve_encoding(encoding, image_lcid(data))[0]
+    blobs = blobs_from(data)
     report.blob_count = len(blobs)
 
     by_name: dict[str, list[FormBlob]] = defaultdict(list)
@@ -937,7 +969,7 @@ def validate(exe_path: str, frm_dir: str | None = None) -> ValidationReport:
 
     parsed = {}
     for path in sorted(glob.glob(os.path.join(frm_dir, "*.frm"))):
-        name, ctrls, props = parse_frm(path)
+        name, ctrls, props = parse_frm(path, encoding=codec)
         if name and ctrls:
             parsed[name.lower()] = (name, ctrls, props)
 
@@ -950,7 +982,7 @@ def validate(exe_path: str, frm_dir: str | None = None) -> ValidationReport:
             continue
         form = None
         for blob in sorted(candidates, key=lambda x: len(x.data), reverse=True):
-            candidate = extract_form(blob)
+            candidate = extract_form(blob, encoding=codec)
             if candidate and candidate.controls:
                 form = candidate
                 break
@@ -1042,13 +1074,15 @@ def main(argv: list[str] | None = None) -> int:
                         help="accepted for parity with `vb6d blob`; validation is the default")
     parser.add_argument("--list", action="store_true",
                         help="print one line per form instead of the report")
+    parser.add_argument("--encoding", default=None,
+                        help="code page of the text (default: the build's header LCID, else cp1254)")
     args = parser.parse_args(argv)
 
     if args.list:
-        for form in extract_forms(args.exe):
+        for form in extract_forms(args.exe, encoding=args.encoding):
             print(f"{form.name}\t{len(form.controls)}\t{form.width}x{form.height}")
         return 0
-    report = validate(args.exe, args.frm)
+    report = validate(args.exe, args.frm, encoding=args.encoding)
     print(report.summary())
     return 0
 
@@ -1061,7 +1095,7 @@ __all__ = [
     "CLASS_NAME", "GEOM_PID", "GEOM_PID_OCX", "POST_PIDS", "SKIP_TYPES",
     "VISIBLE_PID", "SSTAB_SIGNATURES", "Section", "FormBlob", "Control", "Form",
     "ValidationReport", "TruthControl", "load_sections", "read_va",
-    "find_form_records", "iter_form_blobs", "record_starts", "read_str",
+    "find_form_records", "iter_form_blobs", "blobs_from", "record_starts", "read_str",
     "read_utf16", "plausible", "sstab_region", "extract_form", "extract_forms",
     "parse_frm", "validate", "main",
 ]
