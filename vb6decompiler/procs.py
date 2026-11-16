@@ -47,6 +47,11 @@ and forms only, and only as the designer's names), and the concept of "event
 handler" — a form method is just a method whose name happens to look like
 ``Command1_Click``. Names from a decompiler's listing can be merged in with
 :func:`merge_listing_names`; they are hints, not evidence.
+
+Text is ANSI, in the code page of the machine that compiled the project. The header
+records the developer's LCID and :meth:`read` uses it as a hint
+(:mod:`vb6decompiler.encoding`); the default stays CP1254 so an existing Turkish
+target keeps decoding exactly as before.
 """
 
 from __future__ import annotations
@@ -55,6 +60,8 @@ import os
 import re
 import struct
 from dataclasses import dataclass, field
+
+from .encoding import DEFAULT_CODEPAGE, resolve_encoding
 
 #: fObjectType values measured in one real native build (834 objects). The value is
 #: not a small enum: the same build reported 0x18001 for modules, 0x18083 for forms,
@@ -114,10 +121,12 @@ class VBError(Exception):
 class _Resolver:
     """Pointer field -> file bytes, trying VA, then RVA, then raw offset."""
 
-    def __init__(self, data: bytes, image_base: int, sections: list[dict]):
+    def __init__(self, data: bytes, image_base: int, sections: list[dict],
+                 encoding: str = DEFAULT_CODEPAGE):
         self.data = data
         self.base = image_base
         self.sections = sections
+        self.encoding = encoding
 
     def rva_to_off(self, rva: int) -> int | None:
         for s in self.sections:
@@ -149,13 +158,19 @@ class _Resolver:
         cut = raw.find(b"\0")
         if cut < 0:
             return None
-        return decode_cp1254(raw[:cut])
+        return decode_cp1254(raw[:cut], self.encoding)
 
 
-def decode_cp1254(raw: bytes) -> str:
-    """VB6 strings are CP1254 (Turkish). Never latin-1: it silently mangles İ/ş/ğ."""
+def decode_cp1254(raw: bytes, encoding: str = DEFAULT_CODEPAGE) -> str:
+    """Decode one ANSI field. Never latin-1: it silently mangles İ/ş/ğ.
+
+    The name is historical — the code page is a parameter now (see
+    :mod:`vb6decompiler.encoding`) and defaults to CP1254, so existing callers and
+    the exported name keep working. Bytes the code page cannot represent fall back to
+    latin-1 rather than being dropped: a wrong-but-visible name beats a missing one.
+    """
     try:
-        return raw.decode("cp1254")
+        return raw.decode(encoding)
     except UnicodeDecodeError:
         return raw.decode("latin1", "replace")
 
@@ -213,6 +228,10 @@ class VBProject:
     compiled_count: int
     identifier: str
     objects: list[VBObject]
+    #: Code page the ANSI fields of this build were decoded with, and where it came
+    #: from (``explicit``/``lcid``/``default``) — recorded so a summary can print it.
+    encoding: str = DEFAULT_CODEPAGE
+    encoding_source: str = "default"
 
     # -- derived facts ------------------------------------------------------
 
@@ -249,8 +268,13 @@ class VBProject:
         }
 
 
-def read(path: str) -> VBProject:
-    """Decode the VB6 header chain of one executable or DLL."""
+def read(path: str, encoding: str | None = None) -> VBProject:
+    """Decode the VB6 header chain of one executable or DLL.
+
+    ``encoding=None`` asks the build: the header's LCID picks the ANSI code page
+    (falling back to :data:`DEFAULT_CODEPAGE`), which is why a Russian build no longer
+    has its object names decoded as Turkish. Pass a code page to override the hint.
+    """
     with open(path, "rb") as fh:
         data = fh.read()
     if data[:2] != b"MZ":
@@ -264,7 +288,8 @@ def read(path: str) -> VBProject:
     hdr = _vb_header(data)
     if hdr is None:
         raise VBError(f"{os.path.basename(path)}: no 'VB5!' header (not a VB5/VB6 build)")
-    res = _Resolver(data, image_base, sections)
+    codec, source = resolve_encoding(encoding, hdr["lcid"])
+    res = _Resolver(data, image_base, sections, encoding=codec)
 
     def selfrel(rel: int, limit: int = 400) -> str | None:
         if not rel:
@@ -273,7 +298,7 @@ def read(path: str) -> VBProject:
         if not (0 <= o < len(data)):
             return None
         cut = data.find(b"\0", o, o + limit)
-        return decode_cp1254(data[o:cut]) if cut > 0 else None
+        return decode_cp1254(data[o:cut], codec) if cut > 0 else None
 
     raw, _ = res.read(hdr["lpProjectData"], 0x23C)
     if raw is None:
@@ -365,6 +390,8 @@ def read(path: str) -> VBProject:
         compiled_count=compiled,
         identifier=f"{identifier:08X}",
         objects=objects,
+        encoding=codec,
+        encoding_source=source,
     )
 
 
@@ -413,15 +440,18 @@ def body_bounds(addresses: list[int]) -> dict[int, int]:
     return {va: (ordered[i + 1] if i + 1 < len(ordered) else None) for i, va in enumerate(ordered)}
 
 
-def parse_listing(path: str) -> tuple[str, dict[int, str]]:
+def parse_listing(path: str, encoding: str = DEFAULT_CODEPAGE) -> tuple[str, dict[int, str]]:
     """Names from a decompiler listing: ``{'obj':..., va: name}``.
 
     Only the trailing VA is trusted. One measured decompiler gave 267 bodies in a
     single form the same name; keying by name merges them, keying by VA does not.
+
+    A listing is text, not an image: there is no header to ask for a code page, so
+    the caller supplies it (``--encoding``/``VB6D_ENCODING``, else the default).
     """
     obj = os.path.basename(path).rsplit(".", 1)[0]
     names: dict[int, str] = {}
-    with open(path, encoding="cp1254", errors="replace") as fh:
+    with open(path, encoding=encoding, errors="replace") as fh:
         for line in fh:
             m = LISTING_HEADER.match(line)
             if m:
@@ -429,14 +459,14 @@ def parse_listing(path: str) -> tuple[str, dict[int, str]]:
     return obj, names
 
 
-def merge_listing_names(listing_dir: str) -> dict[int, list[str]]:
+def merge_listing_names(listing_dir: str, encoding: str = DEFAULT_CODEPAGE) -> dict[int, list[str]]:
     """VA -> every name any listing gave it (conflicts are kept, not resolved)."""
     out: dict[int, list[str]] = {}
     for root, _dirs, files in os.walk(listing_dir):
         for name in files:
             if not name.lower().endswith((".frm", ".bas", ".cls")):
                 continue
-            _obj, names = parse_listing(os.path.join(root, name))
+            _obj, names = parse_listing(os.path.join(root, name), encoding=encoding)
             for va, n in names.items():
                 bucket = out.setdefault(va, [])
                 if n not in bucket:
