@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from vb6decompiler import encoding
+from vb6decompiler import encoding, procs
 
 
 # --------------------------------------------------------------------- source order
@@ -84,3 +84,26 @@ def test_single_byte_pages_really_decode_one_byte_per_character():
     # character offset is a byte offset.
     for codec in sorted(encoding.SINGLE_BYTE_CODEPAGES):
         assert len(bytes(range(256)).decode(codec, "replace")) == 256, codec
+
+
+# --------------------------------------------------------------------- threading
+def test_a_field_is_decoded_with_the_given_code_page():
+    # procs keeps its old name; the code page is the second argument.
+    assert procs.decode_cp1254("Привет".encode("cp1251"), "cp1251") == "Привет"
+    assert procs.decode_cp1254(b"\xdd", "cp1254") == "İ"
+
+
+def test_an_unrepresentable_byte_falls_back_to_latin1_not_to_nothing():
+    # 0x81 is undefined in cp1254; dropping the field would hide a name entirely.
+    assert procs.decode_cp1254(b"\x81", "cp1254") == "\x81"
+
+
+def test_listing_text_is_read_in_the_requested_code_page(tmp_path):
+    # A listing is a text file with no header: the only code page is the one passed.
+    line = "Private Sub _Иван() '401000\n"
+    path = tmp_path / "mod.bas"
+    path.write_bytes(line.encode("cp1251"))
+    _obj, names = procs.parse_listing(str(path), encoding="cp1251")
+    assert names[0x401000] == "_Иван"
+    _obj, as_turkish = procs.parse_listing(str(path))  # default: cp1254
+    assert as_turkish[0x401000] != "_Иван"
