@@ -60,6 +60,18 @@ project that uses these tools.
   that is not in it, add it there with the measurement, not in a code comment that
   nobody reads.
 
+## Testing and agent packaging
+
+* Verify test counts with two reads: `pytest -q --collect-only` (what exists)
+  and `pytest -q -o console_output_style=count` (what ran; skipped counts are
+  reported separately). A "green" run that collected zero tests proves nothing.
+* Version numbers live only in `pyproject.toml`. The agent-packaging copy at
+  `.agents/skills/vb6decompiler/SKILL.md` is the single skill file — plugin
+  manifests point at it and carry no version; a second copy drifts.
+* The `vb6d` console shim can go stale after a package rename
+  (`ModuleNotFoundError`). Repair with the canonical interpreter:
+  `pip install -e .` rebuilds the entry points.
+
 ## Releasing
 
 Every push to `master` ships a release: CI bumps the patch version, commits and
