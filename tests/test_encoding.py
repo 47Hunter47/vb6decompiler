@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from vb6decompiler import encoding, procs
+from vb6decompiler import encoding, literals, procs
 
 
 # --------------------------------------------------------------------- source order
@@ -107,3 +107,12 @@ def test_listing_text_is_read_in_the_requested_code_page(tmp_path):
     assert names[0x401000] == "_Иван"
     _obj, as_turkish = procs.parse_listing(str(path))  # default: cp1254
     assert as_turkish[0x401000] != "_Иван"
+
+
+def test_literals_from_a_listing_are_decoded_with_the_requested_code_page(tmp_path):
+    listing = tmp_path / "fDemo.frm"
+    listing.write_bytes('    mov eax, 42C3A0h ; "Выберите запись"\n'.encode("cp1251"))
+    lits = literals.scan_listings(str(tmp_path), encoding="cp1251")
+    assert [l.text for l in lits] == ["Выберите запись"]
+    # The default is unchanged: CP1254 reading the same bytes gives different text.
+    assert literals.scan_listings(str(tmp_path))[0].text != "Выберите запись"

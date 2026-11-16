@@ -37,6 +37,7 @@ import re
 from dataclasses import dataclass
 
 from . import pe as pe_mod
+from .encoding import DEFAULT_CODEPAGE
 from .mask import mask_text
 
 #: A run must be at least this long to be plausible (shorter runs are alignment
@@ -172,6 +173,9 @@ def _scan_ascii(data: bytes, start: int, end: int, image, section):
     Turkish CP1254 bytes (0x80+) are deliberately excluded here: a literal that
     needs them is a UI message, recovered by the UTF-16 pass instead. Including
     0x80+ in this pass turned dense code bytes into thousands of false strings.
+
+    Because only 0x20-0x7E can match, the decode is the same for every ANSI code page;
+    ``Literal.encoding`` labels the *kind* of run, not the build's code page.
     """
     out: list[Literal] = []
     blob = data[start:end]
@@ -194,15 +198,19 @@ def _scan_ascii(data: bytes, start: int, end: int, image, section):
 # ---------------------------------------------------------------------------
 
 
-def scan_listings(directory: str) -> list[Literal]:
-    """Literals from ``.frm/.bas/.cls`` decompiler output, with procedure VAs."""
+def scan_listings(directory: str, encoding: str = DEFAULT_CODEPAGE) -> list[Literal]:
+    """Literals from ``.frm/.bas/.cls`` decompiler output, with procedure VAs.
+
+    The files are text and carry no header, so the code page cannot be inferred:
+    it comes from ``--encoding``/``VB6D_ENCODING`` and defaults to CP1254.
+    """
     out: list[Literal] = []
     for root, _dirs, files in os.walk(directory):
         for name in sorted(files):
             if not name.lower().endswith((".frm", ".bas", ".cls")):
                 continue
             current: int | None = None
-            with open(os.path.join(root, name), encoding="cp1254", errors="replace") as fh:
+            with open(os.path.join(root, name), encoding=encoding, errors="replace") as fh:
                 for line in fh:
                     # The procedure header is matched FIRST: it carries no ';', so a
                     # "skip lines without a literal comment" filter placed above it
@@ -266,9 +274,14 @@ def summary(literals: list[Literal]) -> dict:
     }
 
 
-def find(path_or_dir: str, needle: str, case_sensitive: bool = False) -> list[Literal]:
+def find(path_or_dir: str, needle: str, case_sensitive: bool = False,
+         encoding: str = DEFAULT_CODEPAGE) -> list[Literal]:
     """Substring search across either source."""
-    pool = scan_listings(path_or_dir) if os.path.isdir(path_or_dir) else scan_binary(path_or_dir)
+    pool = (
+        scan_listings(path_or_dir, encoding=encoding)
+        if os.path.isdir(path_or_dir)
+        else scan_binary(path_or_dir)
+    )
     if case_sensitive:
         return [l for l in pool if needle in l.text]
     low = needle.lower()
