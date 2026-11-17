@@ -40,12 +40,15 @@ def decode(data: bytes, va: int, limit: int = 200) -> dict:
 
     Stops at the first ``ret``, at ``limit`` instructions, or where the bytes
     stop decoding. The returned ``ended`` names which happened — "the buffer
-    stopped making sense" is a reported result, not silence. No VB6 meaning
-    is claimed yet: this is the layer the semantics get built on.
+    stopped making sense" is a reported result, not silence. Measured on this
+    engine: a 32-bit stream that decodes to the last byte but holds no ``ret``
+    ends ``exhausted`` (a range that runs past its procedure — the
+    ``procs.body_bounds`` gap surfacing), while bytes the engine cannot express
+    end ``garbage`` with the exact stop address. No VB6 meaning is claimed
+    yet: this is the layer the semantics get built on.
     """
     rows: list[dict] = []
     consumed = 0
-    ended = "no-bytes"
     for ins in engine().disasm(data, va):
         rows.append({"va": f"{ins.address:X}", "bytes": ins.bytes.hex(),
                      "mnemonic": ins.mnemonic, "operands": ins.op_str})
@@ -57,9 +60,13 @@ def decode(data: bytes, va: int, limit: int = 200) -> dict:
             ended = "limit"
             break
     else:
-        if rows:
-            # disasm ran off the buffer or hit bytes it cannot express here
-            ended = "undecodable"
-    return {"va": f"{va:X}", "requested_limit": limit,
-            "instructions": len(rows), "consumed_bytes": consumed,
-            "ended": ended, "rows": rows}
+        if consumed >= len(data):
+            ended = "exhausted" if rows else "no-bytes"
+        else:
+            ended = "garbage"
+    result = {"va": f"{va:X}", "requested_limit": limit,
+              "instructions": len(rows), "consumed_bytes": consumed,
+              "ended": ended, "rows": rows}
+    if ended == "garbage":
+        result["stopped_at_va"] = f"{va + consumed:X}"
+    return result

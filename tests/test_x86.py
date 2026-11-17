@@ -36,6 +36,22 @@ def test_limit_is_reported_not_silent():
     assert r["instructions"] == 5 and r["ended"] == "limit"
 
 
+def test_garbage_names_where_it_stopped():
+    pytest.importorskip("capstone")
+    # 0F 26 is not an encoding this 32-bit engine can express (measured: it
+    # refuses from the very byte), so the stop address must be named, not implied
+    r = x86.decode(bytes([0x0F, 0x26, 0x00, 0x00, 0x00]), 0x401000)
+    assert r["ended"] == "garbage" and r["instructions"] == 0
+    assert r["stopped_at_va"] == "401000"
+
+
+def test_exhausted_is_never_reported_as_ret():
+    pytest.importorskip("capstone")
+    body = bytes.fromhex("558BEC8B450850")  # push ebp / frame / mov eax,[ebp+8] / push eax — no ret
+    r = x86.decode(body, 0x401000)
+    assert r["ended"] == "exhausted" and r["consumed_bytes"] == len(body)
+
+
 def test_cli_decode_on_synthetic_image(tmp_path, capsys):
     pytest.importorskip("capstone")
     from vb6decompiler import cli
@@ -53,3 +69,24 @@ def test_cli_decode_on_synthetic_image(tmp_path, capsys):
     code = cli.main(["decode", str(exe), "--va", "900000", "--json"])
     capsys.readouterr()
     assert code == 2
+
+
+def test_end_va_stops_the_dump_at_the_boundary(tmp_path, capsys):
+    pytest.importorskip("capstone")
+    from vb6decompiler import cli
+
+    exe = tmp_path / "two.exe"
+    exe.write_bytes(mini_pe(code=PROLOGUE + PROLOGUE))  # two back-to-back bodies
+    code = cli.main(["decode", str(exe), "--va", "401000", "--end-va", "40100F", "--json"])
+    out, err = capsys.readouterr()
+    assert code == 0
+    d = json.loads(out)
+    assert d["ended"] == "ret" and d["instructions"] == 8  # first body only
+    # cut the range just before its ret: the dump must not run into the next body
+    code = cli.main(["decode", str(exe), "--va", "401000", "--end-va", "40100E", "--json"])
+    out, err = capsys.readouterr()
+    assert code == 0
+    d = json.loads(out)
+    assert d["ended"] == "exhausted" and d["rows"][-1]["mnemonic"] == "call"
+    capsys.readouterr()
+    assert cli.main(["decode", str(exe), "--va", "401000", "--end-va", "401000", "--json"]) == 2

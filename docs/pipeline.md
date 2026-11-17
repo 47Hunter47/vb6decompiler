@@ -128,6 +128,19 @@ The summary prints "procedures with >=1 literal: X of Y" and
 "procedures with >=1 closed SQL statement: X of Y", with Y counted before any
 per-procedure failure, so the denominators survive a partial run.
 
+**`vb6d decode <exe> --va HEX [--end-va HEX]` — milestone D's first layer, the
+raw dump (needs the `[asm]` extra)** — it hands the engine only the section's
+bytes on disk from that VA (clamped, and clamped again at `--end-va` when given)
+and the result says how the decode ended: `ret` (the stream returned),
+`limit` (the instruction cap hit), `exhausted` (every byte decoded, no `ret`
+inside — for a procedure range that is the documented `body_bounds` gap
+surfacing, not an error), `garbage` (with `stopped_at_va`, the first byte the
+engine cannot express) or `no-bytes`. It claims instruction addresses, bytes,
+mnemonics and operands only: nothing here is VB6 syntax, and the operands'
+`0x…` immediates are the engine's own rendering (quoted text), while the
+dump's own address fields stay bare uppercase hex. Missing engine: named
+refusal, exit 2, install hint.
+
 **Call order is measurable without a decompiler** — as a measurement, not a stage.
 `scripts/t35_import_call_spike.py` decodes each procedure's own byte range with
 capstone, resolves every call through the import address table (including a direct
