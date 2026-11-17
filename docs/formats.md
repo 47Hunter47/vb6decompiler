@@ -167,7 +167,7 @@ Measured on the reference build, over pseudo-C from a generic engine:
   form's field layout (`vb6d frm`, or the control blob when no `.frm` survives).
 * Unnamed globals (`DAT_x`) have no name table to recover, because a VB6 symbol
   record holds no name. Census them by procedure frequency
-  (`scripts/pseudoc_inventory.py` -> `*_globals.csv`): the ranking is the shortlist
+  (`python -m vb6decompiler.pseudoc_inventory` -> `*_globals.csv`): the ranking is the shortlist
   for a run-time trace, and it is a *shortlist*, not knowledge.
 
 ## 5. Form data blobs — geometry without `.frm`
@@ -269,7 +269,7 @@ The leading icon sits outside that grammar and *is* parsed, without an
 executable. For forms that carry an icon the file opens with a short
 property-blob header (length varies; measured: the ICONDIR signature sits at
 even offsets up to 32 bytes in) followed by a complete ICON resource —
-`<header> <ICONDIR> <ICONDIRENTRY ×N> <image data>`. `scripts/frx_icon.py`
+`<header> <ICONDIR> <ICONDIRENTRY ×N> <image data>`. `python -m vb6decompiler.frx_icon`
 extracts it: entry type 1 or 2, count 1..20, and every `imageOffset` is
 relative to the ICONDIR start — the same layout a standalone `.ico` carries —
 so the slice ending at `max(offset + size)` is a valid `.ico` on its own and
@@ -329,7 +329,7 @@ reference install, 24 more inside the executable itself).
 * **Method entry addresses** — see §4.
 * **Control records in a `.frx` read without an executable** — see §5: the
   property/control grammar those files start in is still uncalibrated. The
-  leading icon record is the one exception and ships as `scripts/frx_icon.py`.
+  leading icon record is the one exception and ships as `python -m vb6decompiler.frx_icon`.
 * **Expression-level code.** Not a binary structure: reconstructing VB semantics
   (`Variant`, late binding, `On Error`) from native code is research, not a parse.
 * **`.dsr` layout.** `.dsr` files carry no SQL and no caption text; the layout lives

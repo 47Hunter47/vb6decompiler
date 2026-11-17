@@ -284,7 +284,7 @@ for `0x00a46408` finds nothing and the run gets reported as "the engine lost the
 strings". Measured here: renaming **inside** the program (`createLabel`, plate
 comments) changed the emitted pseudo-C **not at all**, so the names go onto the
 emitted text instead (`--literals` in `scripts/ghidra_bridge.py`), and visibility is
-measured with `scripts/literal_visibility.py` against both forms.
+measured with `python -m vb6decompiler.literal_visibility` against both forms.
 
 **46. A driver-appended comment block makes everything visible.** If the run appends
 its own per-procedure literal dump to the emitted body, then every catalogued address

@@ -35,15 +35,19 @@ host, no database name, no account, no credential, no absolute install path.
 | Form geometry from binary | `vb6d blob <exe> --validate` | geometry for forms that have no `.frm`, calibrated against `.frm` ground truth |
 | Per-procedure evidence | `vb6d dossier --listings <dir>` | one JSON object per procedure: its literals in order, its SQL with closed/open kept apart, name hints, plus an optional pseudo-C inventory merged by VA — evidence for re-specification, not source |
 | DataReport layout | `vb6d datareport <dll or dir>` | report sections, controls, captions recovered from the runtime blobs |
-| Form icons from `.frx` | `scripts/frx_icon.py <frx dir> <out> [--validate <frm dir>]` | standalone `.ico` per form, extracted from the leading ICON record without the executable; coverage cross-checked against `.frm` Icon references |
+| Form icons from `.frx` | `python -m vb6decompiler.frx_icon <frx dir> <out> [--validate <frm dir>]` | standalone `.ico` per form, extracted from the leading ICON record without the executable; coverage cross-checked against `.frm` Icon references |
 | Second-opinion decompiler run | `scripts/ghidra_bridge.py --ghidra <dir> --bin <exe> --targets <csv> --out <dir>` | one pseudo-C file per procedure: our bounds and names, engine ceilings as flags, the JDK requirement read from the install before anything is imported |
-| Literal visibility check | `scripts/literal_visibility.py --corpus <dir> --literals <csv> --out <csv>` | measured visible / catalogued per procedure — an address token (`DAT_`, `PTR_PTR_`) **or** inlined text counts, with a denominator instead of a hunch |
-| Pseudo-C inventories | `scripts/pseudoc_inventory.py --corpus <dir> --out-dir <dir>` | literal order, indirect-call object+slot, ordered calls with line numbers, branch conditions, unnamed-global census |
+| Literal visibility check | `python -m vb6decompiler.literal_visibility --corpus <dir> --literals <csv> --out <csv>` | measured visible / catalogued per procedure — an address token (`DAT_`, `PTR_PTR_`) **or** inlined text counts, with a denominator instead of a hunch |
+| Pseudo-C inventories | `python -m vb6decompiler.pseudoc_inventory --corpus <dir> --out-dir <dir>` | literal order, indirect-call object+slot, ordered calls with line numbers, branch conditions, unnamed-global census |
 | Credential gate | `vb6d mask <dir>` | files rewritten in place: connection strings redacted, then an audit counting what is still live |
 
-The `scripts/` helpers are in the repository, not in the pip install — take a checkout
-for those. The three Ghidra-side helpers additionally expect a **local** Ghidra install
-and `pip install pyghidra`; the library and the `vb6d` CLI stay standard-library only.
+Four helpers ship inside the package, so a pip install can run them: `frx_icon`,
+`literal_visibility`, `pseudoc_inventory` (the one `vb6d dossier --inventory` reads)
+and `semi_laa`. The same files stay runnable from a checkout as
+`python scripts/<name>.py ...`. The two that need something else stay in `scripts/`:
+`ghidra_bridge.py` expects a **local** Ghidra install and `pip install pyghidra`, and
+`win32_gui_probe.py` drives a Windows GUI. The library and the `vb6d` CLI stay
+standard-library only.
 
 `vb6d dossier` names the runtime helpers a procedure calls (`__vbaFreeStr`,
 `rtcMsgBox`, …) from the export table of the `msvbvm60.dll` the table was generated
@@ -54,9 +58,10 @@ this repository measured. Where the background for these structures was read:
 
 ## You fill these in
 
-Every entry point takes a path; nothing is baked in. Real-target tests read four
-variables and skip when they are unset; the fifth row is a shell-wide default the
-tool itself reads.
+Every entry point takes a path; nothing is baked in. Four variables name your target and
+the real-target tests skip when they are unset; `VB6D_MSVBVM60` re-checks the shipped
+runtime table against your own DLL; the last two are optional — one sets a tool default,
+one lists names you refuse to publish.
 
 | Variable | What you put in it |
 |---|---|
@@ -64,6 +69,7 @@ tool itself reads.
 | `VB6D_LISTINGS` | a directory of decompiler output: listing text carrying `'VA` address comments (the shape `docs/formats.md` §4 reads), plus `.frm` and `.frx` files |
 | `VB6D_FRM_DIR` | a directory holding `.frm` design text — ground truth for `--validate` |
 | `VB6D_REPORT_DIR` | the install directory holding the report DLLs |
+| `VB6D_MSVBVM60` | optional: a `msvbvm60.dll` to check the runtime call table against — ordinals are per build, so yours may differ from the one the table was generated against |
 | `VB6D_ENCODING` | optional: the code page of the build's text (`cp1252`, `cp1251`, …). A flag `--encoding` on the same command wins over it. |
 | `VB6D_SCRUB_DENYLIST` | optional: a private file, one name per line — names you refuse to publish. The hygiene test fails if any of them appears in this repository. |
 
@@ -269,7 +275,7 @@ Things that cost days to learn:
 * Compare shapes, not totals: literals per procedure, closed versus open
   statements, controls per form. Totals scale with the program; the tests assert
   invariants for the same reason.
-* When a free decompiler refuses a large executable, run `scripts/semi_laa.py`
+* When a free decompiler refuses a large executable, run `python -m vb6decompiler.semi_laa`
   on a copy. The Large Address Aware bit is a property of the file, not of the
   tool's competence.
 * Three-state flags such as `Visible` and `Locked` have defaults that look like
@@ -287,7 +293,7 @@ Things that cost days to learn:
 * An indirect call through an object global (`(*DAT_x)[slot]`) has no statically
   resolvable target either: the bytes stored at such a global are 0 or a small
   non-address token, never a vtable pointer, and a VB6 symbol record carries no
-  name for the global. `scripts/pseudoc_inventory.py` counts them and ranks them
+  name for the global. `python -m vb6decompiler.pseudoc_inventory` counts them and ranks them
   for a run-time trace; nothing in this repo closes them statically.
 * Geometry recovered from the binary is calibrated, not exact for forms that
   changed after the `.frm` in hand was written; `--validate` says so per form.
@@ -306,13 +312,12 @@ Things that cost days to learn:
 
 ```
 vb6decompiler/     the library (one module per stage, stdlib only except pefile/capstone)
-scripts/          standalone helpers (semi_laa.py: set the LAA bit on a copy;
-                  frx_icon.py: extract the leading ICON record of a .frx;
-                  win32_gui_probe.py: drive vendor GUI tools headlessly when the
-                  measurement only exists in a window; ghidra_bridge.py + 
-                  literal_visibility.py + pseudoc_inventory.py: run a generic
-                  decompiler over a validated procedure list, measure what its
-                  output actually shows, and harvest order/slot/call inventories)
+                  + four helpers a pip user can run: semi_laa (set the LAA bit on a
+                  copy), frx_icon (leading ICON record of a .frx), pseudo-C
+                  inventories and literal-visibility measurement
+scripts/          what needs something else: ghidra_bridge.py (a Ghidra install) and
+                  win32_gui_probe.py (a Windows GUI), plus thin shims for the four
+                  helpers so `python scripts/<name>.py` keeps working
 tests/            unit tests + target tests that skip unless VB6D_TARGET is set
 docs/             formats.md (structures), pitfalls.md (traps), tool-matrix.md,
                   pipeline.md (stages and what each may claim), RULES.md,
