@@ -61,6 +61,7 @@ import re
 import struct
 from dataclasses import dataclass, field
 
+from . import fileio
 from .encoding import DEFAULT_CODEPAGE, resolve_encoding
 
 #: fObjectType values measured in one real native build (834 objects). The value is
@@ -291,8 +292,12 @@ def read(path: str, encoding: str | None = None) -> VBProject:
     (falling back to :data:`DEFAULT_CODEPAGE`), which is why a Russian build no longer
     has its object names decoded as Turkish. Pass a code page to override the hint.
     """
-    with open(path, "rb") as fh:
-        data = fh.read()
+    with fileio.image(path) as data:
+        return _read_image(path, data, encoding)
+
+
+def _read_image(path: str, data, encoding: str | None) -> VBProject:
+    """The header-chain walk itself, over a mapped (or read) image."""
     if data[:2] != b"MZ":
         raise VBError(f"{os.path.basename(path)}: not an MZ image (pass design text to 'vb6d frm', compiled binaries here)")
     try:
@@ -424,8 +429,12 @@ def prologue_report(path: str, project: VBProject | None = None, sample: int | N
     we missed".
     """
     project = project or read(path)
-    with open(path, "rb") as fh:
-        data = fh.read()
+    with fileio.image(path) as data:
+        return _prologue_counts(project, data, sample)
+
+
+def _prologue_counts(project: VBProject, data, sample: int | None) -> dict:
+    """Count prologues over a mapped image; split out so the read happens once."""
     addrs = project.procedure_addresses()
     if sample:
         addrs = addrs[:sample]

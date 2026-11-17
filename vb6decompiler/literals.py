@@ -36,6 +36,7 @@ import os
 import re
 from dataclasses import dataclass
 
+from . import fileio
 from . import pe as pe_mod
 from .encoding import DEFAULT_CODEPAGE
 from .mask import mask_text
@@ -119,8 +120,14 @@ def scan_binary(
     Both byte alignments are decoded: VB6 does not promise that a literal starts on
     a 2-byte boundary, and one odd-length neighbour shifts everything after it.
     """
-    with open(path, "rb") as fh:
-        data = fh.read()
+    with fileio.image(path) as data:
+        return _scan_image(path, data, min_chars=min_chars,
+                           include_cp1254=include_cp1254, sections=sections)
+
+
+def _scan_image(path: str, data, *, min_chars: int, include_cp1254: bool,
+                sections: tuple[str, ...] | None) -> list[Literal]:
+    """The scanner itself, over a mapped (or read) image."""
     image = pe_mod.read(path)
     out: list[Literal] = []
     for sec in image.sections:
