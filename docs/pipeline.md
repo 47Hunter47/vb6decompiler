@@ -155,6 +155,21 @@ and marks the row `"source": "export-table ord — msvbvm60.dll <version> (sha25
 so a reader can see the name is only valid for that build. An ordinal the build does
 not export by name stays `ord_598` with null fields: reported unnamed, never guessed.
 
+**Reading the dossier backwards: `vb6d xref <dossier.jsonl>`.** The dossier
+answers "what is in this procedure"; questions usually start from the other
+side — "which procedures touch this string / this SQL". xref inverts what the
+dossier already wrote, so the answer is one command, not jq gymnastics:
+
+* default: a procedure rollup ordered by literal mentions — who to look at first;
+* `--literal SUBSTR` / `--sql SUBSTR`: the search direction — matches recovered
+  text (case-insensitive) and answers with the owning procedure (VA, owner
+  object, name hint); matching is on recovered text only, never on a guess;
+* `--full`: both inverted indexes at once (literal VA → procedures, SQL text
+  VA → procedures) — large output at reference-build sizes, hence opt-in.
+
+A corrupt line in the dossier is counted on stderr and skipped, never a reason
+to void the file — the builder's policy carried through.
+
 ## 3c. Project skeleton
 
 `vb6d project <exe> [--out DIR]` writes a reconstructed project **directory**:

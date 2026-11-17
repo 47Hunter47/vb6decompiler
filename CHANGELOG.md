@@ -3,6 +3,20 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.17
+
+* **`vb6d xref`: the dossier read backwards** — the questions agents actually
+  start from ("which procedures touch this string / this SQL") become one
+  command over the dossier file instead of jq gymnastics. Default: a procedure
+  rollup ordered by literal mentions; `--literal/--sql SUBSTR`: case-insensitive
+  search over recovered text answering with owning procedures (VA, owner
+  object, name hints); `--full`: both inverted indexes (large, opt-in).
+  Measured on the reference corpus: 34,159 procedures with 441,607 literal
+  mentions, rollup in 2 s (9.1 MB of JSON); `--literal SELECT` returns 4,435
+  owning procedures; a string absent from the build returns an empty result
+  and exit 0. A corrupt dossier line is counted on stderr and skipped, never
+  a reason to void the file.
+
 ## 0.4.16
 
 * **`vb6d project` design records:** form stubs now embed a comment-form design

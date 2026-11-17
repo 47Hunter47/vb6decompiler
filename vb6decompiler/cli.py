@@ -283,6 +283,32 @@ def cmd_dossier(args) -> int:
     return 0
 
 
+def cmd_xref(args) -> int:
+    from . import xref
+
+    os.stat(args.dossier)
+    with open(args.dossier, encoding="utf-8") as fh:
+        procs, bad = xref._procedures(fh)
+    for note in bad:
+        print(f"# {note}", file=sys.stderr)
+    if args.literal:
+        shape = xref.search(procs, args.literal, "literals")
+        kind = f"literal search {args.literal!r}"
+    elif args.sql:
+        shape = xref.search(procs, args.sql, "sql")
+        kind = f"sql search {args.sql!r}"
+    elif args.full:
+        shape = xref.full(procs)
+        kind = "full index"
+    else:
+        shape = xref.rollup(procs)
+        kind = "procedure rollup"
+    print(json.dumps({"tool": "vb6d xref", **shape}, ensure_ascii=False, indent=2))
+    mentions = sum(len(p["literals"]) for p in procs)
+    print(f"# {len(procs)} procedures, {mentions} literal mentions; {kind}", file=sys.stderr)
+    return 0
+
+
 def cmd_mask(args) -> int:
     from . import mask
 
@@ -393,6 +419,17 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--encoding", metavar="CODEPAGE", default=None,
                    help="code page of the listing text (default: cp1254; env VB6D_ENCODING)")
     q.set_defaults(func=cmd_dossier)
+
+    q = sub.add_parser("xref", help="query a dossier file from the other side: which procedures touch X")
+    q.add_argument("dossier", help="a dossier JSONL file (the output of 'vb6d dossier')")
+    shape = q.add_mutually_exclusive_group()
+    shape.add_argument("--literal", metavar="SUBSTR",
+                       help="literal entries whose text contains SUBSTR (case-insensitive), with owning procedures")
+    shape.add_argument("--sql", metavar="SUBSTR",
+                       help="SQL entries whose text contains SUBSTR (case-insensitive), with owning procedures")
+    shape.add_argument("--full", action="store_true",
+                       help="both inverted indexes at once (large on real builds; default is the procedure rollup)")
+    q.set_defaults(func=cmd_xref)
 
     q = sub.add_parser("mask", help="mask credentials in generated artefacts and audit the result")
     q.add_argument("path")
