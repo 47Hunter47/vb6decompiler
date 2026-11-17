@@ -91,8 +91,31 @@ Statuses mean exactly this:
 | `ESCAPE` | human text glued on | manual reading |
 | `STUCK` | continuation is not SQL | different neighbour |
 
+Numbers above were measured on 0.2.x. 0.3.0 corrected one classification: a whole
+statement stored as a single literal no longer reports `STUCK` (it was asking about a
+continuation that does not exist), so `CLOSED` on the same corpus is **higher** and the
+`STUCK` row is **lower** than shown. Re-measure with `vb6d stitch` before quoting either.
+
 *Claim it supports:* "these statements are complete". *Not:* "these are the
 program's queries" — the closed set is a lower bound, always.
+
+## 3b. Procedure dossiers
+
+`vb6d dossier --listings <dir> [--out FILE] [--inventory DIR]` — everything the
+stages above proved about **one procedure**, written as one JSON object per line
+(JSONL): the literal texts in listing order, the SQL candidates with `CLOSED` kept
+apart from every open bucket, the name hints with `"kind": "hint"`, and — when a
+`scripts/pseudoc_inventory.py` output directory is supplied — that procedure's
+pseudo-C order, indirect calls, call list and branch conditions, merged by VA.
+
+*Claim it supports:* "this is the evidence collected for procedure `X`".
+*Not:* "this is procedure `X`'s source". Nothing in the record is compilable VB6,
+no instruction is decoded, and a name in `name_hint` is whatever a decompiler
+printed next to that address. Statically unresolvable object calls
+(`(*DAT_x)[slot]`) keep their `DAT_x` token: the dossier never invents a target.
+The summary prints "procedures with >=1 literal: X of Y" and
+"procedures with >=1 closed SQL statement: X of Y", with Y counted before any
+per-procedure failure, so the denominators survive a partial run.
 
 ## 4. Forms
 
