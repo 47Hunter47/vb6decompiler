@@ -147,7 +147,7 @@ def test_the_environment_variable_sits_between_flag_and_header(monkeypatch):
     # routes through choice().
     monkeypatch.setenv(encoding.ENV_VAR, "cp1250")
     assert encoding.choice("cp1251", 0x041F) == ("cp1251", "explicit")
-    assert encoding.choice(None, 0x041F) == ("cp1250", "explicit")
+    assert encoding.choice(None, 0x041F) == ("cp1250", "env")
     monkeypatch.delenv(encoding.ENV_VAR)
     assert encoding.choice(None, 0x041F) == ("cp1254", "lcid")
     assert encoding.choice(None, None) == (encoding.DEFAULT_CODEPAGE, "default")

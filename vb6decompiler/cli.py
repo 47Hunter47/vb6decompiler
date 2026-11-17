@@ -36,6 +36,17 @@ def _emit(rows, as_json: bool, fields: list[str] | None = None) -> None:
             print(r)
 
 
+def _announce(codec: str, source: str) -> None:
+    """Say which code page this run decoded with, once, on stderr.
+
+    stderr and not stdout: stdout carries record lines only (AGENTS.md), and a
+    ``#`` line there would have to be stripped by every caller that parses output.
+    """
+    from . import encoding
+
+    print(encoding.summary_line(codec, source), file=sys.stderr)
+
+
 def cmd_pe(args) -> int:
     from . import pe
 
@@ -49,9 +60,14 @@ def cmd_pe(args) -> int:
 
 
 def cmd_procs(args) -> int:
-    from . import procs
+    from . import encoding, procs
 
-    project = procs.read(args.exe)
+    explicit = args.encoding or encoding.env_codepage()
+    project = procs.read(args.exe, encoding=explicit)
+    # procs.read resolves explicit > header LCID > default; the only label it cannot
+    # know is that the value came from the shell rather than the command line.
+    source = "env" if (not args.encoding and encoding.env_codepage()) else project.encoding_source
+    _announce(project.encoding, source)
     stats = project.stats()
     if args.names:
         names = procs.merge_listing_names(args.names)
@@ -84,12 +100,16 @@ def cmd_procs(args) -> int:
 
 
 def cmd_literals(args) -> int:
-    from . import literals
+    from . import encoding, literals
 
     src = args.source
     if os.path.isdir(src):
-        lits = literals.scan_listings(src)
+        codec, source = encoding.choice(args.encoding, None)
+        _announce(codec, source)
+        lits = literals.scan_listings(src, encoding=codec)
     else:
+        # The binary pass matches 0x20-0x7E only, so no code page is chosen here and
+        # none is reported: BSTR literals are UTF-16 and are decoded by the format.
         lits = literals.scan_binary(src, min_chars=args.min_chars)
     if args.sql_only:
         lits = [l for l in lits if l.is_sql]
@@ -99,10 +119,15 @@ def cmd_literals(args) -> int:
 
 
 def cmd_stitch(args) -> int:
-    from . import literals, sqlstitch
+    from . import encoding, literals, sqlstitch
 
     src = args.source
-    lits = literals.scan_listings(src) if os.path.isdir(src) else literals.scan_binary(src)
+    if os.path.isdir(src):
+        codec, source = encoding.choice(args.encoding, None)
+        _announce(codec, source)
+        lits = literals.scan_listings(src, encoding=codec)
+    else:
+        lits = literals.scan_binary(src)
     cands = sqlstitch.stitch_all(lits, max_more=args.max_more)
     rows = [c.as_row() for c in cands]
     _emit(rows, args.json)
@@ -112,9 +137,11 @@ def cmd_stitch(args) -> int:
 
 
 def cmd_frm(args) -> int:
-    from . import frm
+    from . import encoding, frm
 
-    res = frm.scan_directory(args.path, recursive=args.recursive)
+    codec, source = encoding.choice(args.encoding, None)
+    _announce(codec, source)
+    res = frm.scan_directory(args.path, recursive=args.recursive, encoding=codec)
     if args.json:
         _emit(
             {
@@ -151,8 +178,10 @@ def cmd_blob(args) -> int:
 
     from . import blob
 
+    codec, source = blob.codec_for(args.exe, args.encoding)
+    _announce(codec, source)
     if args.validate:
-        report = blob.validate(args.exe, frm_dir=args.frm_dir)
+        report = blob.validate(args.exe, frm_dir=args.frm_dir, encoding=codec)
         payload = asdict(report)
         payload["field_diffs"] = dict(report.field_diffs)
         payload["control_rate"] = round(report.control_rate, 2)
@@ -160,7 +189,7 @@ def cmd_blob(args) -> int:
         _emit(payload, True)
         print(report.summary(), file=sys.stderr)
         return 0
-    forms = blob.extract_forms(args.exe)
+    forms = blob.extract_forms(args.exe, encoding=codec)
     _emit(
         [
             {
@@ -227,24 +256,32 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--validate", action="store_true", help="check that entries are real prologues")
     q.add_argument("--limit", type=int, default=40)
     q.add_argument("--json", action="store_true")
+    q.add_argument("--encoding", metavar="CODEPAGE", default=None,
+                    help="code page of the decoded text (default: header LCID, else cp1254; env VB6D_ENCODING)")
     q.set_defaults(func=cmd_procs)
 
     q = sub.add_parser("literals", help="BSTR/UTF-16 and ASCII literals, with addresses")
     q.add_argument("source", help="an .exe/.dll, or a directory of decompiler listings")
     q.add_argument("--min-chars", type=int, default=4)
     q.add_argument("--sql-only", action="store_true")
+    q.add_argument("--encoding", metavar="CODEPAGE", default=None,
+                    help="code page of the decoded text (default: header LCID, else cp1254; env VB6D_ENCODING)")
     q.set_defaults(func=cmd_literals)
 
     q = sub.add_parser("stitch", help="join SQL fragments and classify what did not close")
     q.add_argument("source")
     q.add_argument("--max-more", type=int, default=6)
     q.add_argument("--json", action="store_true")
+    q.add_argument("--encoding", metavar="CODEPAGE", default=None,
+                    help="code page of the decoded text (default: header LCID, else cp1254; env VB6D_ENCODING)")
     q.set_defaults(func=cmd_stitch)
 
     q = sub.add_parser("frm", help="parse .frm design blocks")
     q.add_argument("path")
     q.add_argument("--recursive", action="store_true")
     q.add_argument("--json", action="store_true")
+    q.add_argument("--encoding", metavar="CODEPAGE", default=None,
+                    help="code page of the decoded text (default: header LCID, else cp1254; env VB6D_ENCODING)")
     q.set_defaults(func=cmd_frm)
 
     q = sub.add_parser("blob", help="form geometry from the executable's form-data blobs")
@@ -252,6 +289,8 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--validate", action="store_true")
     q.add_argument("--frm-dir", help="ground-truth .frm directory for --validate")
     q.add_argument("--json", action="store_true")
+    q.add_argument("--encoding", metavar="CODEPAGE", default=None,
+                    help="code page of the decoded text (default: header LCID, else cp1254; env VB6D_ENCODING)")
     q.set_defaults(func=cmd_blob)
 
     q = sub.add_parser("datareport", help="DataReport layouts from report DLLs")

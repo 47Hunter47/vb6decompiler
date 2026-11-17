@@ -105,7 +105,7 @@ import struct
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
-from .encoding import DEFAULT_CODEPAGE, resolve_encoding
+from .encoding import DEFAULT_CODEPAGE, choice, resolve_encoding
 from .procs import image_lcid
 
 # --------------------------------------------------------------------------
@@ -801,6 +801,17 @@ def extract_form(blob: FormBlob, encoding: str = DEFAULT_CODEPAGE) -> Form | Non
     return form
 
 
+def codec_for(path: str, encoding: str | None = None) -> tuple[str, str]:
+    """The code page :func:`extract_forms` / :func:`validate` will use for ``path``.
+
+    Reads the image once to reach the VB5 header: the LCID is the only evidence a
+    binary carries about its own text. Callers that print the choice need it *before*
+    parsing, which is why this exists instead of a flag on the results.
+    """
+    data, _sections = load_sections(path)
+    return choice(encoding, image_lcid(data))
+
+
 def extract_forms(path: str, encoding: str | None = None) -> list[Form]:
     """Parse every form blob in ``path`` (one :class:`Form` per blob).
 
@@ -1095,7 +1106,8 @@ __all__ = [
     "CLASS_NAME", "GEOM_PID", "GEOM_PID_OCX", "POST_PIDS", "SKIP_TYPES",
     "VISIBLE_PID", "SSTAB_SIGNATURES", "Section", "FormBlob", "Control", "Form",
     "ValidationReport", "TruthControl", "load_sections", "read_va",
-    "find_form_records", "iter_form_blobs", "blobs_from", "record_starts", "read_str",
+    "find_form_records", "iter_form_blobs", "blobs_from", "codec_for", "record_starts",
+    "read_str",
     "read_utf16", "plausible", "sstab_region", "extract_form", "extract_forms",
     "parse_frm", "validate", "main",
 ]
