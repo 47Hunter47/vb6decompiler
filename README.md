@@ -33,6 +33,7 @@ host, no database name, no account, no credential, no absolute install path.
 | SQL reconstruction | `vb6d stitch <dir or listing>` | fragments joined into whole statements, with explicit "not provable statically" buckets |
 | Form design | `vb6d frm <dir>` | controls, geometry, `Visible`, control arrays, `SSTab` pages from `.frm` text |
 | Form geometry from binary | `vb6d blob <exe> --validate` | geometry for forms that have no `.frm`, calibrated against `.frm` ground truth |
+| Per-procedure evidence | `vb6d dossier --listings <dir>` | one JSON object per procedure: its literals in order, its SQL with closed/open kept apart, name hints, plus an optional pseudo-C inventory merged by VA — evidence for re-specification, not source |
 | DataReport layout | `vb6d datareport <dll or dir>` | report sections, controls, captions recovered from the runtime blobs |
 | Form icons from `.frx` | `scripts/frx_icon.py <frx dir> <out> [--validate <frm dir>]` | standalone `.ico` per form, extracted from the leading ICON record without the executable; coverage cross-checked against `.frm` Icon references |
 | Second-opinion decompiler run | `scripts/ghidra_bridge.py --ghidra <dir> --bin <exe> --targets <csv> --out <dir>` | one pseudo-C file per procedure: our bounds and names, engine ceilings as flags, the JDK requirement read from the install before anything is imported |
@@ -192,6 +193,7 @@ vb6d stitch        <listing dir>                 # join fragments, classify what
 vb6d frm           <listing dir>                 # .frm controls, geometry, arrays, SSTab
 vb6d blob          <app.exe> --validate --frm-dir <frm dir>
 vb6d datareport    <install dir>                 # report layouts from the report DLLs
+vb6d dossier       --listings <listing dir>      # one JSON object per procedure (JSONL)
 vb6d mask          .                             # mask credentials in your artefacts
 vb6d mask          . --dry-run                   # report only; exit 1 if anything is live
 ```
@@ -218,7 +220,9 @@ developed, so you can tell at a glance whether your own numbers look sane:
 | DataReports | 437 layouts (413 in report DLLs + 24 embedded in the executable) |
 
 A different program legitimately gives different numbers. The tests assert
-invariants and lower bounds, not these totals.
+invariants and lower bounds, not these totals. The `stitch` row was measured before
+0.3.0 fixed the `STUCK` classification of one-literal statements, so it understates
+`closed` — see `docs/pipeline.md` §3.
 
 ## Using it well
 
