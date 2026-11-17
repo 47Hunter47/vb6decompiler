@@ -101,6 +101,10 @@ def test_unc_shares_point_at_example_hosts():
 def test_no_email_or_home_path():
     bad = []
     for name in _tracked_files():
+        if name.startswith("third_party/"):
+            # vendored upstream license files must stay verbatim for the
+            # redistribution duty; the address in them is the author's, not ours
+            continue
         text = _text(name)
         if text is None:
             continue
