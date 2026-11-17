@@ -136,6 +136,29 @@ def test_dangling_connector_is_reported():
     assert cand.status == "DANGLING"
 
 
+def test_a_candidate_carries_its_procedure_and_start_address():
+    # A published candidate that names no address cannot be traced back to a build.
+    # The listing header gave the chain both: the procedure VA and the text VA.
+    a = literals.Literal(va=0x401000, text="SELECT * FROM tItem WHERE A = '",
+                         encoding="listing", proc_va=0x400010)
+    b = literals.Literal(va=0x401040, text="1'", encoding="listing", proc_va=0x400010)
+    closed = [c for c in sqlstitch.stitch([a, b], 0) if c.closed]
+    (cand,) = closed
+    assert cand.proc_va == 0x400010 and cand.text_va == 0x401000
+    row = cand.as_row()
+    assert row["proc_va"] == "400010" and row["text_va"] == "401000"
+
+
+def test_a_candidate_without_procedure_ownership_says_so():
+    # Binary input knows no procedure; an empty proc_va is the honest answer, in the
+    # same row form literals.py uses for the same unknown.
+    lit = literals.Literal(va=0x401000, text="SELECT * FROM tItem WHERE A = '1'",
+                           encoding="cp1254")
+    (cand,) = [c for c in sqlstitch.stitch([lit], 0) if c.closed]
+    assert cand.proc_va is None and cand.text_va == 0x401000
+    assert cand.as_row()["proc_va"] == ""
+
+
 def test_balance_requires_matching_parens():
     assert sqlstitch.balanced("SELECT (a) FROM t")
     assert not sqlstitch.balanced("SELECT (a FROM t")

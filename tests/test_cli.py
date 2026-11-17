@@ -169,3 +169,24 @@ def test_a_multibyte_build_is_refused_before_any_output(capsys):
     assert code == 2
     assert out == ""
     assert "multi-byte" in err and "Traceback" not in err
+
+
+# --------------------------------------------------------------------------- stitch provenance
+def test_stitch_rows_carry_the_procedure_and_the_start_address(tmp_path, capsys):
+    # A candidate that names no address cannot be traced back to the build it came
+    # from. The listing header gave every chain these two numbers, so the stage must
+    # pass them through instead of dropping them on the way to stdout.
+    lst = tmp_path / "listings"
+    lst.mkdir()
+    (lst / "m.bas").write_text(
+        "Private Sub Form_Load() '400010\n"
+        "  00401000h ; \"SELECT * FROM tItem WHERE A = '\"\n"
+        "  00401040h ; \"1'\"\n",
+        encoding="cp1254",
+    )
+    code, out, _err = _run(["stitch", str(lst), "--json"], capsys)
+    assert code == 0
+    rows = json.loads(out)
+    assert rows, "expected the closed candidate"
+    assert rows[0]["proc_va"] == "400010"
+    assert rows[0]["text_va"] == "401000"
