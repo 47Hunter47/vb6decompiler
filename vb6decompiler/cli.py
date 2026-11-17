@@ -278,7 +278,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     q = sub.add_parser("procs", help="VB6 object table: objects, method counts, addresses")
     q.add_argument("exe")
-    q.add_argument("--names", metavar="LISTING_DIR", help="attach names from a decompiler listing")
+    q.add_argument("--names", metavar="LISTING_DIR", help="count unique procedure VAs found in a decompiler listing (per-procedure names: vb6d dossier)")
     q.add_argument("--validate", action="store_true", help="check that entries are real prologues")
     q.add_argument("--limit", type=int, default=40)
     q.add_argument("--json", action="store_true")

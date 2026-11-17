@@ -202,7 +202,7 @@ The other stages need a VB6 binary or a decompiler listing of your own;
 vb6d pe            <install dir>                 # what is this install made of
 vb6d procs         <app.exe>                     # object table: objects, method counts
 vb6d procs         <app.exe> --validate          # are the entry points real prologues
-vb6d procs         <app.exe> --names <listing dir> # attach decompiler names/addresses
+vb6d procs         <app.exe> --names <listing dir> # count listing VAs; name hints: vb6d dossier
 vb6d literals      <app.exe>                     # BSTR/UTF-16 literals with addresses
 vb6d literals      <listing dir> --sql-only      # literals a decompiler listing produced
 vb6d stitch        <listing dir>                 # join fragments, classify what stayed open
@@ -250,8 +250,8 @@ never be used to claim.
    binaries carry VB6 code, which are redistributables, where the report DLLs are.
 2. `vb6d procs`, then `--validate` before trusting anything downstream. Method
    counts are cheap; entry points proven by their runtime prologue are evidence.
-   Addresses and names only exist once a decompiler listing is merged in with
-   `--names`.
+   Addresses and names come from the listing: `--names` counts its procedure
+   VAs, `vb6d dossier` writes the per-procedure name hints.
 3. `vb6d literals` on the executable gives UTF-16 text with addresses; on a
    listing it gives procedure ownership, and that ownership is what makes
    `vb6d stitch` possible at all.

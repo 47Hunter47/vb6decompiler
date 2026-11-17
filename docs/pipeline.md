@@ -34,8 +34,10 @@ the runtime, not the program.
 method count. Reference: **834 objects / 34,415 declared methods** in 0.4 s.
 
 *Does not give addresses* in a native build (see `pitfalls.md` §7). Addresses come
-from a decompiler listing's `'VA` comments: `vb6d procs <exe> --names <listing dir>`
-merges them (reference: 34,159 unique VAs, 208 of them also verifiable directly).
+from a decompiler listing's `'VA` comments; `vb6d procs <exe> --names <listing dir>`
+**counts** the listing's unique VAs (reference: 34,159, 208 of them also verifiable
+directly as prologues) — the per-procedure name hints themselves are written by
+`vb6d dossier` (§3b).
 The gap between 34,415 declared and 34,159 found is designer-only members and
 methods with no body — it is reported, not hidden.
 
