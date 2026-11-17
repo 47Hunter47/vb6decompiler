@@ -3,6 +3,28 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.25
+
+* **`vb6d outline <edges.jsonl>` — an operation outline, marker-first
+  (milestone D's seventh layer):** the edges file read through the runtime
+  table with no engine at all: each procedure's runtime hits are bucketed by
+  the table's own `category`, and because those categories are a third
+  party's reverse-engineering notes marked unverified, the output field
+  carries the marker in its name — `unverified_operations` — and stderr
+  repeats the word; a consumer cannot read a category without being told
+  what it is. Names the table does not categorize stay names
+  (`runtime_unlisted`), hits on other dlls are counted without
+  interpretation (`api_calls`), late-bound counts pass through as counts,
+  and no category is invented. Measured on the full reference corpus (2 s,
+  engine untouched): **1,882,740 of 1,907,355 runtime hits (98.7%) land in a
+  category**; the 24,615 left are ordinal-only imports and names the notes
+  do not describe, kept as names. Ranking: `free` 548,835, `object` 399,969,
+  `error` 363,145, `string` 323,374, `late` 95,441 — the shape of a VB6
+  program (object lifetimes, error plumbing, string work) readable from
+  counts alone; the file's program calls the runtime and nothing else (0
+  hits on other dlls), which is itself a finding. An outline is an outline:
+  per-procedure runtime fingerprints, not statements of what the source said.
+
 ## 0.4.24
 
 * **`edges` names compiler thunks — the unnamed pile collapses (milestone
