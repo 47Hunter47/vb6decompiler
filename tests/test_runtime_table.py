@@ -169,9 +169,11 @@ def test_the_data_file_is_inside_the_built_wheel(tmp_path):
 
     root = Path(__file__).resolve().parents[1]
     out = tmp_path / "wheel"
+    # Isolation on purpose: CI's runtime environment has no setuptools, so the build
+    # backend has to come from the wheel that pip fetches for the build.
     built = subprocess.run(
         [sys.executable, "-m", "pip", "wheel", str(root), "--no-deps",
-         "--no-build-isolation", "-w", str(out), "-q"],
+         "-w", str(out), "-q"],
         capture_output=True, text=True,
     )
     assert built.returncode == 0, built.stderr[-800:]
