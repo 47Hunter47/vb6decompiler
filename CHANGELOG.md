@@ -3,18 +3,6 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
-## 0.4.9
-
-* **`vb6d --version` prints the tool version on one line and exits 0**, so an
-  agent saving stage output can record which version produced it. The version
-  is read from the installed distribution — pyproject.toml remains its only
-  home (docs/RULES.md) — and a bare checkout says plainly that it has no
-  metadata to answer with.
-
-## 0.4.11
-
-* **Documentation only:** changelog back-fill for 0.4.9–0.4.10.
-
 ## 0.4.12
 
 * **`vb6d project <exe>`: reconstructed project skeleton** — a `.vbp` listing
@@ -27,9 +15,21 @@ the workflow published, not drafts.
   identifier check (625 quarantined as junk decodes), startup unrecovered.
   No source text is invented; the exe itself is never touched.
 
+## 0.4.11
+
+* **Documentation only:** changelog back-fill for 0.4.9–0.4.10.
+
 ## 0.4.10
 
 * **Documentation only:** changelog catch-up for 0.4.4–0.4.8.
+
+## 0.4.9
+
+* **`vb6d --version` prints the tool version on one line and exits 0**, so an
+  agent saving stage output can record which version produced it. The version
+  is read from the installed distribution — pyproject.toml remains its only
+  home (docs/RULES.md) — and a bare checkout says plainly that it has no
+  metadata to answer with.
 
 ## 0.4.8
 
