@@ -9,11 +9,17 @@ to see. Import-slot hits carry ``dll!name``; targets that are themselves
 hits carry the dossier procedure whose range holds them; late-bound
 ``[reg+disp]`` calls are counted as late-bound and nothing else, because
 nothing here can name them.
+
+With ``events=True`` each row also carries an ordered event stream: only
+events that already have a name make it in (a named call target, or an
+immediate that equals a dossier literal VA whose text is known), so late
+and unnamed traffic stays in the counts and the stream never pads itself.
 """
 from __future__ import annotations
 
 import bisect
 import json
+import re
 
 from . import blob, pe, x86
 
@@ -21,10 +27,14 @@ from . import blob, pe, x86
 # bytes and mark the row capped; upgrade needs an image-end rule
 LAST_RANGE_CAP = 0x10000
 
+# an operand slot that is a plain immediate: VB6 loads string-literal
+# descriptors with push/mov/lea, so only those mnemonics are worth parsing
+_IMM_RE = re.compile(r"0x([0-9A-Fa-f]+)$")
 
-def collect(exe: str, dossier_path: str) -> tuple[list[dict], int, dict]:
+
+def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dict], int, dict]:
     """Return (rows, unreadable_line_count, totals) for one dossier file."""
-    procs: list[tuple[int, object, list]] = []
+    procs: list[tuple[int, object, dict]] = []
     bad = 0
     with open(dossier_path, encoding="utf-8") as fh:
         for line in fh:
@@ -34,9 +44,17 @@ def collect(exe: str, dossier_path: str) -> tuple[list[dict], int, dict]:
             except (ValueError, KeyError, TypeError):
                 bad += 1  # same policy as the dossier builder: count, skip, go on
                 continue
-            procs.append((va, d.get("object_name"), (d.get("name_hint") or {}).get("names", [])))
+            procs.append((va, d.get("object_name"), d))
     procs.sort(key=lambda p: p[0])
     vas = [p[0] for p in procs]
+
+    litmap: dict[int, str] = {}
+    for _, _, dossier_row in procs:
+        for lit in dossier_row.get("literals", []):
+            try:
+                litmap[int(lit["va"], 16)] = lit["text"]
+            except (KeyError, TypeError, ValueError):
+                continue  # malformed literal entry: no text, no event
 
     data, sections = blob.load_sections(exe)
     imports = pe.import_names(pe.read(exe))
@@ -85,8 +103,8 @@ def collect(exe: str, dossier_path: str) -> tuple[list[dict], int, dict]:
 
     rows: list[dict] = []
     totals = {"calls": 0, "named": 0, "thunk_named": 0, "late_bound": 0, "edges": 0,
-              "uncensus": 0, "obj_named": 0}
-    for i, (va, obj, names) in enumerate(procs):
+              "uncensus": 0, "obj_named": 0, "events": 0, "literal_events": 0}
+    for i, (va, obj, dossier_row) in enumerate(procs):
         capped = False
         if i + 1 < len(vas):
             end_va = vas[i + 1]
@@ -98,43 +116,61 @@ def collect(exe: str, dossier_path: str) -> tuple[list[dict], int, dict]:
         thunks: dict[str, int] = {}
         other: dict[str, int] = {}
         objects: dict[str, int] = {}
+        evts: list[dict] = []
         late = 0
         for row in result["rows"]:
-            if not row["mnemonic"].startswith("call"):
-                continue
-            totals["calls"] += 1
-            t = x86.call_target(row["operands"])
-            if t is None:
-                late += 1
-                totals["late_bound"] += 1
-                continue
-            name = imports.get(t)
-            if name:
-                imported[name] = imported.get(name, 0) + 1
-                totals["named"] += 1
-                continue
-            j = bisect.bisect_right(vas, t) - 1
-            if j >= 0:
-                key = f"{vas[j]:X}"
-                edges[key] = edges.get(key, 0) + 1
-                totals["edges"] += 1
-            else:
-                # below the listed population: a `jmp [import slot]` thunk is
-                # identity, a bare count is not - try the two named hops first
-                tn = thunk_name(t)
-                if tn:
-                    thunks[tn] = thunks.get(tn, 0) + 1
-                    totals["thunk_named"] += 1
+            if row["mnemonic"].startswith("call"):
+                totals["calls"] += 1
+                t = x86.call_target(row["operands"])
+                if t is None:
+                    late += 1
+                    totals["late_bound"] += 1
+                    continue
+                label = None
+                name = imports.get(t)
+                if name:
+                    imported[name] = imported.get(name, 0) + 1
+                    totals["named"] += 1
+                    label = name
                 else:
-                    oname = objfunc.get(t)
-                    if oname:
-                        objects[oname] = objects.get(oname, 0) + 1
-                        totals["obj_named"] += 1
+                    j = bisect.bisect_right(vas, t) - 1
+                    if j >= 0:
+                        key = f"{vas[j]:X}"
+                        edges[key] = edges.get(key, 0) + 1
+                        totals["edges"] += 1
+                        label = f"proc:{key}"
                     else:
-                        key = f"{t:X}"
-                        other[key] = other.get(key, 0) + 1
-                        totals["uncensus"] += 1
-        r: dict = {"va": f"{va:X}", "object_name": obj, "names": names,
+                        # below the listed population: a `jmp [import slot]`
+                        # thunk is identity, a bare count is not - try the two
+                        # named hops first
+                        tn = thunk_name(t)
+                        if tn:
+                            thunks[tn] = thunks.get(tn, 0) + 1
+                            totals["thunk_named"] += 1
+                            label = tn
+                        else:
+                            oname = objfunc.get(t)
+                            if oname:
+                                objects[oname] = objects.get(oname, 0) + 1
+                                totals["obj_named"] += 1
+                                label = f"object:{oname}"
+                            else:
+                                key = f"{t:X}"
+                                other[key] = other.get(key, 0) + 1
+                                totals["uncensus"] += 1
+                if events and label is not None:
+                    evts.append({"va": row["va"], "name": label})
+            elif events and row["mnemonic"] in ("push", "mov", "lea"):
+                # only immediates that ARE dossier literals become events:
+                # an event without text says nothing a count does not
+                m = _IMM_RE.search(row["operands"].rsplit(",", 1)[-1])
+                if m:
+                    text = litmap.get(int(m.group(1), 16))
+                    if text is not None:
+                        evts.append({"va": row["va"], "text": text})
+                        totals["literal_events"] += 1
+        r: dict = {"va": f"{va:X}", "object_name": obj,
+                   "names": (dossier_row.get("name_hint") or {}).get("names", []),
                    "ended": result["ended"], "instructions": result["instructions"],
                    "calls_imported": imported, "calls_procedures": edges,
                    "calls_late_bound": late}
@@ -146,5 +182,8 @@ def collect(exe: str, dossier_path: str) -> tuple[list[dict], int, dict]:
             r["calls_objects"] = objects
         if capped:
             r["range_capped"] = True
+        if events:
+            r["events"] = evts
+            totals["events"] += len(evts)
         rows.append(r)
     return rows, bad, totals

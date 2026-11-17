@@ -221,7 +221,7 @@ def cmd_edges(args) -> int:
 
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.dossier)), "edges.jsonl")
     try:
-        rows, bad, totals = edges.collect(args.exe, args.dossier)
+        rows, bad, totals = edges.collect(args.exe, args.dossier, events=args.events)
     except OSError as exc:
         print(f"# error: {exc}", file=sys.stderr)
         return 2
@@ -230,11 +230,12 @@ def cmd_edges(args) -> int:
     with open(out, "w", encoding="utf-8") as fh:
         for r in rows:
             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+    ev = f"; events on: {totals['events']} named events, {totals['literal_events']} literal loads" if args.events else ""
     print(f"# {len(rows)} procedures -> {out}; totals: {totals['named']} named via imports, "
           f"{totals['thunk_named']} named via import thunks, "
           f"{totals['edges']} attributed to listed procedures, {totals['late_bound']} late-bound, "
           f"{totals['obj_named']} on object-table functions of known objects, "
-          f"{totals['uncensus']} still unnamed", file=sys.stderr)
+          f"{totals['uncensus']} still unnamed{ev}", file=sys.stderr)
     return 0
 
 
@@ -583,6 +584,7 @@ def build_parser() -> argparse.ArgumentParser:
     ed.add_argument("exe")
     ed.add_argument("--dossier", required=True, help="JSONL produced by vb6d dossier")
     ed.add_argument("--out", help="output JSONL (default: edges.jsonl next to the dossier file)")
+    ed.add_argument("--events", action="store_true", help="add ordered per-procedure event streams: named calls + loads of immediates that are dossier literals")
     ed.set_defaults(func=cmd_edges)
 
     ovl = sub.add_parser("outline", help="read an edges file through the runtime table: per-procedure operation counts (no engine needed)")
