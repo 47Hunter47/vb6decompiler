@@ -199,6 +199,7 @@ The other stages need a VB6 binary or a decompiler listing of your own;
 ## Quick start
 
 ```
+vb6d --version                                     # which version of this tool am I
 vb6d pe            <install dir>                 # what is this install made of
 vb6d procs         <app.exe>                     # object table: objects, method counts
 vb6d procs         <app.exe> --validate          # are the entry points real prologues

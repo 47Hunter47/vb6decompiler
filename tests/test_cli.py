@@ -47,6 +47,16 @@ def test_missing_subcommand_exits_nonzero():
     assert exc.value.code != 0
 
 
+def test_version_is_one_word_on_stdout_and_exits_zero(capsys):
+    # An agent pinning "which tool version produced this file" must get the
+    # answer on stdout with exit 0 — not a help wall.
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["--version"])
+    assert exc.value.code == 0
+    out, err = capsys.readouterr()
+    assert out.startswith("vb6d ") and err == ""
+
+
 # --------------------------------------------------------------------------- frm
 def test_frm_prints_a_summary_with_its_denominator(capsys):
     code, out, err = _run(["frm", FIXTURES], capsys)
