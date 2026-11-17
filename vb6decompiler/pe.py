@@ -142,6 +142,20 @@ class PEImage:
     def import_dlls(self) -> list[str]:
         return [i.dll for i in self.imports]
 
+    @property
+    def truncated(self) -> bool:
+        """True when the image claims bytes the file does not have.
+
+        The ordinary shape of a truncated download or half-copied file: the
+        headers parse, every lookup past EOF quietly returns nothing, and the
+        image reads as a clean non-VB6 file. Measured: the reference 111 MB
+        VB6 build cut to 100 KB reported "0 unreadable" and no VB6 runtime —
+        without this flag a cut VB6 build and a genuinely foreign file are
+        indistinguishable to the pe stage.
+        """
+        return any(sec.raw_size and sec.raw_offset + sec.raw_size > self.size
+                   for sec in self.sections)
+
     def summary(self) -> dict:
         return {
             "path": self.path,
@@ -155,6 +169,7 @@ class PEImage:
             "com_registration": sorted(
                 n for n, _ in self.exports if n in COM_REGISTRATION_EXPORTS
             ),
+            "truncated": self.truncated,
         }
 
 
