@@ -231,8 +231,10 @@ def cmd_edges(args) -> int:
         for r in rows:
             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
     print(f"# {len(rows)} procedures -> {out}; totals: {totals['named']} named via imports, "
+          f"{totals['thunk_named']} named via import thunks, "
           f"{totals['edges']} attributed to listed procedures, {totals['late_bound']} late-bound, "
-          f"{totals['uncensus']} below the listed population", file=sys.stderr)
+          f"{totals['obj_named']} on object-table functions of known objects, "
+          f"{totals['uncensus']} still unnamed", file=sys.stderr)
     return 0
 
 
