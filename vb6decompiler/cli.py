@@ -103,6 +103,23 @@ def cmd_procs(args) -> int:
     return 0
 
 
+def cmd_project(args) -> int:
+    from . import encoding, procs, projectwrite
+
+    explicit = args.encoding or encoding.env_codepage()
+    project = procs.read(args.exe, encoding=explicit)
+    source = "env" if (not args.encoding and encoding.env_codepage()) else project.encoding_source
+    _announce(project.encoding, source)
+    out_dir = args.out or projectwrite.default_out_dir(args.exe)
+    report = projectwrite.write_project(project, out_dir)
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+    counts = report["counts"]
+    print(f"# {counts['vbp_entries']} placeholder files + {projectwrite.DEFAULT_REPORT_NAME} -> {out_dir}",
+          file=sys.stderr)
+    return 0
+
+
 def cmd_literals(args) -> int:
     from . import encoding, literals
 
@@ -318,6 +335,16 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--encoding", metavar="CODEPAGE", default=None,
                     help="code page of the decoded text (default: header LCID, else cp1254; env VB6D_ENCODING)")
     q.set_defaults(func=cmd_procs)
+
+    q = sub.add_parser("project", help="project skeleton: .vbp + placeholder files + recovery report")
+    q.add_argument("exe")
+    q.add_argument("--out", metavar="DIR", default=None,
+                   help="output directory (default: <exe-name>_project beside the exe; never the exe itself)")
+    q.add_argument("--json", action="store_true",
+                   help="print the recovery report as JSON on stdout (files are written either way)")
+    q.add_argument("--encoding", metavar="CODEPAGE", default=None,
+                    help="code page of the decoded text (default: header LCID, else cp1254; env VB6D_ENCODING)")
+    q.set_defaults(func=cmd_project)
 
     q = sub.add_parser("literals", help="BSTR/UTF-16 and ASCII literals, with addresses")
     q.add_argument("source", help="an .exe/.dll, or a directory of decompiler listings")

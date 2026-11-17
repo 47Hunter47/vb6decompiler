@@ -35,8 +35,8 @@ def test_every_subcommand_is_wired_to_a_function():
     actions = [a for a in parser._actions if hasattr(a, "choices") and isinstance(a.choices, dict)]
     assert actions, "no subparsers found"
     subs = actions[0].choices
-    assert set(subs) == {"pe", "procs", "literals", "stitch", "frm", "blob", "datareport",
-                        "dossier", "mask"}
+    assert set(subs) == {"pe", "procs", "project", "literals", "stitch", "frm", "blob",
+                        "datareport", "dossier", "mask"}
     for name, sub in subs.items():
         assert hasattr(sub.get_default("func"), "__call__"), f"{name} has no func"
 
@@ -255,3 +255,32 @@ def test_blob_json_carries_per_control_geometry(tmp_path, capsys, monkeypatch):
     # The text mode keeps its old per-form shape: a new column would break callers.
     code, out, _err = _run(["blob", str(exe)], capsys)
     assert out.splitlines()[0] == "name,controls,width,height"
+
+
+def test_project_command_writes_skeleton_and_reports(tmp_path, capsys, monkeypatch):
+    """The skeleton is provenance first: report on stdout, files beside a name
+    that never touches the exe, and no progress text inside the JSON."""
+    import dataclasses
+    from vb6decompiler import procs
+    from test_projectwrite import make_project
+    from _mini_pe import mini_pe
+
+    exe = tmp_path / "fake.exe"
+    exe.write_bytes(mini_pe())
+    project = dataclasses.replace(make_project(), path=str(exe))
+    monkeypatch.setattr(procs, "read", lambda path, encoding=None: project)
+
+    code, out, err = _run(["project", str(exe), "--out", str(tmp_path / "out"), "--json"], capsys)
+    assert code == 0
+    report = json.loads(out)  # stdout must be parseable on its own
+    assert report["tool"] == "vb6d project"
+    assert report["counts"]["vbp_entries"] == 3
+    assert report["input"]["path"] == str(exe)
+    assert (tmp_path / "out" / "Sample.vbp").exists()
+    assert (tmp_path / "out" / "recovery-report.json").exists()
+    assert "# 3 placeholder files" in err
+
+    # Default output is a sibling directory named after the exe; stdout stays empty.
+    code, out, _err = _run(["project", str(exe)], capsys)
+    assert code == 0 and out == ""
+    assert (tmp_path / "fake_project" / "Sample.vbp").exists()

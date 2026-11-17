@@ -11,6 +11,18 @@ the workflow published, not drafts.
   home (docs/RULES.md) — and a bare checkout says plainly that it has no
   metadata to answer with.
 
+## 0.4.11
+
+* **`vb6d project <exe>`: reconstructed project skeleton** — a `.vbp` listing
+  the object table's modules, classes and forms in table order (labelled
+  inferred: VB6 compiles in `.vbp` order), one placeholder file per object
+  carrying a banner of its provenance, and a `recovery-report.json` that
+  separates confirmed fields, inferred fields, gaps and the file's single
+  assumption (`Type=Exe`). Measured on the reference build: 810 `.vbp` entries,
+  812 files written, exactly 1 of 626 readable method names passing an
+  identifier check (625 quarantined as junk decodes), startup unrecovered.
+  No source text is invented; the exe itself is never touched.
+
 ## 0.4.10
 
 * **Documentation only:** changelog catch-up for 0.4.4–0.4.8.
