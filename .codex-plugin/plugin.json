@@ -1,6 +1,6 @@
 {
   "name": "vb6decompiler",
-  "description": "Evidence-based recovery of native-compiled VB6 programs: procedure table, BSTR literals, SQL stitching, form blobs, DataReport layouts.",
+  "description": "Evidence-based recovery of native-compiled VB6 programs: procedure table, BSTR literals, SQL stitching, form blobs, DataReport layouts, per-procedure evidence dossiers.",
   "author": {
     "name": "vb6decompiler authors",
     "url": "https://github.com/47Hunter47"
