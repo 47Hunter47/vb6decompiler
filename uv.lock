@@ -92,7 +92,7 @@ wheels = [
 
 [[package]]
 name = "vb6decompiler"
-version = "0.4.11"
+version = "0.4.12"
 source = { editable = "." }
 
 [package.optional-dependencies]
