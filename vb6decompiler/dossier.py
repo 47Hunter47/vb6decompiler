@@ -209,15 +209,21 @@ def runtime_call_rows(inventory: dict | None, report: DossierReport) -> list[dic
     come from the export table of the DLL the table was generated against; ``category``
     and ``description`` are a third party's reverse-engineering notes, so ``source``
     says ``unverified`` and a reader must not take them as measured.
+
+    A target spelled ``ord_598`` is an import by ordinal alone, and
+    ``runtime_table.describe`` resolves it against that one DLL build: the record's
+    ``source`` names the build, because the same ordinal elsewhere is another
+    function. An ordinal the build does not export by name keeps ``name: "ord_598"``
+    and nulls — it is reported as unnamed, not guessed.
     """
     rows: list[dict] = []
     for row in (inventory or {}).get("calls", []):
         if row.get("kind") != RUNTIME_CALL_KIND:
             continue
-        name = (row.get("target") or "").strip()
-        call = runtime_table.describe_runtime_call(name) if name else None
+        token = (row.get("target") or "").strip()
+        call = runtime_table.describe(token) if token else None
         rows.append({
-            "name": name,
+            "name": call.name if call else token,
             "count": row.get("count"),
             "ordinal": call.ordinal if call else None,
             "category": call.category if call else None,
