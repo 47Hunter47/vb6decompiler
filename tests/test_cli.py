@@ -190,3 +190,22 @@ def test_stitch_rows_carry_the_procedure_and_the_start_address(tmp_path, capsys)
     assert rows, "expected the closed candidate"
     assert rows[0]["proc_va"] == "400010"
     assert rows[0]["text_va"] == "401000"
+
+
+def test_stitch_on_a_bare_binary_says_why_there_is_nothing(tmp_path, capsys):
+    # A real (synthetic) PE: the old behaviour was a silent empty run, which read
+    # as "this build has no SQL" when the actual cause was that a binary carries
+    # no procedure ownership. The answer must be said, and the exit stays 0:
+    # finding nothing is a result, unusable input is not (AGENTS.md contract).
+    from _mini_pe import mini_pe
+
+    exe = tmp_path / "tiny.exe"
+    exe.write_bytes(mini_pe())
+    code, out, err = _run(["stitch", str(exe), "--json"], capsys)
+    assert code == 0
+    assert json.loads(out) == []
+    assert "no procedure ownership" in err
+    # Garbage still costs exit 2 even though the binary answer is already known.
+    junk = tmp_path / "junk.exe"
+    junk.write_bytes(b"MZ\x90\x00garbage-not-a-real-image")
+    assert cli.main(["stitch", str(junk)]) == 2
