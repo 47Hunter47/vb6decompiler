@@ -159,11 +159,16 @@ carries `calls_imported` (`dll!name` → count), `calls_procedures` (the owning
 range's VA → count), `calls_late_bound`, and `ended`; the last range in the
 file has no next VA, so it reads under a fixed cap and says
 `range_capped: true`. The claim stays the range kind: these are calls *seen
-in the range*, not assertions about who calls whom, and a fourth total —
-targets below the first listed procedure VA — counts hits on code the
-listings never enumerated (helpers with no entry of their own), which is
-where a call graph's edges into unnamed territory become visible instead of
-silent.
+in the range*, not assertions about who calls whom. Hits outside the listed
+population are split by what can be said about them: a target whose own
+first instruction is `jmp [import slot]` is a compiler thunk — resolved two
+hops and named after the slot (`calls_thunks`); an exact match against the
+object table's function entries is named to its object (`calls_objects`;
+object names only — native entry names are junk, never quoted, and native
+builds keep these addresses empty by design, so on a compiled exe this lane
+measures zero); anything left is `calls_other`, a per-target-VA count of
+unnamed hits. An unnamed hit is still a result: the call graph's edges into
+unknown territory stay visible instead of silent.
 
 **Call order is measurable without a decompiler** — as a measurement, not a stage.
 `scripts/t35_import_call_spike.py` decodes each procedure's own byte range with

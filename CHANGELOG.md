@@ -3,6 +3,26 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.24
+
+* **`edges` names compiler thunks — the unnamed pile collapses (milestone
+  D's sixth layer):** a call target below the listed population whose own
+  first instruction is `jmp [import slot]` is a compiler thunk, resolved two
+  hops and reported as `calls_thunks` (`dll!name` → count); the object
+  table's function entries are also consulted (`calls_objects`, object names
+  only), and what remains is `calls_other`, a per-target-VA count. Measured
+  on the full reference corpus (unchanged 4m40s pass): of the 10,059
+  previously-unnamed hits, **9,980 are thunks** — five of them account for
+  nearly all of it: `__vbaChkstk` 7,479 (the stack-probe helper),
+  `_adj_fdiv_m32` 1,434, `_adj_fdiv_m64` 634, `_adj_fdivr_m64` 413,
+  `_adj_fdiv_r` 20 — the classic VB6 FPU-patch cluster, sitting right next
+  to the entry-point trampoline where the listings never enumerated. The
+  still-unnamed lane shrank to **79 hits across 11 target VAs** (a region
+  near `ACDD38` whose entries are not slot jumps); `calls_objects` measures
+  zero on a compiled exe because native builds keep method entry addresses
+  empty by design — documented in `procs.py`, now stated in the docs too.
+  The 34,159 / 34,159 ret-in-range result held on the rerun.
+
 ## 0.4.23
 
 * **`vb6d edges <exe> --dossier <file>` — the call graph, produced once

@@ -1,12 +1,14 @@
 """Program-level call edges: one pass over the dossier's ranges, aggregated.
 
-The claim stays the range kind documented for decode — "calls seen in this
+Claims stay the range kind documented for decode — "calls seen in this
 procedure's range", never "this procedure calls": a range can hold a helper
 that has no listing entry of its own. One procedure per row even when it
 makes no decodable call, because absence is a result the agent must be able
-to see. Import-slot hits carry ``dll!name``; in-image hits carry the dossier
-procedure whose range holds them; late-bound ``[reg+disp]`` calls are counted
-as late-bound and nothing else, because nothing here can name them.
+to see. Import-slot hits carry ``dll!name``; targets that are themselves
+``jmp [import slot]`` thunks carry the slot's name two hops away; in-image
+hits carry the dossier procedure whose range holds them; late-bound
+``[reg+disp]`` calls are counted as late-bound and nothing else, because
+nothing here can name them.
 """
 from __future__ import annotations
 
@@ -38,6 +40,22 @@ def collect(exe: str, dossier_path: str) -> tuple[list[dict], int, dict]:
 
     data, sections = blob.load_sections(exe)
     imports = pe.import_names(pe.read(exe))
+    # the object table names whole objects, and its function entries are plain
+    # VAs - exact hits below the listed population can be attributed to their
+    # object even though native entry names are junk (never quoted here).
+    # A non-VB6 exe has no such table: edges still work, without the naming.
+    objfunc: dict[int, str] = {}
+    try:
+        from . import procs as _procs
+
+        proj = _procs.read(exe)
+        for o, m in proj.methods_by_address():
+            objfunc.setdefault(m.address, o.name)
+    except Exception:
+        objfunc = {}
+    # native builds keep Method.address=None (measured and documented in
+    # procs.py), so on a compiled exe objfunc stays empty - by design, not
+    # by omission; builds that DO expose entry addresses get the naming.
 
     def window_for(va: int, end_va: int) -> bytes:
         for sec in sections:
@@ -49,8 +67,25 @@ def collect(exe: str, dossier_path: str) -> tuple[list[dict], int, dict]:
                 return data[sec.raw_pointer + delta: sec.raw_pointer + delta + take]
         return b""
 
+    thunk_cache: dict[int, "str | None"] = {}
+
+    def thunk_name(t: int):
+        # two-hop: many call targets below the listed population are `jmp
+        # [import slot]` thunks the compiler emitted outside every listing -
+        # resolve the slot and the thunk gets the import's name
+        if t not in thunk_cache:
+            nm = None
+            probe = x86.decode(window_for(t, t + 12), t, limit=1)
+            if probe["rows"] and probe["rows"][0]["mnemonic"] == "jmp":
+                t2 = x86.call_target(probe["rows"][0]["operands"])
+                if t2 is not None:
+                    nm = imports.get(t2)
+            thunk_cache[t] = nm
+        return thunk_cache[t]
+
     rows: list[dict] = []
-    totals = {"calls": 0, "named": 0, "late_bound": 0, "edges": 0, "uncensus": 0}
+    totals = {"calls": 0, "named": 0, "thunk_named": 0, "late_bound": 0, "edges": 0,
+              "uncensus": 0, "obj_named": 0}
     for i, (va, obj, names) in enumerate(procs):
         capped = False
         if i + 1 < len(vas):
@@ -60,7 +95,10 @@ def collect(exe: str, dossier_path: str) -> tuple[list[dict], int, dict]:
         result = x86.decode(window_for(va, end_va), va, limit=10**9)
         imported: dict[str, int] = {}
         edges: dict[str, int] = {}
-        late = uncensus = 0
+        thunks: dict[str, int] = {}
+        other: dict[str, int] = {}
+        objects: dict[str, int] = {}
+        late = 0
         for row in result["rows"]:
             if not row["mnemonic"].startswith("call"):
                 continue
@@ -81,14 +119,31 @@ def collect(exe: str, dossier_path: str) -> tuple[list[dict], int, dict]:
                 edges[key] = edges.get(key, 0) + 1
                 totals["edges"] += 1
             else:
-                uncensus += 1
-                totals["uncensus"] += 1
+                # below the listed population: a `jmp [import slot]` thunk is
+                # identity, a bare count is not - try the two named hops first
+                tn = thunk_name(t)
+                if tn:
+                    thunks[tn] = thunks.get(tn, 0) + 1
+                    totals["thunk_named"] += 1
+                else:
+                    oname = objfunc.get(t)
+                    if oname:
+                        objects[oname] = objects.get(oname, 0) + 1
+                        totals["obj_named"] += 1
+                    else:
+                        key = f"{t:X}"
+                        other[key] = other.get(key, 0) + 1
+                        totals["uncensus"] += 1
         r: dict = {"va": f"{va:X}", "object_name": obj, "names": names,
                    "ended": result["ended"], "instructions": result["instructions"],
                    "calls_imported": imported, "calls_procedures": edges,
                    "calls_late_bound": late}
-        if uncensus:
-            r["calls_below_census"] = uncensus
+        if thunks:
+            r["calls_thunks"] = thunks
+        if other:
+            r["calls_other"] = other
+        if objects:
+            r["calls_objects"] = objects
         if capped:
             r["range_capped"] = True
         rows.append(r)
