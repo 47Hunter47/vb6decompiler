@@ -62,6 +62,13 @@ Check headers first, then filter.
 Sorting fragments by it approximates program order and is not proof of order.
 Statement order needs a control-flow pass (capstone) or a live trace.
 
+**11. The method-entry name column of a native object table is usually garbage.**
+On the reference build, of the 626 entries the parser read, exactly **1** passes
+an identifier check — the rest are `MZ\x90`-style hits from decoding raw pointer
+bytes through the build's code page, and none carries a usable address. Only the
+counts are trustworthy; real names come from a decompiler listing. `vb6d project`
+quarantines failing decodes and never writes them into recovered files.
+
 ## Reconstructing statements
 
 **11. A verb inside quotes is not a verb.**
