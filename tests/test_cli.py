@@ -36,7 +36,7 @@ def test_every_subcommand_is_wired_to_a_function():
     assert actions, "no subparsers found"
     subs = actions[0].choices
     assert set(subs) == {"pe", "procs", "project", "literals", "stitch", "frm", "blob",
-                         "datareport", "dossier", "decode", "xref", "mask"}
+                         "datareport", "dossier", "decode", "edges", "xref", "mask"}
     for name, sub in subs.items():
         assert hasattr(sub.get_default("func"), "__call__"), f"{name} has no func"
 

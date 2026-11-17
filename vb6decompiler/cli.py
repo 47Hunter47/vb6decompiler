@@ -216,6 +216,26 @@ def cmd_decode(args) -> int:
     return 0
 
 
+def cmd_edges(args) -> int:
+    from . import edges
+
+    out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.dossier)), "edges.jsonl")
+    try:
+        rows, bad, totals = edges.collect(args.exe, args.dossier)
+    except OSError as exc:
+        print(f"# error: {exc}", file=sys.stderr)
+        return 2
+    if bad:
+        print(f"# warning: {bad} unreadable lines skipped in {args.dossier}", file=sys.stderr)
+    with open(out, "w", encoding="utf-8") as fh:
+        for r in rows:
+            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+    print(f"# {len(rows)} procedures -> {out}; totals: {totals['named']} named via imports, "
+          f"{totals['edges']} attributed to listed procedures, {totals['late_bound']} late-bound, "
+          f"{totals['uncensus']} below the listed population", file=sys.stderr)
+    return 0
+
+
 def cmd_literals(args) -> int:
     from . import encoding, literals
 
@@ -525,6 +545,12 @@ def build_parser() -> argparse.ArgumentParser:
     dc.add_argument("--json", action="store_true", help="machine-readable dump including how the decode ended")
     dc.add_argument("--procs", help="a dossier JSONL (vb6d dossier output): in-image call targets are attributed to the procedure whose reported range holds them")
     dc.set_defaults(func=cmd_decode)
+
+    ed = sub.add_parser("edges", help="one pass over a dossier's ranges: per-procedure call edges (needs the [asm] extra)")
+    ed.add_argument("exe")
+    ed.add_argument("--dossier", required=True, help="JSONL produced by vb6d dossier")
+    ed.add_argument("--out", help="output JSONL (default: edges.jsonl next to the dossier file)")
+    ed.set_defaults(func=cmd_edges)
 
     q = sub.add_parser("xref", help="query a dossier file from the other side: which procedures touch X")
     q.add_argument("dossier", help="a dossier JSONL file (the output of 'vb6d dossier')")
