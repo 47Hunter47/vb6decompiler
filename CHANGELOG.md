@@ -3,6 +3,18 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.9
+
+* **`vb6d --version` prints the tool version on one line and exits 0**, so an
+  agent saving stage output can record which version produced it. The version
+  is read from the installed distribution — pyproject.toml remains its only
+  home (docs/RULES.md) — and a bare checkout says plainly that it has no
+  metadata to answer with.
+
+## 0.4.10
+
+* **Documentation only:** changelog catch-up for 0.4.4–0.4.8.
+
 ## 0.4.8
 
 * **`pe` flags images whose sections claim bytes past EOF** (`truncated: true`
