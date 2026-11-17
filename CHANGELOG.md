@@ -13,6 +13,10 @@ the workflow published, not drafts.
 
 ## 0.4.11
 
+* **Documentation only:** changelog back-fill for 0.4.9–0.4.10.
+
+## 0.4.12
+
 * **`vb6d project <exe>`: reconstructed project skeleton** — a `.vbp` listing
   the object table's modules, classes and forms in table order (labelled
   inferred: VB6 compiles in `.vbp` order), one placeholder file per object
