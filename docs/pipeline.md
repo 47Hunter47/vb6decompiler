@@ -155,6 +155,30 @@ and marks the row `"source": "export-table ord — msvbvm60.dll <version> (sha25
 so a reader can see the name is only valid for that build. An ordinal the build does
 not export by name stays `ord_598` with null fields: reported unnamed, never guessed.
 
+## 3c. Project skeleton
+
+`vb6d project <exe> [--out DIR]` writes a reconstructed project **directory**:
+the object table's modules/classes/forms, one placeholder file per object, and
+`recovery-report.json`. Structure is what this proves; text is not.
+
+* `.vbp` listing order: VB6 compiles in `.vbp` order, so the object-table order
+  is the closest evidence of the original sequence — labelled *inferred* in the
+  report, never asserted as proven.
+* Junk quarantine: native method entries usually decode to garbage (reference
+  build: 626 readable entries, exactly **1** passes an identifier check). Only
+  passing names reach the stubs, and a pass is recorded as shape evidence, not
+  truth. `Startup=` is written only when a module has a readable `Main`; the
+  reference build has none, so the line is a comment and the report lists it
+  under gaps.
+* `Type=Exe` is the file's only *assumption*, and it is carried as one in the
+  report: the application type is not modelled from the object table.
+* DataReport objects are runtime-only: counted in the report, never `.vbp`
+  entries or files; their layouts are `vb6d datareport`'s job.
+* Reference-build measurement: 810 `.vbp` entries, 812 files written
+  (802 forms / 7 modules / 1 class, plus `.vbp` + report), 625 of 626 method
+  names quarantined as provable junk, startup unrecovered. The exe is never
+  touched; output lands in a sibling `<exe-name>_project` directory.
+
 ## 4. Forms
 
 `vb6d frm <listing dir>` — `.frm` design blocks: controls, geometry in twips,
