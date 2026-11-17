@@ -105,7 +105,7 @@ program's queries" — the closed set is a lower bound, always.
 stages above proved about **one procedure**, written as one JSON object per line
 (JSONL): the literal texts in listing order, the SQL candidates with `CLOSED` kept
 apart from every open bucket, the name hints with `"kind": "hint"`, and — when a
-`scripts/pseudoc_inventory.py` output directory is supplied — that procedure's
+`python -m vb6decompiler.pseudoc_inventory` output directory is supplied — that procedure's
 pseudo-C order, indirect calls, call list and branch conditions, merged by VA.
 
 *Claim it supports:* "this is the evidence collected for procedure `X`".
@@ -116,6 +116,14 @@ printed next to that address. Statically unresolvable object calls
 The summary prints "procedures with >=1 literal: X of Y" and
 "procedures with >=1 closed SQL statement: X of Y", with Y counted before any
 per-procedure failure, so the denominators survive a partial run.
+
+When the inventory carried `vba_runtime` call rows, each record also gains
+`runtime_calls`: the `MSVBVM60` helper name and its ordinal, read from the export
+table of the DLL in `vb6decompiler/data/runtime_calls.json`, plus a category and
+description that are a third party's notes and keep `"source": "unverified"` for
+exactly that reason. An ordinal belongs to one runtime build; a different
+`msvbvm60.dll` may number the same helper differently, so the table never presents an
+ordinal as a fact about your build (`VB6D_MSVBVM60` re-checks it against yours).
 
 ## 4. Forms
 

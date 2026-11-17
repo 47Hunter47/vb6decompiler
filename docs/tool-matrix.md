@@ -64,7 +64,7 @@ an MSAA bridge whose `InvokePattern` behaviour is unproven.
   never the name.
 * Known ceilings, measured: `Error 6: Overflow` above 32,767 procedures (an
   `Integer` counter; patch to `Long` and rebuild), a ~2 GB address-space cap (the
-  VB6 linker never sets `IMAGE_FILE_LARGE_ADDRESS_AWARE`; `scripts/semi_laa.py`
+  VB6 linker never sets `IMAGE_FILE_LARGE_ADDRESS_AWARE`; `python -m vb6decompiler.semi_laa`
   flips the bit on a copy), single-threaded (CPU minutes == wall minutes), and an
   output folder that stays empty for ~13 CPU hours before writing everything at
   once.
@@ -137,7 +137,7 @@ names supplied by this toolkit's own inventory. Nothing leaves the machine.
   to all 34,159 procedures was not attempted.
 * Ghidra 12.x requires **JDK 25** (`application.java.min=25`); JDK 17 and 21 are rejected by `LaunchSupport`.
 * Driver side, in this repo: `scripts/ghidra_bridge.py` runs it over a `vb6d procs` target list,
-  `scripts/literal_visibility.py` measures what its output actually shows, `scripts/pseudoc_inventory.py`
+  `python -m vb6decompiler.literal_visibility` measures what its output actually shows, `python -m vb6decompiler.pseudoc_inventory`
   harvests the inventories. The trap list is `docs/pitfalls.md`, "Running a second-opinion decompiler".
   rejected by `LaunchSupport`.
 

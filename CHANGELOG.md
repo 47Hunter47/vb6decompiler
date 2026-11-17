@@ -3,6 +3,26 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.1
+
+* **One read per file instead of two or three.** `vb6decompiler/fileio.py` maps an
+  image (`mmap`) when the file is at least 4 MB and reads it otherwise, and the
+  parsers that only ever slice it now share that one buffer: `datareport.find_designs`
+  used to open the same DLL a second time (`read_designs` already had it) and
+  `procs.prologue_report` read a file `procs.read` had just read. Measured on a
+  111 MB image: `read()` peaks at 116 MB and takes 0.08 s, so every removed read is
+  116 MB of allocation and 0.08 s gone. Results are byte-identical — compared against
+  0.4.0 on a synthetic PE through both paths, and pinned by `tests/test_fileio.py`.
+* **A mapping is closed on every path out**, including an exception: on Windows an
+  open mapping keeps the file locked. A file the OS refuses to map falls back to a
+  plain read, so a mapping failure changes speed, never output.
+* **Four helpers moved into the package**: `frx_icon`, `literal_visibility`,
+  `pseudoc_inventory` and `semi_laa` are now `python -m vb6decompiler.<name>`, so a
+  pip install can run them — `pseudoc_inventory` matters most because `vb6d dossier
+  --inventory` consumes its CSVs. `scripts/<name>.py` stays as a shim, so every
+  command quoted in older notes still runs;  `ghidra_bridge.py` (needs a Ghidra
+  install) and `win32_gui_probe.py` (needs a Windows GUI) stay in `scripts/`.
+
 ## 0.4.0
 
 * **`vb6d dossier` names the runtime helpers a procedure calls.** When the merged
