@@ -41,7 +41,7 @@ host, no database name, no account, no credential, no absolute install path.
 | Pseudo-C inventories | `python -m vb6decompiler.pseudoc_inventory --corpus <dir> --out-dir <dir>` | literal order, indirect-call object+slot, ordered calls with line numbers, branch conditions, unnamed-global census |
 | Runtime call order check | `scripts/t35_import_call_spike.py --exe <exe> --listings <dir> [--dll <msvbvm60.dll>]` | whether a native decode reproduces each procedure's `MSVBVM60` call order; reports agreement per procedure, not a guessed call graph |
 | Credential gate | `vb6d mask <dir>` | files rewritten in place: connection strings redacted, then an audit counting what is still live |
-| Project skeleton | `vb6d project <exe>` | structure, not text: `.vbp` with the object table's modules/classes/forms in table order, one placeholder file per object, and a `recovery-report.json` separating confirmed / inferred / missing — nothing invented |
+| Project skeleton | `vb6d project <exe>` | structure, not source: `.vbp` with the object table's modules/classes/forms in table order, one placeholder file per object — forms carry their recovered design record (offset, extent, per-control lines) in comment form — and a `recovery-report.json` separating confirmed / inferred / missing — nothing invented |
 
 Four helpers ship inside the package, so a pip install can run them: `frx_icon`,
 `literal_visibility`, `pseudoc_inventory` (the one `vb6d dossier --inventory` reads)

@@ -174,9 +174,17 @@ the object table's modules/classes/forms, one placeholder file per object, and
   report: the application type is not modelled from the object table.
 * DataReport objects are runtime-only: counted in the report, never `.vbp`
   entries or files; their layouts are `vb6d datareport`'s job.
+* Design records: form stubs embed the blob-recovered design in comment form —
+  record offset and size (the binary stream stays in the exe, fetchable at that
+  offset), the form extent, one line per control with type, caption, geometry,
+  SSTab page or titles, and visibility only where the marker was read. A form
+  with no parseable record is named in the gaps, never silently skipped.
 * Reference-build measurement: 810 `.vbp` entries, 812 files written
-  (802 forms / 7 modules / 1 class, plus `.vbp` + report), 625 of 626 method
-  names quarantined as provable junk, startup unrecovered. The exe is never
+  (802 forms / 7 modules / 1 class, plus `.vbp` + report), 801 of 802 forms
+  designed (the one gap is a `.frm` named in the report),
+  55,814 controls across design blocks, 625 of 626 method names
+  quarantined as provable junk, startup unrecovered,
+  full run on the 111 MB build in about 28 s. The exe is never
   touched; output lands in a sibling `<exe-name>_project` directory.
 
 ## 4. Forms
