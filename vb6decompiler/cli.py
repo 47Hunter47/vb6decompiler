@@ -238,6 +238,37 @@ def cmd_edges(args) -> int:
     return 0
 
 
+def cmd_outline(args) -> int:
+    from . import outline
+
+    out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.edges)), "outline.jsonl")
+    try:
+        fh = open(args.edges, encoding="utf-8")
+    except OSError as exc:
+        print(f"# error: {exc}", file=sys.stderr)
+        return 2
+    rows = categorized = unlisted = api = bad = 0
+    with fh, open(out, "w", encoding="utf-8") as sink:
+        for line in fh:
+            try:
+                edge = json.loads(line)
+                r = outline.outline_row(edge)
+            except (ValueError, KeyError, TypeError, AttributeError):
+                bad += 1  # dossier policy again: count, skip, keep going
+                continue
+            sink.write(json.dumps(r, ensure_ascii=False) + "\n")
+            rows += 1
+            categorized += sum(r["unverified_operations"].values())
+            unlisted += sum(r.get("runtime_unlisted", {}).values())
+            api += sum(r["api_calls"].values())
+    if bad:
+        print(f"# warning: {bad} unreadable lines skipped in {args.edges}", file=sys.stderr)
+    print(f"# {rows} procedures -> {out}; {categorized} runtime hits bucketed by "
+          f"category (third-party notes - unverified), {unlisted} runtime hits the table "
+          f"does not categorize, {api} hits on other dlls", file=sys.stderr)
+    return 0
+
+
 def cmd_literals(args) -> int:
     from . import encoding, literals
 
@@ -553,6 +584,11 @@ def build_parser() -> argparse.ArgumentParser:
     ed.add_argument("--dossier", required=True, help="JSONL produced by vb6d dossier")
     ed.add_argument("--out", help="output JSONL (default: edges.jsonl next to the dossier file)")
     ed.set_defaults(func=cmd_edges)
+
+    ovl = sub.add_parser("outline", help="read an edges file through the runtime table: per-procedure operation counts (no engine needed)")
+    ovl.add_argument("edges", help="JSONL produced by vb6d edges")
+    ovl.add_argument("--out", help="output JSONL (default: outline.jsonl next to the edges file)")
+    ovl.set_defaults(func=cmd_outline)
 
     q = sub.add_parser("xref", help="query a dossier file from the other side: which procedures touch X")
     q.add_argument("dossier", help="a dossier JSONL file (the output of 'vb6d dossier')")

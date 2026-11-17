@@ -170,6 +170,19 @@ measures zero); anything left is `calls_other`, a per-target-VA count of
 unnamed hits. An unnamed hit is still a result: the call graph's edges into
 unknown territory stay visible instead of silent.
 
+`vb6d outline <edges.jsonl>` turns the edges file into an operation outline
+without the engine: each runtime hit is looked up in the runtime table
+(:mod:`vb6decompiler.runtime_table`) and bucketed by that table's
+``category``. Categories are a third party's reverse-engineering notes
+marked unverified, so the output field carries the marker in its name
+(``unverified_operations``) and stderr repeats the word — a consumer cannot
+read a category without being told what it is. Runtime names the table does
+not categorize stay names in ``runtime_unlisted``; hits on other dlls are
+``api_calls``, counted and not interpreted; late-bound counts pass through
+as counts. No category is invented, and an operation outline is an outline:
+counts of runtime fingerprints per procedure, not statements of what the
+source code said.
+
 **Call order is measurable without a decompiler** — as a measurement, not a stage.
 `scripts/t35_import_call_spike.py` decodes each procedure's own byte range with
 capstone, resolves every call through the import address table (including a direct
