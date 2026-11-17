@@ -120,6 +120,41 @@ def cmd_project(args) -> int:
     return 0
 
 
+def cmd_decode(args) -> int:
+    from . import blob, x86
+
+    va = int(args.va, 16)  # bad hex is the exit-2 contract like every input error
+    data, sections = blob.load_sections(args.exe)
+    window = b""
+    for sec in sections:
+        if sec.virtual_address <= va < sec.virtual_address + sec.span:
+            delta = va - sec.virtual_address
+            if delta < sec.raw_size:  # a virtual-only section holds no bytes here
+                # clamp to what this section actually has on disk; the result's
+                # ``ended`` field then honestly says where decoding stopped, so
+                # no exact-length read is needed the way blob.py's read_va wants
+                window = data[sec.raw_pointer + delta:
+                              sec.raw_pointer + delta + min(args.window, sec.raw_size - delta)]
+            break
+    if not window:
+        print(f"# error: no file bytes mapped at VA {args.va.upper()} "
+              "(outside every section or past its raw data)", file=sys.stderr)
+        return 2
+    try:
+        result = x86.decode(window, va, limit=args.limit)
+    except x86.EngineUnavailable as exc:
+        print(f"# error: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        for r in result["rows"]:
+            print(f"{r['va']}  {r['bytes']:<18} {r['mnemonic']} {r['operands']}".rstrip())
+    print(f"# {result['instructions']} instructions, {result['consumed_bytes']} bytes, "
+          f"ended: {result['ended']}", file=sys.stderr)
+    return 0
+
+
 def cmd_literals(args) -> int:
     from . import encoding, literals
 
@@ -419,6 +454,14 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--encoding", metavar="CODEPAGE", default=None,
                    help="code page of the listing text (default: cp1254; env VB6D_ENCODING)")
     q.set_defaults(func=cmd_dossier)
+
+    dc = sub.add_parser("decode", help="dump x86 instructions from a VA (needs the [asm] extra)")
+    dc.add_argument("exe", help="VB6 executable to read the bytes from")
+    dc.add_argument("--va", required=True, help="virtual address to start at, hex (a VA the dossier or xref already reported)")
+    dc.add_argument("--limit", type=int, default=200, help="max instructions (default 200)")
+    dc.add_argument("--window", type=int, default=16384, help="bytes of section data handed to the engine (default 16384)")
+    dc.add_argument("--json", action="store_true", help="machine-readable dump including how the decode ended")
+    dc.set_defaults(func=cmd_decode)
 
     q = sub.add_parser("xref", help="query a dossier file from the other side: which procedures touch X")
     q.add_argument("dossier", help="a dossier JSONL file (the output of 'vb6d dossier')")

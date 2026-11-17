@@ -3,6 +3,25 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.19
+
+* **`vb6d decode <exe> --va HEX` — milestone D's first layer:** a raw x86
+  instruction dump starting at any VA the earlier stages already report
+  (dossier, xref, object table). Each row carries the VA, the instruction
+  bytes, the mnemonic and the operands, and the result declares how it ended
+  (`ret`, `limit`, `undecodable`, `no-bytes`), so silence is never mistaken
+  for completeness. Runs on capstone through the existing optional `[asm]`
+  extra — core installs stay standard-library only, and a missing engine
+  refuses with exit 2 and the install hint instead of a traceback; RULES.md
+  gained the matching confinement line. The wheel (capstone 5.0.7) was
+  measured on this machine; its bindings render operands as `op_str` and need
+  `detail=True`, pinned in `x86.py`, and the upstream license ships in
+  `third_party/capstone/`. Measured on the real build: three dossier
+  procedure VAs each start their decode at a `push ebp` prologue, two end at
+  `ret` (226 and 373 instructions), one reports the instruction limit, and a
+  control VA inside a data pool reports `undecodable` from its first row.
+  No VB6 semantics claimed yet — that is what this layer is for.
+
 ## 0.4.18
 
 * **Consistency fix:** `vb6d project` report JSON now writes addresses as bare

@@ -54,6 +54,10 @@ project that uses these tools.
   with a lossy guess.
 * Prefer stdlib. `pefile` and `capstone` are the only optional third-party
   dependencies and each is confined to one module.
+* `capstone` in the library/CLI enters only through the `asm` extra and only
+  inside `x86.py`; core commands and the default test suite must work without
+  it (engine-needing tests skip when it is absent). A missing engine is a
+  named refusal with the install hint, never an import traceback.
 * Tests: `pytest -q`. Real-target tests are opt-in through four environment
   variables — `VB6D_TARGET`, `VB6D_LISTINGS`, `VB6D_FRM_DIR`, `VB6D_REPORT_DIR` —
   and skip when unset.
