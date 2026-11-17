@@ -180,3 +180,59 @@ def test_the_data_file_is_inside_the_built_wheel(tmp_path):
     wheels = sorted(out.glob("*.whl"))
     assert len(wheels) == 1, f"expected one wheel, got {wheels}"
     assert "vb6decompiler/data/runtime_calls.json" in zipfile.ZipFile(wheels[0]).namelist()
+
+
+# --------------------------------------------------------------------- ordinal imports
+# A build can import a helper by ordinal alone; the decompiler then prints `ord_598`.
+# Resolving it is only legitimate against the DLL build the table was generated from,
+# which is why the resolved record names that build.
+def test_an_ordinal_resolves_to_this_build_s_export_name():
+    call = runtime_table.describe_runtime_ordinal(598)
+    assert call is not None
+    assert call.name and call.ordinal == 598
+    assert call.source.startswith("export-table ord")
+    assert runtime_table.table_dll() in call.source  # the name is valid for that build only
+
+
+def test_an_ordinal_this_build_does_not_name_answers_none():
+    # 1276 exports of that DLL are ordinal-only: no name exists, and none is invented.
+    assert runtime_table.describe_runtime_ordinal(712) is None
+    assert runtime_table.describe_runtime_ordinal(999999) is None
+
+
+def test_both_spellings_go_through_one_entry_point():
+    by_name = runtime_table.describe("rtcMsgBox")
+    by_ordinal = runtime_table.describe(f"ord_{by_name.ordinal}")
+    assert by_ordinal is not None and by_ordinal.name == by_name.name
+    assert runtime_table.describe("ord_notanumber") is None
+    assert runtime_table.describe("") is None
+    assert runtime_table.describe("rtcNoSuchHelper") is None
+
+
+def test_ordinals_are_unique_so_the_inverse_is_unambiguous():
+    # A duplicate ordinal would make ordinal -> name a coin toss.
+    entries = runtime_table._entries()
+    ordinals = [e["ordinal"] for e in entries.values() if isinstance(e, dict)]
+    assert len(ordinals) == len(set(ordinals))
+    assert len(runtime_table._by_ordinal()) == len(ordinals)
+
+
+def test_the_table_names_the_dll_it_speaks_for():
+    # Without this, an ordinal-derived name cannot be attributed to a build.
+    assert runtime_table.table_dll().startswith("msvbvm60.dll ")
+    assert "sha256" in runtime_table.table_dll()
+
+
+def test_a_dossier_annotates_an_ordinal_only_call(tmp_path):
+    from vb6decompiler import dossier
+
+    inv = {"calls": [{"va": "401000", "kind": "vba_runtime", "target": "ord_598", "count": "2"},
+                     {"va": "401000", "kind": "vba_runtime", "target": "ord_712", "count": "1"},
+                     {"va": "401000", "kind": "vba_runtime", "target": "rtcMsgBox", "count": "4"}]}
+    report = dossier.DossierReport()
+    rows = dossier.runtime_call_rows(inv, report)
+    assert [r["name"] for r in rows] == [runtime_table.describe_runtime_ordinal(598).name, "ord_712", "rtcMsgBox"]
+    assert rows[0]["ordinal"] == 598 and "export-table ord" in rows[0]["source"]
+    # An ordinal with no name keeps its spelling and carries no invented fields.
+    assert rows[1]["ordinal"] is None and rows[1]["description"] is None
+    assert report.runtime_calls == 3

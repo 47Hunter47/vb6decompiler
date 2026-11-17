@@ -3,6 +3,26 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.2
+
+* **A runtime helper imported by ordinal alone can now be named.** A build may fill
+  an IAT slot from `ordinal 598` and never mention the name, so the pseudo-C a
+  decompiler prints reads `ord_598` and a dossier could say nothing about it. The
+  shipped table already held one ordinal per name, so the reverse lookup costs no new
+  data: `runtime_table.describe_runtime_ordinal()` and `describe()` resolve
+  `ord_598` → its export name, and the dossier uses them.
+* **The resolved name carries the build it came from.** An ordinal is a position in
+  one DLL's export table, so the row's `source` reads
+  `export-table ord — msvbvm60.dll <version> (sha256 …)`. An ordinal that build does
+  not export by name stays `ord_598` with null fields — reported unnamed, never
+  guessed.
+* **The agent skill describes the tool as it is.** `.agents/skills/` is the single
+  copy every plugin manifest points at, and it still described the pre-dossier
+  pipeline: it now lists `vb6d dossier`, the code-page rule
+  (`--encoding` > `VB6D_ENCODING` > header LCID > `cp1254`) and the in-package
+  helper commands, and it no longer sends a reader to `scripts/literal_visibility.py`
+  or `scripts/pseudoc_inventory.py` for work the package does itself.
+
 ## 0.4.1
 
 * **One read per file instead of two or three.** `vb6decompiler/fileio.py` maps an

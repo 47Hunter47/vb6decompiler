@@ -125,6 +125,12 @@ exactly that reason. An ordinal belongs to one runtime build; a different
 `msvbvm60.dll` may number the same helper differently, so the table never presents an
 ordinal as a fact about your build (`VB6D_MSVBVM60` re-checks it against yours).
 
+A call the build imports **by ordinal alone** reaches the inventory spelled
+`ord_598`, with no name at all. The dossier resolves it against that one DLL build
+and marks the row `"source": "export-table ord — msvbvm60.dll <version> (sha256 …)"`,
+so a reader can see the name is only valid for that build. An ordinal the build does
+not export by name stays `ord_598` with null fields: reported unnamed, never guessed.
+
 ## 4. Forms
 
 `vb6d frm <listing dir>` — `.frm` design blocks: controls, geometry in twips,
