@@ -145,7 +145,10 @@ bound import tables (VB6-era binders put live addresses in the slots) are
 named through the ILT at the matching index, and `ordN` slots of the VB6
 runtime are resolved via the shipped call table. Late-bound `call [reg+disp]`
 targets stay unannotated because nothing static can name them, and the
-stderr line states how many of the calls were named. Missing engine: named
+stderr line states how many of the calls were named. With `--procs
+<dossier.jsonl>` an in-image target that is not an import slot gets
+`target_proc`: the dossier procedure whose reported range holds it —
+attribution of a range, never a claim of identity. Missing engine: named
 refusal, exit 2, install hint.
 
 **Call order is measurable without a decompiler** — as a measurement, not a stage.

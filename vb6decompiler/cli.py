@@ -154,7 +154,27 @@ def cmd_decode(args) -> int:
     # name call targets against this file's own import table; late-bound
     # [reg+disp] calls stay unannotated because nothing here can name them
     iat = pe.import_names(pe.read(args.exe))
-    named = calls = 0
+    vas, owners = [], []
+    if args.procs:
+        import bisect
+
+        bad = 0
+        with open(args.procs, encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    d = json.loads(line)
+                    v = int(d["va"], 16)
+                except (ValueError, KeyError, TypeError):
+                    bad += 1  # builder policy from dossier: count, skip, keep going
+                    continue
+                vas.append(v)
+                owners.append(d)
+        order = sorted(range(len(vas)), key=vas.__getitem__)
+        vas = [vas[i] for i in order]
+        owners = [owners[i] for i in order]
+        if bad:
+            print(f"# warning: {bad} unreadable lines skipped in {args.procs}", file=sys.stderr)
+    named = calls = landed = 0
     for row in result["rows"]:
         if not row["mnemonic"].startswith("call"):
             continue
@@ -167,6 +187,16 @@ def cmd_decode(args) -> int:
         if name:
             row["target"] = name
             named += 1
+        elif args.procs:
+            # attribution, not identity: the target lands inside the range a
+            # listing reported for that procedure (t35's standing warning)
+            i = bisect.bisect_right(vas, t) - 1
+            if i >= 0:
+                o = owners[i]
+                row["target_proc"] = {"va": f"{vas[i]:X}",
+                                      "object_name": o.get("object_name"),
+                                      "names": (o.get("name_hint") or {}).get("names", [])}
+                landed += 1
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
@@ -174,10 +204,14 @@ def cmd_decode(args) -> int:
             line = f"{r['va']}  {r['bytes']:<18} {r['mnemonic']} {r['operands']}".rstrip()
             if "target" in r:
                 line += f"  -> {r['target']}"
+            elif "target_proc" in r:
+                tp = r["target_proc"]
+                line += f"  -> proc {tp['va']} ({tp['object_name']})"
             print(line)
     stop = f", stopped at {result['stopped_at_va']}" if "stopped_at_va" in result else ""
+    extra = f", {landed} land on known procedures" if args.procs else ""
     print(f"# {result['instructions']} instructions, {result['consumed_bytes']} bytes, "
-          f"ended: {result['ended']}{stop}; calls: {named} of {calls} named via import table",
+          f"ended: {result['ended']}{stop}; calls: {named} of {calls} named via import table{extra}",
           file=sys.stderr)
     return 0
 
@@ -489,6 +523,7 @@ def build_parser() -> argparse.ArgumentParser:
     dc.add_argument("--limit", type=int, default=200, help="max instructions (default 200)")
     dc.add_argument("--window", type=int, default=16384, help="bytes of section data handed to the engine (default 16384)")
     dc.add_argument("--json", action="store_true", help="machine-readable dump including how the decode ended")
+    dc.add_argument("--procs", help="a dossier JSONL (vb6d dossier output): in-image call targets are attributed to the procedure whose reported range holds them")
     dc.set_defaults(func=cmd_decode)
 
     q = sub.add_parser("xref", help="query a dossier file from the other side: which procedures touch X")

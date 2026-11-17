@@ -3,6 +3,22 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.22
+
+* **`decode --procs <dossier.jsonl>` — call edges, honestly attributed
+  (milestone D's fourth layer):** an in-image call target that is not an
+  import slot gets `target_proc` — the dossier procedure whose *reported
+  range* holds the target (VA + object name + listing name hints). This is
+  range attribution, never an identity claim. Measured on the reference
+  build (300-procedure sample): 212 edges attributed to known procedures —
+  including hot shared helpers like one `modApiFuncs` procedure called 151
+  times across the sample — while 277 targets land **below the first listed
+  procedure VA**, a helper region near the entry point the listings never
+  enumerated:
+  the documented "helpers with no entry of their own" gap, now visible as a
+  named measurement instead of a footnote. Corrupt dossier lines are
+  counted and skipped, same as the dossier builder itself.
+
 ## 0.4.21
 
 * **`decode` names its call targets (milestone D's third layer):** every call
