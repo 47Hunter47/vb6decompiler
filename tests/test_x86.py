@@ -111,3 +111,28 @@ def test_import_named_calls_get_named_targets(tmp_path, capsys):
     assert "target" not in rows[2] and rows[2]["target_va"] == "4010B8"
     assert d["ended"] == "ret"
     assert "calls: 2 of 3 named via import table" in err
+
+
+def test_procs_file_attributes_internal_targets(tmp_path, capsys):
+    pytest.importorskip("capstone")
+    from vb6decompiler import cli
+
+    exe = tmp_path / "two.exe"
+    # body A calls the VA where body B starts (E8 rel to 0x40100F), then rets
+    exe.write_bytes(mini_pe(code=bytes.fromhex("E80A000000C3")))
+    procs = tmp_path / "dossier.jsonl"
+    procs.write_text(
+        'not-json-at-all\n'
+        '{"va": "401000", "object_name": "fA", "name_hint": {"names": ["Proc_1"]}}\n'
+        '{"va": "40100F", "object_name": "fB", "name_hint": {"names": ["Proc_2"]}}\n',
+        encoding="utf-8")
+    code = cli.main(["decode", str(exe), "--va", "401000", "--procs", str(procs), "--json"])
+    out, err = capsys.readouterr()
+    assert code == 0
+    d = json.loads(out)
+    row = d["rows"][0]
+    assert row["target_va"] == "40100F"
+    assert row["target_proc"]["object_name"] == "fB"  # bisect: the range that holds it
+    assert row["target_proc"]["names"] == ["Proc_2"]
+    assert "1 unreadable lines skipped" in err
+    assert "1 land on known procedures" in err
