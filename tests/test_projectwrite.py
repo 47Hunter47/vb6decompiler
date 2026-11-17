@@ -104,7 +104,10 @@ def test_design_blocks_land_in_form_stubs(tmp_path, monkeypatch):
     assert "form extent: 5000 x 4000, client origin 0 x 0" in stub
     form = next(f for f in report["files"] if f["kind"] == "form")
     assert form["status"] == "placeholder + recovered design record"
-    assert form["design"]["controls"] == 2 and form["design"]["record_offset"] == "0x500"
+    assert form["design"]["controls"] == 2 and form["design"]["record_offset"] == "500"
+    # JSON hex follows the repo-wide convention (bare uppercase, like dossier/
+    # literals/stitch); the 0x prefix belongs in human comment lines only.
+    assert '"0x' not in json.dumps(report)
     assert form["design"]["note"]  # the stream stays in the exe
 
 
