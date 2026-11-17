@@ -45,6 +45,13 @@ The `scripts/` helpers are in the repository, not in the pip install — take a 
 for those. The three Ghidra-side helpers additionally expect a **local** Ghidra install
 and `pip install pyghidra`; the library and the `vb6d` CLI stay standard-library only.
 
+`vb6d dossier` names the runtime helpers a procedure calls (`__vbaFreeStr`,
+`rtcMsgBox`, …) from the export table of the `msvbvm60.dll` the table was generated
+against; where a third party's table has a description for one, that description is
+carried too and marked `unverified`, because it is a reverser's note and not something
+this repository measured. Where the background for these structures was read:
+[docs/references.md](docs/references.md).
+
 ## You fill these in
 
 Every entry point takes a path; nothing is baked in. Real-target tests read four
@@ -308,7 +315,8 @@ scripts/          standalone helpers (semi_laa.py: set the LAA bit on a copy;
                   output actually shows, and harvest order/slot/call inventories)
 tests/            unit tests + target tests that skip unless VB6D_TARGET is set
 docs/             formats.md (structures), pitfalls.md (traps), tool-matrix.md,
-                  pipeline.md (stages and what each may claim), RULES.md
+                  pipeline.md (stages and what each may claim), RULES.md,
+                  references.md (where the background came from)
 .agents/skills/   the vb6decompiler skill — what a coding agent installs
 .claude-plugin/   Claude Code plugin + marketplace manifests (skills point at it)
 .codex-plugin/    Codex plugin manifest (same single skill copy)
@@ -324,6 +332,7 @@ VB6D_LISTINGS="C:/path/decompile" pytest -q          # + listing/stitching tests
 VB6D_FRM_DIR="C:/path/decompile" pytest -q           # + blob calibration
 VB6D_REPORT_DIR="C:/path/install" pytest -q          # + DataReport parsing
 VB6D_SCRUB_DENYLIST="C:/path/names.txt" pytest -q    # + scan for your target own names
+VB6D_MSVBVM60="C:/Windows/SysWOW64/msvbvm60.dll" pytest -q   # + runtime table vs your DLL
 ```
 
 The hygiene test needs no target: it looks for private addresses, home paths, e-mail and

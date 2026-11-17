@@ -40,7 +40,7 @@ from dataclasses import dataclass, field
 from typing import Iterator, TextIO
 
 from . import literals as literals_mod
-from . import procs, sqlstitch
+from . import procs, runtime_table, sqlstitch
 from .encoding import DEFAULT_CODEPAGE
 
 #: Default output name when ``--out`` is not given and the caller wants a file.
@@ -59,6 +59,11 @@ MAX_SQL_PER_PROC = 32
 #: merged, and each row is grouped by its ``va`` column.
 INVENTORY_KINDS = ("order", "vtable", "calls", "conditions")
 
+#: Inventory call rows that name a runtime helper (``__vbaFoo``/``rtcBar``) are the
+#: only ones :mod:`vb6decompiler.runtime_table` annotates; a Win32 API call is not its
+#: business.
+RUNTIME_CALL_KIND = "vba_runtime"
+
 
 @dataclass
 class ProcedureDossier:
@@ -70,6 +75,9 @@ class ProcedureDossier:
     literals: list[dict] = field(default_factory=list)
     sql: list[dict] = field(default_factory=list)
     inventory: dict | None = None
+    #: Runtime helpers this procedure calls, with what the export table says about
+    #: each. Only filled when the inventory carried call rows (see RUNTIME_CALL_KIND).
+    runtime_calls: list[dict] | None = None
 
     @property
     def counts(self) -> dict:
@@ -95,6 +103,8 @@ class ProcedureDossier:
         }
         if self.inventory is not None:
             out["inventory"] = self.inventory
+        if self.runtime_calls is not None:
+            out["runtime_calls"] = self.runtime_calls
         return out
 
 
@@ -105,6 +115,8 @@ class DossierReport:
     procedures: int = 0
     with_literal: int = 0
     with_closed_sql: int = 0
+    runtime_calls: int = 0
+    runtime_calls_described: int = 0
     failed: list[tuple[str, str]] = field(default_factory=list)
     encoding: str = DEFAULT_CODEPAGE
 
@@ -115,6 +127,11 @@ class DossierReport:
             f"# procedures with >=1 literal: {self.with_literal} of {self.procedures}",
             f"# procedures with >=1 closed SQL statement: {self.with_closed_sql} of {self.procedures}",
         ]
+        if self.runtime_calls:
+            out.append(
+                f"# runtime calls described: {self.runtime_calls_described} of "
+                f"{self.runtime_calls} (descriptions are a third party's unverified notes)"
+            )
         if self.failed:
             out.append(f"# failed: {len(self.failed)} of {self.procedures}")
             out.extend(f"#   failed {va}: {msg}" for va, msg in self.failed[:10])
@@ -183,6 +200,34 @@ def load_inventory(path: str) -> dict[int, dict[str, list[dict]]]:
                     continue
                 out.setdefault(va, {}).setdefault(kind, []).append(row)
     return out
+
+
+def runtime_call_rows(inventory: dict | None, report: DossierReport) -> list[dict] | None:
+    """Annotate the runtime helpers one procedure calls; ``None`` when it calls none.
+
+    ``inventory`` is one procedure's ``{kind: [row, ...]}`` block. Name and ordinal
+    come from the export table of the DLL the table was generated against; ``category``
+    and ``description`` are a third party's reverse-engineering notes, so ``source``
+    says ``unverified`` and a reader must not take them as measured.
+    """
+    rows: list[dict] = []
+    for row in (inventory or {}).get("calls", []):
+        if row.get("kind") != RUNTIME_CALL_KIND:
+            continue
+        name = (row.get("target") or "").strip()
+        call = runtime_table.describe_runtime_call(name) if name else None
+        rows.append({
+            "name": name,
+            "count": row.get("count"),
+            "ordinal": call.ordinal if call else None,
+            "category": call.category if call else None,
+            "description": call.description if call else None,
+            "source": call.source if call else None,
+        })
+        if call is not None and call.description:
+            report.runtime_calls_described += 1
+    report.runtime_calls += len(rows)
+    return rows or None
 
 
 # ---------------------------------------------------------------------------
@@ -266,6 +311,7 @@ def iter_dossiers(listing_dir: str, encoding: str = DEFAULT_CODEPAGE,
                 merged = inventory.get(va)
                 if merged:
                     dossier.inventory = merged
+                    dossier.runtime_calls = runtime_call_rows(merged, report)
         except Exception as exc:  # one bad procedure must not end the run
             report.failed.append((f"{va:X}", f"{type(exc).__name__}: {exc}"))
             continue
@@ -293,6 +339,8 @@ def summary(report: DossierReport) -> dict:
         "procedures": report.procedures,
         "with_literal": report.with_literal,
         "with_closed_sql": report.with_closed_sql,
+        "runtime_calls": report.runtime_calls,
+        "runtime_calls_described": report.runtime_calls_described,
         "failed": len(report.failed),
     }
 
@@ -335,6 +383,7 @@ __all__ = [
     "ProcedureDossier",
     "DossierReport",
     "load_inventory",
+    "runtime_call_rows",
     "iter_dossiers",
     "stream",
     "summary",

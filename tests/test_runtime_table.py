@@ -102,3 +102,79 @@ def test_table_still_matches_the_local_dll():
     wrong = {n: (e["ordinal"], exports.get(n)) for n, e in entries.items()
              if exports.get(n) != e["ordinal"]}
     assert not wrong, f"{len(wrong)} of {len(entries)} ordinals drifted: {list(wrong)[:5]}"
+
+
+# ------------------------------------------------------------- dossier integration
+CALLS_CSV = (
+    "va,label,kind,target,count,first_satir_no\n"
+    "401000,FUN_401000,vba_runtime,__vbaFreeStr,3,\n"
+    "401000,FUN_401000,vba_runtime,__vbaUI1I4,1,\n"
+    "401000,FUN_401000,vba_runtime,__vbaNotAThing,1,\n"
+    "401000,FUN_401000,api,Kernel32.GetTickCount,2,\n"
+)
+CALLER_LISTING = (
+    "VERSION 5.00\n"
+    "Private Sub cmdGo_Click()  '401000\n"
+    '    mov eax, 42C3A0h ; "SELECT 1"\n'
+    "End Sub\n"
+)
+
+
+def _dossier_run(tmp_path, with_inventory: bool):
+    from vb6decompiler import dossier
+
+    listings = tmp_path / "listings"
+    listings.mkdir()
+    (listings / "fDemo.frm").write_bytes(CALLER_LISTING.encode("cp1254"))
+    kwargs = {}
+    if with_inventory:
+        inv = tmp_path / "inv"
+        inv.mkdir()
+        (inv / "p_calls.csv").write_text(CALLS_CSV, encoding="utf-8")
+        kwargs["inventory_path"] = str(inv)
+    import io
+    buf = io.StringIO()
+    report = dossier.stream(str(listings), buf, **kwargs)
+    rows = [json.loads(line) for line in buf.getvalue().splitlines() if line.strip()]
+    return rows, report
+
+
+def test_dossier_annotates_runtime_calls_and_leaves_api_calls_alone(tmp_path):
+    rows, report = _dossier_run(tmp_path, with_inventory=True)
+    calls = rows[0]["runtime_calls"]
+    assert [c["name"] for c in calls] == ["__vbaFreeStr", "__vbaUI1I4", "__vbaNotAThing"]
+    assert calls[0]["ordinal"] > 0 and runtime_table.UNVERIFIED in calls[0]["source"]
+    # A name the table does not know keeps its row with nulls, never a guessed ordinal.
+    assert calls[2] == {"name": "__vbaNotAThing", "count": "1", "ordinal": None,
+                        "category": None, "description": None, "source": None}
+    assert report.runtime_calls == 3
+    assert report.runtime_calls_described == 2
+    assert "runtime calls described: 2 of 3" in "\n".join(report.lines())
+
+
+def test_dossier_without_call_rows_prints_no_runtime_line(tmp_path):
+    rows, report = _dossier_run(tmp_path, with_inventory=False)
+    assert "runtime_calls" not in rows[0]
+    assert report.runtime_calls == 0
+    assert "runtime calls" not in "\n".join(report.lines())
+
+
+# ------------------------------------------------------------------- packaging
+def test_the_data_file_is_inside_the_built_wheel(tmp_path):
+    """A table that exists in the checkout but not in the wheel is invisible on PyPI."""
+    import subprocess
+    import sys
+    import zipfile
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    out = tmp_path / "wheel"
+    built = subprocess.run(
+        [sys.executable, "-m", "pip", "wheel", str(root), "--no-deps",
+         "--no-build-isolation", "-w", str(out), "-q"],
+        capture_output=True, text=True,
+    )
+    assert built.returncode == 0, built.stderr[-800:]
+    wheels = sorted(out.glob("*.whl"))
+    assert len(wheels) == 1, f"expected one wheel, got {wheels}"
+    assert "vb6decompiler/data/runtime_calls.json" in zipfile.ZipFile(wheels[0]).namelist()

@@ -91,6 +91,8 @@ def test_counts_agree_with_the_lists_they_describe(listings):
         "procedures": 3,
         "with_literal": 3,
         "with_closed_sql": 1,
+        "runtime_calls": 0,
+        "runtime_calls_described": 0,
         "failed": 0,
     }
 
