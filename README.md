@@ -39,6 +39,7 @@ host, no database name, no account, no credential, no absolute install path.
 | Second-opinion decompiler run | `scripts/ghidra_bridge.py --ghidra <dir> --bin <exe> --targets <csv> --out <dir>` | one pseudo-C file per procedure: our bounds and names, engine ceilings as flags, the JDK requirement read from the install before anything is imported |
 | Literal visibility check | `python -m vb6decompiler.literal_visibility --corpus <dir> --literals <csv> --out <csv>` | measured visible / catalogued per procedure — an address token (`DAT_`, `PTR_PTR_`) **or** inlined text counts, with a denominator instead of a hunch |
 | Pseudo-C inventories | `python -m vb6decompiler.pseudoc_inventory --corpus <dir> --out-dir <dir>` | literal order, indirect-call object+slot, ordered calls with line numbers, branch conditions, unnamed-global census |
+| Runtime call order check | `scripts/t35_import_call_spike.py --exe <exe> --listings <dir> [--dll <msvbvm60.dll>]` | whether a native decode reproduces each procedure's `MSVBVM60` call order; reports agreement per procedure, not a guessed call graph |
 | Credential gate | `vb6d mask <dir>` | files rewritten in place: connection strings redacted, then an audit counting what is still live |
 
 Four helpers ship inside the package, so a pip install can run them: `frx_icon`,
@@ -46,8 +47,10 @@ Four helpers ship inside the package, so a pip install can run them: `frx_icon`,
 and `semi_laa`. The same files stay runnable from a checkout as
 `python scripts/<name>.py ...`. The two that need something else stay in `scripts/`:
 `ghidra_bridge.py` expects a **local** Ghidra install and `pip install pyghidra`, and
-`win32_gui_probe.py` drives a Windows GUI. The library and the `vb6d` CLI stay
-standard-library only.
+`win32_gui_probe.py` drives a Windows GUI. `t35_import_call_spike.py` needs
+`pip install "vb6decompiler[asm]"` (capstone) because it decodes x86 bytes, and it
+answers a measurement question rather than producing a stage's output. The library and
+the `vb6d` CLI stay standard-library only.
 
 `vb6d dossier` names the runtime helpers a procedure calls (`__vbaFreeStr`,
 `rtcMsgBox`, …) from the export table of the `msvbvm60.dll` the table was generated
@@ -315,9 +318,10 @@ vb6decompiler/     the library (one module per stage, stdlib only except pefile/
                   + four helpers a pip user can run: semi_laa (set the LAA bit on a
                   copy), frx_icon (leading ICON record of a .frx), pseudo-C
                   inventories and literal-visibility measurement
-scripts/          what needs something else: ghidra_bridge.py (a Ghidra install) and
-                  win32_gui_probe.py (a Windows GUI), plus thin shims for the four
-                  helpers so `python scripts/<name>.py` keeps working
+scripts/          what needs something else: ghidra_bridge.py (a Ghidra install),
+                  win32_gui_probe.py (a Windows GUI) and t35_import_call_spike.py
+                  (capstone, and it measures instead of shipping output), plus thin
+                  shims for the four helpers so `python scripts/<name>.py` keeps working
 tests/            unit tests + target tests that skip unless VB6D_TARGET is set
 docs/             formats.md (structures), pitfalls.md (traps), tool-matrix.md,
                   pipeline.md (stages and what each may claim), RULES.md,
