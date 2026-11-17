@@ -46,8 +46,9 @@ and `pip install pyghidra`; the library and the `vb6d` CLI stay standard-library
 
 ## You fill these in
 
-Every entry point takes a path; nothing is baked in. Real-target tests read five
-variables and skip when they are unset.
+Every entry point takes a path; nothing is baked in. Real-target tests read four
+variables and skip when they are unset; the fifth row is a shell-wide default the
+tool itself reads.
 
 | Variable | What you put in it |
 |---|---|
@@ -55,6 +56,7 @@ variables and skip when they are unset.
 | `VB6D_LISTINGS` | a directory of decompiler output: listing text carrying `'VA` address comments (the shape `docs/formats.md` §4 reads), plus `.frm` and `.frx` files |
 | `VB6D_FRM_DIR` | a directory holding `.frm` design text — ground truth for `--validate` |
 | `VB6D_REPORT_DIR` | the install directory holding the report DLLs |
+| `VB6D_ENCODING` | optional: the code page of the build's text (`cp1252`, `cp1251`, …). A flag `--encoding` on the same command wins over it. |
 | `VB6D_SCRUB_DENYLIST` | optional: a private file, one name per line — names you refuse to publish. The hygiene test fails if any of them appears in this repository. |
 
 Set them for one command, or export them for a session:
@@ -74,6 +76,31 @@ $env:VB6D_LISTINGS   = "D:/work/decompile"
 $env:VB6D_FRM_DIR    = "D:/work/decompile"
 $env:VB6D_REPORT_DIR = "D:/App"
 ```
+
+## Non-Turkish builds
+
+VB6 stores its text in the ANSI code page of the machine that **compiled** the
+project, so a German build has `ä` where a Turkish build has `ş`. The toolkit used to
+decode everything as CP1254; it now picks the code page itself:
+
+1. `--encoding CODEPAGE` on the stage you are running (wins over everything),
+2. else `VB6D_ENCODING` from the environment,
+3. else the LCID in the build's `VB5!` header — a hint about the developer's Windows,
+   which is usually but not always the compile machine's code page,
+4. else CP1254, the historical default.
+
+```
+vb6d frm  <listing dir> --encoding cp1252
+vb6d procs <app.exe>                          # prints "# encoding: cp1251 (lcid)"
+VB6D_ENCODING=cp1251 vb6d literals <dir>
+```
+
+Only single-byte ANSI code pages are accepted (CP874, CP1250–CP1258). A double-byte
+page (CP932/936/949/950) or UTF-8 is refused with exit code 2: this toolkit maps a
+character offset back onto the byte it came from, and that identity is false for a
+variable-width encoding. Captions that still show `U+FFFD` after decoding are counted
+in `vb6d frm`'s summary — that count means the code page is wrong, not that the file
+is damaged.
 
 ## Why not an existing tool
 
@@ -169,6 +196,10 @@ vb6d mask          .                             # mask credentials in your arte
 vb6d mask          . --dry-run                   # report only; exit 1 if anything is live
 ```
 
+Every stage that decodes text prints the code page it used once, on stderr:
+`# encoding: cp1254 (default)`. The source is one of `explicit` (the `--encoding`
+flag), `env` (`VB6D_ENCODING`), `lcid` (the build's header) or `default`.
+
 Exit codes: 0 = completed, whatever it found; 1 = mask audit not clean; 2 =
 unusable input (one line on stderr, no traceback — set `VB6D_DEBUG=1` for the
 traceback when reporting a bug).
@@ -250,9 +281,10 @@ Things that cost days to learn:
 * Geometry recovered from the binary is calibrated, not exact for forms that
   changed after the `.frm` in hand was written; `--validate` says so per form.
 * The toolkit is calibrated on native-compiled builds; a P-Code build is outside
-  that calibration and was not tested here. If `vb6d procs --validate` reports no
-  real prologues in your build, suspect a P-Code compile before suspecting the
-  toolkit.
+  that calibration and was not tested here — no P-Code binary was available, so its
+  structures are **not verified**. `vb6d procs --validate` says
+  "0 of N entries start with a native prologue; this build may be P-Code (not
+  verified)" when that is what it measured; that is a hint, not a detection.
 * The parsers know the grammar of the reference build. Another program ships
   different controls, property sets and report sections, so expect more `unknown`
   lines than the reference numbers show. An un-calibrated construct is reported as

@@ -301,3 +301,19 @@ operational facts: the decompiler engine runs in its own process, so a JVM `-Xmx
 not bound its peak memory, and killing the driver leaves the JVM host plus the engine
 holding RAM — kill explicit pids. Ghidra locks its project, so concurrent workers need
 one project directory each.
+
+**48. A `VB5!` header's LCID is a hint about the developer, not the compiler.** The
+field records the language the IDE ran in; the string bytes follow the ANSI code page
+of the machine that compiled the project. They usually agree and occasionally do not
+(a Turkish program built on an English Windows writes CP1252 text and a Turkish LCID).
+So `--encoding` outranks the header, the header outranks the default, and every stage
+prints which one it used. Measured on Windows: `GetLocaleInfoEx(LOCALE_IDEFAULTANSICODEPAGE)`
+gives the LCID→code-page pairs in `vb6decompiler/encoding.py`; LCIDs it answers with no
+code page (Armenian, Kazakh) are deliberately absent from the table.
+
+**49. A code page that is not single-byte breaks every offset the parsers keep.**
+`frm.py` maps a character offset in the decoded text back onto the raw bytes of the
+same line, which is exact for CP1254 and false for CP932/936/949/950 and UTF-8. Measured:
+256 bytes decode to 229 characters in CP932 and 199 in CP936, so the identity fails
+from the first non-ASCII byte. The toolkit refuses those code pages by name instead of
+returning quietly shifted text.
