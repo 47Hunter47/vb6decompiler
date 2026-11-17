@@ -125,3 +125,46 @@ def test_mask_on_a_missing_path_does_not_pass_vacuously(tmp_path, capsys):
     _out, err = capsys.readouterr()
     assert code == 2
     assert "error:" in err
+
+
+# --------------------------------------------------------------------------- encoding
+# Three paths the roadmap names: a code page the user typed, one the header supplied,
+# and input that cannot be honoured (one line, exit 2, no traceback).
+def test_encoding_flag_is_reported_once_on_stderr(capsys):
+    code, _out, err = _run(["frm", FIXTURES, "--encoding", "cp1252"], capsys)
+    assert code == 0
+    lines = [l for l in err.splitlines() if l.startswith("# encoding:")]
+    assert lines == ["# encoding: cp1252 (explicit)"], lines
+
+
+def test_a_directory_input_reports_the_default_when_nothing_is_given(capsys):
+    # A .frm directory has no header to ask; the default must name itself, not stay
+    # silent, so a stranger can see why their captions look wrong.
+    code, _out, err = _run(["frm", FIXTURES], capsys)
+    assert code == 0
+    assert "# encoding: cp1254 (default)" in err
+
+
+def test_the_environment_variable_is_used_and_labelled(capsys, monkeypatch):
+    monkeypatch.setenv("VB6D_ENCODING", "cp1250")
+    code, _out, err = _run(["frm", FIXTURES], capsys)
+    assert code == 0
+    assert "# encoding: cp1250 (env)" in err
+
+
+def test_a_typo_in_the_flag_is_one_line_and_exit_two(capsys):
+    code = cli.main(["frm", FIXTURES, "--encoding", "cp9999"])
+    out, err = capsys.readouterr()
+    assert code == 2
+    assert out == ""
+    assert "unknown code page" in err and "Traceback" not in err
+
+
+def test_a_multibyte_build_is_refused_before_any_output(capsys):
+    # Accepting cp932 would keep working until the first non-ASCII byte, then return
+    # offsets that no longer line up with the bytes. Refuse it up front.
+    code = cli.main(["frm", FIXTURES, "--encoding", "cp932"])
+    out, err = capsys.readouterr()
+    assert code == 2
+    assert out == ""
+    assert "multi-byte" in err and "Traceback" not in err

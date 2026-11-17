@@ -209,12 +209,18 @@ def env_codepage() -> str | None:
 
 
 def choice(explicit: str | None, lcid: int | None) -> tuple[str, str]:
-    """``resolve_encoding`` with the environment variable in second place.
+    """Resolve with ``VB6D_ENCODING`` in second place (flag > env > LCID > default).
 
-    Every CLI stage goes through this one function so the three sources can never
-    disagree about their order between stages.
+    Same table as :func:`resolve_encoding`, one extra source label: ``env`` tells the
+    reader the value came from the shell, not from the command line.
     """
-    return resolve_encoding(explicit or env_codepage(), lcid)
+    if explicit:
+        return resolve_encoding(explicit, None)
+    from_env = env_codepage()
+    if from_env:
+        codec, _ = resolve_encoding(from_env, None)
+        return codec, "env"
+    return resolve_encoding(None, lcid)
 
 
 def summary_line(codec: str, source: str) -> str:
