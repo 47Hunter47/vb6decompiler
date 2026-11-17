@@ -128,6 +128,12 @@ class Candidate:
     status: str            # CLOSED / OPEN_QUOTE / ESCAPE / DANGLING / MULTI / STUCK
     reason: str
     tables: list[str] = field(default_factory=list)
+    #: Where the candidate came from: ``proc_va`` is the owning procedure's VA as the
+    #: listing header gave it (``None`` when ownership is unknown, i.e. binary input),
+    #: ``text_va`` is the address of the first fragment's text. Without them a
+    #: published candidate could not be relocated to the build it was stitched from.
+    proc_va: int | None = None
+    text_va: int | None = None
 
     @property
     def closed(self) -> bool:
@@ -139,6 +145,8 @@ class Candidate:
             "parts": self.parts,
             "reason": self.reason,
             "tables": ";".join(self.tables),
+            "proc_va": f"{self.proc_va:X}" if self.proc_va else "",
+            "text_va": f"{self.text_va:X}" if self.text_va else "",
             "sql": self.text,
         }
 
@@ -180,29 +188,32 @@ def _classify(text: str, parts: list[Literal]) -> Candidate:
     tables = sorted(
         {m.group(2) for m in _TARGET.finditer(text) if m.group(2).lower() not in _NOT_A_TABLE}
     )
+
+    def cand(status: str, reason: str) -> Candidate:
+        # Provenance is filled once, here: every candidate comes from parts[0], which
+        # carries the addresses the listing gave it.
+        first = parts[0]
+        return Candidate(text, len(parts), status, reason, tables,
+                         proc_va=first.proc_va, text_va=first.va)
+
     if not starts_statement(text):
-        return Candidate(text, len(parts), "NOT_START", "begins mid-statement", tables)
+        return cand("NOT_START", "begins mid-statement")
     if ESCAPE.search(text):
-        return Candidate(text, len(parts), "ESCAPE", "human text glued onto SQL", tables)
+        return cand("ESCAPE", "human text glued onto SQL")
     if not balanced(text):
         open_q = text.count("'") % 2 == 1
-        return Candidate(
-            text,
-            len(parts),
-            "OPEN_QUOTE" if open_q else "OPEN_PAREN",
-            "run-time value or missing tail" if open_q else "unbalanced parentheses",
-            tables,
-        )
+        return cand("OPEN_QUOTE" if open_q else "OPEN_PAREN",
+                    "run-time value or missing tail" if open_q else "unbalanced parentheses")
     if stmts > 1:
-        return Candidate(text, len(parts), "MULTI", f"{stmts} statements glued together", tables)
+        return cand("MULTI", f"{stmts} statements glued together")
     if _DANGLING.search(text.strip()):
-        return Candidate(text, len(parts), "DANGLING", "ends on a connector", tables)
+        return cand("DANGLING", "ends on a connector")
     # A one-part candidate has no continuation to test: asking whether it is SQL made
     # every whole single-literal statement report STUCK ("continuation is not SQL"),
     # which is a claim about a part that does not exist. The guard is for chains.
     if len(parts) > 1 and not any(is_sql_fragment(p.text) for p in parts[1:]):
-        return Candidate(text, len(parts), "STUCK", "continuation is not SQL", tables)
-    return Candidate(text, len(parts), "CLOSED", "balanced, single statement", tables)
+        return cand("STUCK", "continuation is not SQL")
+    return cand("CLOSED", "balanced, single statement")
 
 
 def stitch_all(literals: list[Literal], max_more: int = MAX_MORE) -> list[Candidate]:
