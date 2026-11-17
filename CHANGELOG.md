@@ -3,6 +3,31 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.0
+
+* **`vb6d dossier` names the runtime helpers a procedure calls.** When the merged
+  pseudo-C inventory carries `vba_runtime` call rows, each record gains a
+  `runtime_calls` list: helper name, ordinal, category, description and where each
+  field came from. A run without such rows produces exactly the records 0.3.0
+  produced, and the summary line appears only when calls were seen
+  (`# runtime calls described: X of Y`).
+* **The table is generated from the DLL, not copied from a web page.**
+  `scripts/gen_runtime_table.py` reads the export table of a local `msvbvm60.dll` with
+  this repository's own PE reader and writes `vb6decompiler/data/runtime_calls.json`:
+  the named exports of that build, keyed by name, with the ordinal read from the same
+  file. Ordinal-only exports are left out because they have no name to key on.
+* **Descriptions are third-party notes and are labelled as such.** The category and
+  description text comes from the Apache-2.0 `visualbasic` crate's export table,
+  credited in `THIRD_PARTY_NOTICES.md`. Its ordinal column was checked against a local
+  DLL first and disagreed on every row it has (602 of 602, each off by exactly 99), so
+  ordinals are re-read from the DLL. Names the crate does not list keep a null
+  description instead of an invented one, and every printed description carries
+  `unverified` in `source`.
+* **The data file has to survive packaging.** Package data is declared, and a test
+  builds the wheel and asserts `vb6decompiler/data/runtime_calls.json` is inside it.
+* **New: `docs/references.md`.** What was read for background — the runtime, P-Code,
+  the `VB5!` header — and what each page is good for. No numbers are taken from it.
+
 ## 0.3.0
 
 * **Code page awareness.** Text used to be decoded as CP1254 by name, which is right

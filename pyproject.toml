@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vb6decompiler"
-version = "0.3.0"
+version = "0.4.0"
 description = "Evidence-based recovery of native-compiled VB6 programs: procedures, literals, SQL, form blobs, DataReports"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -35,6 +35,10 @@ vb6d = "vb6decompiler.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["vb6decompiler*"]
+
+[tool.setuptools.package-data]
+# The runtime call table must be inside the wheel, not only in the checkout.
+vb6decompiler = ["data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
