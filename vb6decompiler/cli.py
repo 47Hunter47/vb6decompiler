@@ -225,6 +225,24 @@ def cmd_datareport(args) -> int:
     return 0
 
 
+def cmd_dossier(args) -> int:
+    from . import dossier, encoding
+
+    # A typo'd listing directory would produce an empty, perfectly valid JSONL file;
+    # os.stat turns that into the exit-2 contract instead of a silent no-op.
+    os.stat(args.listings)
+    codec, source = encoding.choice(args.encoding, None)
+    _announce(codec, source)
+    out_path = args.out or os.path.join(args.listings, dossier.DEFAULT_OUT_NAME)
+    with open(out_path, "w", encoding="utf-8", newline="") as fh:
+        report = dossier.stream(args.listings, fh, encoding=codec,
+                                inventory_path=args.inventory)
+    for line in report.lines():
+        print(line, file=sys.stderr)
+    print(f"# wrote {out_path}", file=sys.stderr)
+    return 0
+
+
 def cmd_mask(args) -> int:
     from . import mask
 
@@ -301,6 +319,16 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("path", help="a DLL, or the install directory holding rpt*.dll")
     q.add_argument("--json", action="store_true")
     q.set_defaults(func=cmd_datareport)
+
+    q = sub.add_parser("dossier", help="per-procedure evidence file, one JSON object per line")
+    q.add_argument("--listings", required=True, metavar="DIR",
+                   help="directory of decompiler listings (the same input as 'literals'/'stitch')")
+    q.add_argument("--out", default=None, help="JSONL output path (default: DIR/dossier.jsonl)")
+    q.add_argument("--inventory", default=None,
+                   help="pseudoc_inventory.py output directory to merge by procedure VA")
+    q.add_argument("--encoding", metavar="CODEPAGE", default=None,
+                   help="code page of the listing text (default: cp1254; env VB6D_ENCODING)")
+    q.set_defaults(func=cmd_dossier)
 
     q = sub.add_parser("mask", help="mask credentials in generated artefacts and audit the result")
     q.add_argument("path")
