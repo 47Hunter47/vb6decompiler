@@ -140,3 +140,24 @@ def test_a_frm_caption_is_read_in_the_given_code_page(tmp_path):
     )
     _name, controls, _props = blob.parse_frm(str(path), encoding="cp1251")
     assert [c.caption for c in controls] == ["Готово"]
+
+
+def test_the_environment_variable_sits_between_flag_and_header(monkeypatch):
+    # flag > env > header LCID > default, asserted in one place because every stage
+    # routes through choice().
+    monkeypatch.setenv(encoding.ENV_VAR, "cp1250")
+    assert encoding.choice("cp1251", 0x041F) == ("cp1251", "explicit")
+    assert encoding.choice(None, 0x041F) == ("cp1250", "explicit")
+    monkeypatch.delenv(encoding.ENV_VAR)
+    assert encoding.choice(None, 0x041F) == ("cp1254", "lcid")
+    assert encoding.choice(None, None) == (encoding.DEFAULT_CODEPAGE, "default")
+
+
+def test_an_empty_environment_variable_is_not_a_choice(monkeypatch):
+    # A shell that exports VB6D_ENCODING= must not count as "explicit".
+    monkeypatch.setenv(encoding.ENV_VAR, "   ")
+    assert encoding.env_codepage() is None
+
+
+def test_the_summary_line_names_codec_and_source():
+    assert encoding.summary_line("cp1251", "lcid") == "# encoding: cp1251 (lcid)"
