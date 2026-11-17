@@ -115,7 +115,7 @@ Object record, 0x30 bytes:
 | 0x0C | `lpObjectStatic` |
 | 0x10 | `lpModulePublic` |
 | 0x14 | `lpModuleStatic` |
-| **0x18** | **name VA** (CP1254, NUL-terminated) |
+| **0x18** | **name VA** (ANSI, NUL-terminated — the build's code page, CP1254 on a Turkish build; see `vb6decompiler/encoding.py`) |
 | **0x1C** | **method count** (u32) |
 | 0x20 | `lpMethodNames` → array of u32 name VAs (forms and classes only) |
 | 0x24 | `o_stat` (u16 + padding) |
@@ -292,7 +292,7 @@ separate measure and counts only the controls the `SSTab` record itself names.
 Report definitions are `DataReport` class objects inside `rpt*.dll` (and, in the
 reference install, 24 more inside the executable itself).
 
-* Strings are **`len32` + UTF-16LE**, unlike form blobs (`len16` + CP1254). The two
+* Strings are **`len32` + UTF-16LE**, unlike form blobs (`len16` + the build's ANSI code page). The two
   families look alike and are not alike.
 * Scan **byte by byte**: a single even-length string can carry a `00 00` alignment
   pad, and a 4-byte stride then loses alignment for the rest of the stream and reads

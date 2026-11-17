@@ -49,8 +49,9 @@ project that uses these tools.
 ## Style
 
 * English in code, docs and commit messages (the repo is public-facing).
-* Turkish text inside a target's own data is preserved byte-for-byte; decode as
-  CP1254 or UTF-16LE, never with a lossy guess.
+* Text inside a target's own data is preserved byte-for-byte; ANSI text is decoded with
+  the code page the run resolved (`vb6decompiler/encoding.py`), UTF-16LE as such, never
+  with a lossy guess.
 * Prefer stdlib. `pefile` and `capstone` are the only optional third-party
   dependencies and each is confined to one module.
 * Tests: `pytest -q`. Real-target tests are opt-in through four environment
