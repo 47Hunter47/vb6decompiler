@@ -317,3 +317,10 @@ same line, which is exact for CP1254 and false for CP932/936/949/950 and UTF-8. 
 256 bytes decode to 229 characters in CP932 and 199 in CP936, so the identity fails
 from the first non-ASCII byte. The toolkit refuses those code pages by name instead of
 returning quietly shifted text.
+
+**50. No native prologue is not proof of P-Code.** A method-table entry that does not
+start with `55 8B EC` means the entry is a thunk, a wrapper, or not code at all — the
+reference native build had 208 such entries and 0 of them were reachable code. A build
+whose *every* entry fails that check **may be** P-Code, but the toolkit has no measured
+P-Code sample, so `vb6d procs --validate` says "may be P-Code (not verified)" and stops
+there. Claiming detection without a measured sample breaks rule 1 (`AGENTS.md`).

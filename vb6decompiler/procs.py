@@ -80,6 +80,12 @@ OBJECT_TYPES = {
 #: really is a procedure entry and not a stub or a data pointer.
 PROLOGUE = b"\x55\x8b\xec"
 
+#: Verified-prologue count at or below this value, with entries present, means the
+#: build is *suspected* of being P-Code. A count and not a ratio: the claim the toolkit
+#: may make is exactly "0 of N entries", and a ratio would invite "mostly native",
+#: which nothing here measured.
+NO_PROLOGUE_THRESHOLD = 0
+
 #: Header of a procedure in a decompiler listing, e.g.
 #: ``Private Sub Command1_Click() '36FB300`` — the trailing hex is the VA and is
 #: the only reliable identity (names repeat within a form: one target had 267
@@ -436,6 +442,24 @@ def prologue_report(path: str, project: VBProject | None = None, sample: int | N
         "not_prologue": len(bad),
         "examples_not_prologue": [hex(a) for a in bad[:10]],
     }
+
+
+def pcode_hint(project: "VBProject", threshold: int = NO_PROLOGUE_THRESHOLD) -> str | None:
+    """One line saying a build may be P-Code, or ``None`` when it has real prologues.
+
+    Deliberately worded "may be" / "not verified": no P-Code binary was available to
+    measure, so a missing native prologue is a suspicion and not a detection. The
+    denominator is the number of method-table entries read, because that is what the
+    hint is about — a build with no entries at all says nothing either way.
+    """
+    entries = sum(len(o.methods) for o in project.objects)
+    verified = sum(1 for o in project.objects for m in o.methods if m.address is not None)
+    if entries == 0 or verified > threshold:
+        return None
+    return (
+        f"# {verified} of {entries} entries start with a native prologue; "
+        "this build may be P-Code (not verified)"
+    )
 
 
 def body_bounds(addresses: list[int]) -> dict[int, int]:

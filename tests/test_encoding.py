@@ -161,3 +161,41 @@ def test_an_empty_environment_variable_is_not_a_choice(monkeypatch):
 
 def test_the_summary_line_names_codec_and_source():
     assert encoding.summary_line("cp1251", "lcid") == "# encoding: cp1251 (lcid)"
+
+
+# --------------------------------------------------------------------- P-Code hint
+def _project(methods_per_object: list[int], verified: int) -> procs.VBProject:
+    """A VBProject with the entry/prologue counts the hint reads, and nothing else."""
+    objects = []
+    left = verified
+    for i, count in enumerate(methods_per_object):
+        methods = []
+        for j in range(count):
+            ok = left > 0
+            left -= 1 if ok else 0
+            methods.append(procs.Method(index=j, address=0x401000 + j if ok else None,
+                                        file_offset=None, in_code=ok))
+        objects.append(procs.VBObject(index=i, name=f"o{i}", object_type="module",
+                                      raw_type=0x18001, method_count=count,
+                                      methods=methods))
+    return procs.VBProject(path="x.exe", image_base=0x400000, project_name="p",
+                           project_description=None, runtime_build=1, runtime_rev=1,
+                           form_count=0, object_count=len(objects),
+                           compiled_count=len(objects), identifier="0", objects=objects)
+
+
+def test_zero_prologues_out_of_n_says_may_be_pcode():
+    hint = procs.pcode_hint(_project([3, 2], verified=0))
+    assert hint == ("# 0 of 5 entries start with a native prologue; this build may be "
+                    "P-Code (not verified)")
+    # The claim must stay a suspicion: no "is P-Code", no "detected".
+    assert "may be" in hint and "not verified" in hint
+
+
+def test_one_verified_prologue_is_enough_to_stay_silent():
+    assert procs.pcode_hint(_project([3], verified=1)) is None
+
+
+def test_a_build_with_no_entries_says_nothing():
+    # "0 of 0" would be a vacuous claim; an empty table is a different finding.
+    assert procs.pcode_hint(_project([], verified=0)) is None
