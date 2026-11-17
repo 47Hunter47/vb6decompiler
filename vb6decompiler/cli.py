@@ -121,7 +121,7 @@ def cmd_project(args) -> int:
 
 
 def cmd_decode(args) -> int:
-    from . import blob, x86
+    from . import blob, pe, x86
 
     va = int(args.va, 16)  # bad hex is the exit-2 contract like every input error
     data, sections = blob.load_sections(args.exe)
@@ -151,14 +151,34 @@ def cmd_decode(args) -> int:
     except x86.EngineUnavailable as exc:
         print(f"# error: {exc}", file=sys.stderr)
         return 2
+    # name call targets against this file's own import table; late-bound
+    # [reg+disp] calls stay unannotated because nothing here can name them
+    iat = pe.import_names(pe.read(args.exe))
+    named = calls = 0
+    for row in result["rows"]:
+        if not row["mnemonic"].startswith("call"):
+            continue
+        calls += 1
+        t = x86.call_target(row["operands"])
+        if t is None:
+            continue
+        row["target_va"] = f"{t:X}"
+        name = iat.get(t)
+        if name:
+            row["target"] = name
+            named += 1
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         for r in result["rows"]:
-            print(f"{r['va']}  {r['bytes']:<18} {r['mnemonic']} {r['operands']}".rstrip())
+            line = f"{r['va']}  {r['bytes']:<18} {r['mnemonic']} {r['operands']}".rstrip()
+            if "target" in r:
+                line += f"  -> {r['target']}"
+            print(line)
     stop = f", stopped at {result['stopped_at_va']}" if "stopped_at_va" in result else ""
     print(f"# {result['instructions']} instructions, {result['consumed_bytes']} bytes, "
-          f"ended: {result['ended']}{stop}", file=sys.stderr)
+          f"ended: {result['ended']}{stop}; calls: {named} of {calls} named via import table",
+          file=sys.stderr)
     return 0
 
 

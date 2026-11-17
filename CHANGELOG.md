@@ -3,6 +3,25 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.21
+
+* **`decode` names its call targets (milestone D's third layer):** every call
+  whose target is statically reachable is annotated from the file's own
+  import table — `target_va`, plus `target` as `dll!name` when the VA is an
+  import slot. Two VB6-era import quirks had to be handled to get there
+  (measured on the real build): the binder leaves `FirstThunk` zero with the
+  live table at the OFT offset, and the live slots are *bound* (they hold
+  load-time addresses), so slot names are paired by index from the ILT;
+  `ordN` slots of the VB6 runtime are resolved through the shipped call
+  table, and anything still unknown prints `ordN` or `?` instead of a guess.
+  Late-bound `call [reg+disp]` stays unannotated — nothing static can name
+  it — and the stderr line now reports how many of the calls were named.
+  Measured: on a 402-procedure sample of the reference build, 22,911 calls
+  (including 49 through `jmp [slot]` thunks) arrive named — the runtime
+  helper census the dossier already reports, now seen from the code side —
+  while 23,668 stay late-bound by nature and 316 are internal calls.
+  `pe.Import.slots` carries the slot map; `pe.import_names()` renders it.
+
 ## 0.4.20
 
 * **`decode` honest boundaries — milestone D's second layer:** `--end-va HEX`

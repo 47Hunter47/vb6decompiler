@@ -79,6 +79,10 @@ class Import:
     functions: list[str] = field(default_factory=list)
     unnamed: int = 0
     is_ordinal_only: int = 0
+    #: loaded-address table (FirstThunk) keyed by IAT slot RVA, value is the
+    #: function name or ``ord<digits>`` for nameless imports — the pair a
+    #: decoded ``call dword ptr [va]`` needs to be named
+    slots: dict[int, str] = field(default_factory=dict)
 
     @property
     def is_vb6_runtime(self) -> bool:
@@ -296,6 +300,13 @@ def _read_imports(data: bytes, directory: tuple[int, int], rva_to_off, bits: int
         # FirstThunk holds the loaded addresses. Some linkers leave OFT empty, so
         # the walk is done on each and functions are de-duplicated.
         seen: set[int] = set()
+        # slot keys follow the live table: FirstThunk normally; some VB6-era
+        # binders leave FirstThunk zero and keep the live addresses at OFT
+        key_table = ft or oft
+        # names collected from the ILT (oft side) by index: a bound FirstThunk
+        # holds load-time addresses, so the only way to name such a slot is the
+        # ILT entry at the same index (measured on a real VB6 build)
+        ilt: list[str] = []
         for thunk_rva in (oft, ft):
             if not thunk_rva:
                 continue
@@ -314,22 +325,27 @@ def _read_imports(data: bytes, directory: tuple[int, int], rva_to_off, bits: int
                 if value & (1 << (31 if width == 4 else 63)):
                     ordinal = value & 0xFFFF
                     marker = 0x80000000 | ordinal
-                    if marker in seen:
-                        continue
-                    seen.add(marker)
-                    entry.unnamed += 1
-                    entry.is_ordinal_only += 1
-                    continue
-                hint_off = rva_to_off(value)
-                if hint_off is None:
-                    continue
-                if hint_off in seen:
-                    continue
-                seen.add(hint_off)
-                end = data.find(b"\0", hint_off + 2)
-                fname = data[hint_off + 2 : end].decode("latin1", "replace")
-                if fname:
-                    entry.functions.append(fname)
+                    resolved: str | None = f"ord{ordinal}"
+                    if marker not in seen:
+                        seen.add(marker)
+                        entry.unnamed += 1
+                        entry.is_ordinal_only += 1
+                else:
+                    hint_off = rva_to_off(value)
+                    if hint_off is None:
+                        # bound live slot: name only exists at the ILT index
+                        resolved = ilt[n] if (thunk_rva == ft and oft and n < len(ilt)) else None
+                    else:
+                        end = data.find(b"\0", hint_off + 2)
+                        resolved = data[hint_off + 2 : end].decode("latin1", "replace")
+                        if hint_off not in seen:
+                            seen.add(hint_off)
+                            if resolved:
+                                entry.functions.append(resolved)
+                if thunk_rva == key_table:
+                    entry.slots[key_table + n * width] = resolved or "?"
+                if resolved and thunk_rva == oft:
+                    ilt.append(resolved)
         out.append(entry)
         off += 20
         if len(out) > 512:
@@ -383,6 +399,26 @@ def _read_exports(data: bytes, directory: tuple[int, int], rva_to_off):
 # ---------------------------------------------------------------------------
 # directory-level helpers
 # ---------------------------------------------------------------------------
+
+
+def import_names(image: PEImage) -> dict[int, str]:
+    """Slot VA -> ``"dll!name"`` for every mapped import slot.
+
+    ``ord<digits>`` slots of a VB6 runtime DLL are named through the shipped
+    runtime call table when possible; a truly unknown slot stays ``ordN`` —
+    an honest token, never a guess.
+    """
+    from . import runtime_table
+
+    out: dict[int, str] = {}
+    for imp in image.imports:
+        for rva, name in imp.slots.items():
+            if name.startswith("ord") and imp.is_vb6_runtime:
+                rt = runtime_table.describe_runtime_ordinal(int(name[3:]))
+                if rt:
+                    name = rt.name
+            out[image.image_base + rva] = f"{imp.dll}!{name}"
+    return out
 
 
 def scan_directory(path: str, recursive: bool = False) -> list[dict]:
