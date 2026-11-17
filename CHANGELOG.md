@@ -3,6 +3,32 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.16
+
+* **`vb6d project` design records:** form stubs now embed a comment-form design
+  reconstruction from the exe's form-data blobs — record offset and size (the
+  binary stream itself stays in the exe), the form extent, and one line per
+  recovered control: name, array index, type, caption, geometry, SSTab page or
+  page titles, and visibility where the marker was read (silent stays unknown).
+  The report carries per-form record evidence; a form with no parseable record
+  is named in the gaps. Reference build: 801 of 802 forms designed
+  (`mBGS.frm` is the named gap), 55,814 controls across stubs, full run on the
+  111 MB build in about 28 s.
+
+## 0.4.15
+
+* **Documentation only:** pitfalls entry 11 — the method-entry name column of a
+  native object table is junk decodes (1 plausible of 626 on the reference build).
+
+## 0.4.14
+
+* **Documentation only:** changelog section order restored.
+
+## 0.4.13
+
+* **Documentation only:** changelog attribution fix — 0.4.11 was the back-fill
+  release; the project skeleton shipped in 0.4.12.
+
 ## 0.4.12
 
 * **`vb6d project <exe>`: reconstructed project skeleton** — a `.vbp` listing

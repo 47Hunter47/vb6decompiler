@@ -78,3 +78,50 @@ def test_write_project_dir_and_report(tmp_path):
     assert on_disk["gaps"] and on_disk["assumptions"][0]["item"] == "Type=Exe"
     vbp = (out / "Sample.vbp").read_text(encoding="utf-8")
     assert vbp.startswith("; recovered by vb6d project")
+
+
+def _fake_design():
+    from vb6decompiler.blob import Control, Form, FormBlob
+    controls = [
+        Control("Text1", "TextBox", "Müşteri Adı\nikinci satır", 100, 200, 300, 120),
+        Control("CmdSave", "CommandButton", None, 0, 0, 960, 360,
+                index=0, visible=False, tab_page=2),
+    ]
+    return {"form1": (FormBlob(name="Form1", offset=0x500, size=0x1234, data=b""),
+                      Form("Form1", controls, width=5000, height=4000,
+                          client_left=0, client_top=0))}
+
+
+def test_design_blocks_land_in_form_stubs(tmp_path, monkeypatch):
+    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: _fake_design())
+    out = tmp_path / "Sample_project"
+    report = projectwrite.write_project(make_project(), str(out))
+    stub = (out / "form1.frm").read_text(encoding="utf-8")
+    assert "record: 4660 bytes at file offset 0x500" in stub
+    assert 'caption "Müşteri Adı\\nikinci satır"' in stub  # newlines escape, stay on one line
+    assert "L100 T200 W300 H120" in stub
+    assert "CmdSave(0)" in stub and "visible=false" in stub and "SSTab page 2" in stub
+    assert "form extent: 5000 x 4000, client origin 0 x 0" in stub
+    form = next(f for f in report["files"] if f["kind"] == "form")
+    assert form["status"] == "placeholder + recovered design record"
+    assert form["design"]["controls"] == 2 and form["design"]["record_offset"] == "0x500"
+    assert form["design"]["note"]  # the stream stays in the exe
+
+
+def test_forms_without_a_record_say_so(tmp_path, monkeypatch):
+    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: {})
+    out = tmp_path / "Sample_project"
+    report = projectwrite.write_project(make_project(), str(out))
+    assert "Design record" not in (out / "form1.frm").read_text(encoding="utf-8")
+    form = next(f for f in report["files"] if f["kind"] == "form")
+    assert form["design"] is None
+    gap = next(g for g in report["gaps"] if g["item"] == "design records")
+    assert gap["why"].startswith("1 of")
+
+
+def test_failed_design_scan_is_reported_not_hidden(tmp_path, monkeypatch):
+    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: None)
+    out = tmp_path / "Sample_project"
+    report = projectwrite.write_project(make_project(), str(out))
+    gap = next(g for g in report["gaps"] if g["item"] == "design records")
+    assert "scan of the image failed" in gap["why"]
