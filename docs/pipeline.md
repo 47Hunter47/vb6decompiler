@@ -170,6 +170,15 @@ measures zero); anything left is `calls_other`, a per-target-VA count of
 unnamed hits. An unnamed hit is still a result: the call graph's edges into
 unknown territory stay visible instead of silent.
 
+`--events` adds a fourth kind of row content: an ordered `events` array per
+procedure — named calls and loads of immediates that ARE dossier literals,
+in the order the body lists them. Only events that already have a name or a
+text make the stream: an unnamed call lives in the counts, and a literal VA
+the dossier does not know stays unparsed, so the stream never pads itself
+with things a count already says. The order is the decode order of the
+body's own bytes — the only ordering this tool is willing to claim without
+control-flow analysis.
+
 `vb6d outline <edges.jsonl>` turns the edges file into an operation outline
 without the engine: each runtime hit is looked up in the runtime table
 (:mod:`vb6decompiler.runtime_table`) and bucketed by that table's

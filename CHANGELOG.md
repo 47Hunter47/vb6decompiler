@@ -3,6 +3,27 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.26
+
+* **`edges --events` — the ordered event stream (milestone D's eighth
+  layer):** each procedure row may carry `events`, an ordered array of the
+  things whose identity is already known — a named call (its label from the
+  import table, the thunk hop, the range floor marked `proc:…`, or an
+  object-table hit) and a `push/mov/lea` of an immediate that IS a dossier
+  literal (its text carried). Nothing unnamed or late-bound pads the
+  stream; unnamed traffic stays in the counts, and the default output of
+  `edges` stays byte-for-byte slim without the flag. Measured on the full
+  reference corpus (5m6s with the flag): 33,776 of 34,159 procedures have
+  at least one event; **2,375,908 events = 1,934,388 named calls + 441,520
+  literal loads** — and the call-event total equals exactly the sum of the
+  three named call lanes (1,897,375 + 9,980 + 27,033; the 79 unnamed stay
+  out), an internal-consistency check the file proves on itself. A stream
+  reads like a statement trace: `__vbaStrCy`, `rtcRate`, the literal
+  `00000000000000000#`, `__vbaVarDup`, `__vbaFreeVarList` in the order the
+  body lists them. The flag costs 148 MB of JSONL on this corpus and the
+  literal texts are raw — a stream file headed anywhere public passes the
+  mask gate first, like every other output of this tool.
+
 ## 0.4.25
 
 * **`vb6d outline <edges.jsonl>` — an operation outline, marker-first
