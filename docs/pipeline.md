@@ -117,6 +117,19 @@ The summary prints "procedures with >=1 literal: X of Y" and
 "procedures with >=1 closed SQL statement: X of Y", with Y counted before any
 per-procedure failure, so the denominators survive a partial run.
 
+**Call order is measurable without a decompiler** — as a measurement, not a stage.
+`scripts/t35_import_call_spike.py` decodes each procedure's own byte range with
+capstone, resolves every call through the import address table (including a direct
+call to a `jmp [slot]` thunk), and prints how often that order matches what a
+decompiler listing says for the same procedure. On the reference build the answer is
+"always the same calls in the same order, sometimes with extra calls at the end of
+the range" — the extra ones are the documented `procs.body_bounds` gap: a range runs
+to the next method-table entry and can contain a helper that has no entry of its own.
+So if this is ever wired into a dossier, the field must read "calls seen in this
+procedure's range", never "this procedure calls". The script needs capstone
+(`pip install "vb6decompiler[asm]"`) and reports the DLL build behind any ordinal it
+names.
+
 When the inventory carried `vba_runtime` call rows, each record also gains
 `runtime_calls`: the `MSVBVM60` helper name and its ordinal, read from the export
 table of the DLL in `vb6decompiler/data/runtime_calls.json`, plus a category and

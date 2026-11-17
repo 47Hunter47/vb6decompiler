@@ -66,8 +66,8 @@ HEADER = re.compile(
     r"^\s*(?:Private|Public|Friend|Static)?\s*"
     r"(?:Sub|Function|Property\s+(?:Get|Let|Set))\s+([A-Za-z_]\w*)?\s*\(?.*?'\s*([0-9A-Fa-f]{6,8})\s*$")
 SLOT_CALL = re.compile(r"\bcall\s+\[([0-9A-Fa-f]{8})h\]")
-#: ``call 00516100h ; __vbaChkstk`` — a direct call to a 6-byte ``jmp [slot]`` thunk.
-NAMED_DIRECT = re.compile(r"\bcall\s+([0-9A-Fa-f]{8})h")
+#: ``call 00516100h`` — a direct call whose target is a 6-byte ``jmp [slot]`` thunk.
+DIRECT_CALL = re.compile(r"\bcall\s+([0-9A-Fa-f]{8})h")
 
 
 def import_slots(exe_path: str):
@@ -161,7 +161,7 @@ def listing_slots(paths: list[str], data, image_base: int, off_of) -> tuple[dict
                 if sm:
                     seqs[cur].append(int(sm.group(1), 16))
                     continue
-                dm = NAMED_DIRECT.search(line)
+                dm = DIRECT_CALL.search(line)
                 if dm:
                     slot = thunk_slot(int(dm.group(1), 16), data, image_base, off_of)
                     if slot is not None:
