@@ -282,11 +282,25 @@ def cmd_mask(args) -> int:
     return 0 if audit.clean else 1
 
 
+def _version_line() -> str:
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return f"vb6d {version('vb6decompiler')}"
+    except PackageNotFoundError:
+        return "vb6d (version unknown: bare source checkout, not installed)"
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="vb6d",
         description="Evidence-based recovery of native-compiled VB6 programs.",
     )
+    # An agent needs to pin the tool that produced a result file. The version
+    # lives in pyproject.toml only (docs/RULES.md), so it is read from the
+    # installed distribution; a bare source checkout has no metadata to ask.
+    p.add_argument("--version", action="version", version=_version_line(),
+                   help="print the package version and exit")
     sub = p.add_subparsers(dest="command", required=True)
 
     q = sub.add_parser("pe", help="PE surface of a file or install directory")
