@@ -26,7 +26,10 @@ DLLs shipped alongside. On the reference install: 36 binaries, 9 with VB6 code
 
 *Costs:* seconds. *Claim it supports:* the executable imports one DLL
 (`MSVBVM60`) and reaches the database through COM, so the import table describes
-the runtime, not the program.
+the runtime, not the program. An image whose section table claims bytes past
+EOF gets `truncated: true` in its row: the headers of such a file parse, every
+lookup past EOF returns nothing, and without the flag a cut-off VB6 build is
+indistinguishable from a clean foreign file.
 
 ## 1. Object table
 
