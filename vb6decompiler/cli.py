@@ -131,7 +131,11 @@ def cmd_stitch(args) -> int:
         _announce(codec, source)
         lits = literals.scan_listings(src, encoding=codec)
     else:
+        # The scan runs before the announcement so unusable input still costs
+        # exit 2. shortcut: the scan only buys its seconds back as an empty
+        # result on huge images; upgrade to a header probe if that ever matters.
         lits = literals.scan_binary(src)
+        print("# binary input: no procedure ownership outside a listing, so chaining can only yield nothing — point stitch at a listing directory (binary text: vb6d literals <exe>)", file=sys.stderr)
     cands = sqlstitch.stitch_all(lits, max_more=args.max_more)
     rows = [c.as_row() for c in cands]
     _emit(rows, args.json)

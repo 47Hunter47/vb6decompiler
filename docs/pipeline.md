@@ -57,7 +57,13 @@ query is executed" — a literal can be dead, and much SQL is assembled at run t
 ## 3. Statements
 
 `vb6d stitch <listing dir>` — join neighbouring fragments in a procedure and
-classify. Reference measurement on the full listing corpus (**441,607 literals in
+classify. Every candidate row carries the owning procedure's listing VA
+(`proc_va`) and the first fragment's address (`text_va`), so a published result
+can be traced back to the build; both are empty when ownership is unknown.
+Input is a listing directory: without a listing no literal carries a
+procedure, so a bare executable yields no candidates — the stage says so on
+stderr instead of failing silently (`literals <exe>` is the stage for binary
+text). Reference measurement on the full listing corpus (**441,607 literals in
 12,480 procedures**):
 
 | Figure | Value |

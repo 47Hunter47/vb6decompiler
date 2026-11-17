@@ -30,7 +30,7 @@ host, no database name, no account, no credential, no absolute install path.
 | PE surface of an install | `vb6d pe <dir>` | imports, exports, VB6 runtime dependency, ActiveX/COM classification |
 | Procedure inventory | `vb6d procs <exe>` | object table: objects and method counts, entry points verified by prologue |
 | String / SQL harvest | `vb6d literals <exe or listing dir>` | `BSTR` (UTF-16LE) literals the ASCII scanners miss, with code addresses |
-| SQL reconstruction | `vb6d stitch <dir or listing>` | fragments joined into whole statements, with explicit "not provable statically" buckets |
+| SQL reconstruction | `vb6d stitch <listing dir>` | fragments joined into whole statements, with explicit "not provable statically" buckets; binary text belongs to `vb6d literals` |
 | Form design | `vb6d frm <dir>` | controls, geometry, `Visible`, control arrays, `SSTab` pages from `.frm` text |
 | Form geometry from binary | `vb6d blob <exe> --validate` | geometry for forms that have no `.frm`, calibrated against `.frm` ground truth |
 | Per-procedure evidence | `vb6d dossier --listings <dir>` | one JSON object per procedure: its literals in order, its SQL with closed/open kept apart, name hints, plus an optional pseudo-C inventory merged by VA — evidence for re-specification, not source |
