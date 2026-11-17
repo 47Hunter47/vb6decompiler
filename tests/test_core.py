@@ -265,3 +265,19 @@ def test_documentation_addresses_survive_masking():
     live = mask.mask_text("host 198.18.4.7 alt 198.19.5.8 alt 198.18.9.9")
     assert "198.18.4.7" not in live and "198.19.5.8" not in live and "198.18.9.9" not in live
     assert live.count(mask.IP) == 3
+
+
+def test_a_whole_single_literal_statement_closes():
+    # Regression: the "continuation is not SQL" guard asked whether parts[1:] were SQL,
+    # which is vacuously false for a one-part candidate, so every whole statement stored
+    # as one literal was reported STUCK ("continuation is not SQL" about a part that
+    # does not exist). A statement that starts with a verb, is balanced and is not
+    # dangling is closed, however many fragments it came in.
+    one = [literals.Literal(va=0x500000, text="SELECT 1 FROM tOrder", encoding="listing", proc_va=1)]
+    assert [(c.status, c.closed) for c in sqlstitch.stitch(one, 0)] == [("CLOSED", True)]
+    # The guard still applies to a real chain: a message glued after SQL is not closed.
+    chain = [
+        literals.Literal(va=0x500000, text="SELECT 1 FROM tOrder ", encoding="listing", proc_va=1),
+        literals.Literal(va=0x500010, text="Settings saved", encoding="listing", proc_va=1),
+    ]
+    assert sqlstitch.stitch(chain, 0)[1].status == "STUCK"
