@@ -3,6 +3,58 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.8
+
+* **`pe` flags images whose sections claim bytes past EOF** (`truncated: true`
+  in every row). The headers of a cut file parse, every lookup past EOF quietly
+  returns nothing, and the row looked identical to a clean foreign file: on the
+  reference build, 111 MB cut to 100 KB reported `vb6=False` and "0 unreadable"
+  while the whole file reports `vb6=True`. Full images and a 27 MB foreign
+  binary keep the flag false (0 false positives on the images at hand).
+
+## 0.4.7
+
+* **`blob --json` carries the per-control geometry its parser already
+  recovers**: caption, position, size, control-array index, the tri-state
+  `Visible` and the SSTab tab page for every control, plus the form's client
+  offset. Measured on the reference build: 801 forms, 55,814 detail controls
+  (29,965 with an array index, 17,048 with a caption, 1,593 on a tab page, 489
+  with a resolved `Visible`). Text and CSV rows keep their old per-form shape
+  — a pinned test asserts the header.
+
+## 0.4.6
+
+* **`procs --names` documentation now tells the truth: the flag counts, it does
+  not attach.** The flag help, README and pipeline.md §1 said names were
+  attached or merged; `cmd_procs` records one count (`names_from_listing`), and
+  the native object table exposes no method addresses on the reference build
+  (0 unique entries), so there is nothing per-procedure to attach to. The
+  per-procedure name hints have always been `dossier`'s (§3b), and the help now
+  says where to find them. Behavior unchanged; wording corrected.
+
+## 0.4.5
+
+* **`stitch` on a bare executable says why the run is empty.** Literals
+  harvested from a binary carry no procedure ownership (`proc_va` is only known
+  from a listing header), so chaining had nothing to group and the stage
+  returned an empty result with nothing on stderr — readable as "this build has
+  no SQL" when nothing had been attempted. The cause is stated on stderr, the
+  right input named, and the exit stays 0; unusable input still costs exit 2
+  because the scan runs before the announcement. README and pipeline.md §3
+  corrected to match: `stitch` takes a listing directory.
+* Test-only helper `tests/_mini_pe.py` builds a synthetic 32-bit PE inside the
+  tests — including a truncated variant that no binary fixture can express.
+
+## 0.4.4
+
+* **Stitched SQL statements now name where they came from.** A `stitch`
+  candidate used to name tables but carried no address, so a CLOSED statement
+  could not be relocated to the build it was stitched from. Rows now carry the
+  owning procedure's listing VA (`proc_va`) and the first fragment's text
+  address (`text_va`), in the same empty-when-unknown form literals.py uses.
+  Measured on the reference listing corpus: 4,423 of 4,423 closed rows carry
+  both.
+
 ## 0.4.3
 
 * **A measured answer on the question the roadmap left open: can a native decode
