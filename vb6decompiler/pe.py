@@ -30,6 +30,8 @@ import struct
 from dataclasses import dataclass, field
 from typing import Iterable
 
+from . import fileio
+
 #: Imports that identify a VB6-built binary. ``MSVBVM60`` = VB6, ``MSVBVM50`` = VB5.
 VB6_RUNTIMES = {"MSVBVM60.DLL", "MSVBVM50.DLL"}
 
@@ -170,10 +172,17 @@ def _u32(b: bytes, off: int) -> int:
 
 
 def read(path: str) -> PEImage:
-    """Parse a PE file. Raises :class:`PEError` for anything else."""
-    with open(path, "rb") as fh:
-        data = fh.read()
+    """Parse a PE file. Raises :class:`PEError` for anything else.
 
+    The file is mapped, not copied (see :mod:`vb6decompiler.fileio`): every stage
+    parses the same 111 MB image, and only slices of it are ever needed.
+    """
+    with fileio.image(path) as data:
+        return _parse(path, data)
+
+
+def _parse(path: str, data) -> PEImage:
+    """The parser itself, over a buffer that is already in memory."""
     if data[:2] != b"MZ":
         raise PEError(f"{os.path.basename(path)}: not an MZ image")
     pe_off = _u32(data, 0x3C)

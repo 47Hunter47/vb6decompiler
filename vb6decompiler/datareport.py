@@ -98,15 +98,16 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import mmap
 import os
 import re
 import struct
 import sys
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Iterable, Iterator, Sequence
 
-from . import pe
+from . import fileio, pe
+from typing import Iterable, Iterator, Sequence
 
 #: Exact class name of a DataReport designer object in a compiled VB6 binary.
 #: Measured byte-for-byte; it is the only reliable anchor for a design record.
@@ -443,13 +444,16 @@ def _head_at(buf: bytes, cls_pos: int) -> DesignHead | None:
     )
 
 
-def find_designs(path: str) -> list[DesignHead]:
+def find_designs(path: str, buf: bytes | mmap.mmap | None = None) -> list[DesignHead]:
     """Locate every DataReport design record in one PE file.
 
     Returns heads in file order with ``va`` filled in from the section table.
+    ``buf`` lets a caller that already holds the file's bytes skip a second full
+    read; the mapping/bytes is only used inside this function.
     """
-    with open(path, "rb") as fh:
-        buf = fh.read()
+    if buf is None:
+        with fileio.image(path) as data:
+            return find_designs(path, data)
     image = pe.read(path)
     heads = []
     for cls_pos in _class_offsets(buf):
@@ -662,12 +666,15 @@ def parse_design(head: DesignHead, buf: bytes, path: str) -> Design:
 
 
 def read_designs(path: str) -> list[Design]:
-    """Every DataReport design in one file, in file order."""
-    with open(path, "rb") as fh:
-        buf = fh.read()
-    designs = []
-    for head in find_designs(path):
-        designs.append(parse_design(head, buf[head.offset:head.offset + head.size], path))
+    """Every DataReport design in one file, in file order.
+
+    The file is read once: ``parse_design`` gets a slice (a copy of just that record)
+    and ``find_designs`` gets the same buffer instead of opening the file again.
+    """
+    with fileio.image(path) as buf:
+        designs = []
+        for head in find_designs(path, buf):
+            designs.append(parse_design(head, buf[head.offset:head.offset + head.size], path))
     return designs
 
 
