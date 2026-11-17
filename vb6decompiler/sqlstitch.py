@@ -197,7 +197,10 @@ def _classify(text: str, parts: list[Literal]) -> Candidate:
         return Candidate(text, len(parts), "MULTI", f"{stmts} statements glued together", tables)
     if _DANGLING.search(text.strip()):
         return Candidate(text, len(parts), "DANGLING", "ends on a connector", tables)
-    if not any(is_sql_fragment(p.text) for p in parts[1:]):
+    # A one-part candidate has no continuation to test: asking whether it is SQL made
+    # every whole single-literal statement report STUCK ("continuation is not SQL"),
+    # which is a claim about a part that does not exist. The guard is for chains.
+    if len(parts) > 1 and not any(is_sql_fragment(p.text) for p in parts[1:]):
         return Candidate(text, len(parts), "STUCK", "continuation is not SQL", tables)
     return Candidate(text, len(parts), "CLOSED", "balanced, single statement", tables)
 
