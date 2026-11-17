@@ -90,3 +90,24 @@ def test_end_va_stops_the_dump_at_the_boundary(tmp_path, capsys):
     assert d["ended"] == "exhausted" and d["rows"][-1]["mnemonic"] == "call"
     capsys.readouterr()
     assert cli.main(["decode", str(exe), "--va", "401000", "--end-va", "401000", "--json"]) == 2
+
+
+def test_import_named_calls_get_named_targets(tmp_path, capsys):
+    pytest.importorskip("capstone")
+    from vb6decompiler import cli
+
+    exe = tmp_path / "imp.exe"
+    # three call [slot] instructions then ret: slots 4010B0/4010B4 are ProcA/ProcB
+    # in the fixture IAT, 4010B8 is the terminator slot (no name behind it)
+    code = bytes.fromhex("FF15B0104000" + "FF15B4104000" + "FF15B8104000" + "C3")
+    exe.write_bytes(mini_pe(code=code, imports=True))
+    code = cli.main(["decode", str(exe), "--va", "401000", "--json"])
+    out, err = capsys.readouterr()
+    assert code == 0
+    d = json.loads(out)
+    rows = d["rows"]
+    assert rows[0]["target"] == "kernel32!ProcA" and rows[0]["target_va"] == "4010B0"
+    assert rows[1]["target"] == "kernel32!ProcB"
+    assert "target" not in rows[2] and rows[2]["target_va"] == "4010B8"
+    assert d["ended"] == "ret"
+    assert "calls: 2 of 3 named via import table" in err

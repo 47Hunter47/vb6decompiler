@@ -11,7 +11,7 @@ from __future__ import annotations
 import struct
 
 
-def mini_pe(truncated: bool = False, code: bytes = b"") -> bytes:
+def mini_pe(truncated: bool = False, code: bytes = b"", imports: bool = False) -> bytes:
     img = bytearray(0x300)
     img[0:2] = b"MZ"
     struct.pack_into("<I", img, 0x3C, 0x80)  # e_lfanew
@@ -41,4 +41,13 @@ def mini_pe(truncated: bool = False, code: bytes = b"") -> bytes:
     if code:
         assert len(code) <= 0x100, "code must fit the section's raw window"
         img[0x200:0x200 + len(code)] = code  # the decode tests need real bytes
+    if imports:
+        # one descriptor whose FirstThunk (rva 0x10B0) is the live IAT with two
+        # named slots; names and the dll string live right after the table
+        struct.pack_into("<IIIII", img, 0x280, 0, 0, 0, 0x10F0, 0x10B0)  # desc @rva 0x1080
+        struct.pack_into("<III", img, 0x2B0, 0x10C8, 0x10D0, 0)          # IAT @rva 0x10B0
+        img[0x2C8:0x2D0] = b"\x00\x00ProcA\0"
+        img[0x2D0:0x2D8] = b"\x00\x00ProcB\0"
+        img[0x2F0:0x2F9] = b"kernel32\0"
+        struct.pack_into("<II", img, opt + 104, 0x1080, 40)              # Import directory
     return bytes(img)

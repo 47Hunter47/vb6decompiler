@@ -150,3 +150,32 @@ def test_sstab_page_titles_come_from_the_blob_not_from_frm_text():
     # blob is the only source, and it must then carry them.
     if dropped:
         assert sum(len(v) for v in titles.values()) >= dropped
+
+
+@needs_target
+def test_decode_names_runtime_calls_in_the_entry_stub(capsys):
+    """The import table is only proof if a decoded call lands on it."""
+    pytest.importorskip("capstone")
+    from json import loads
+
+    from vb6decompiler import cli
+
+    image = pe.read(TARGET)
+    iat = pe.import_names(image)
+    assert iat, "a VB6 build importing nothing is not this kind of target"
+    runtime_named = [n for n in iat.values()
+                     if "!" in n and n.split("!")[0].upper().startswith("MSVBVM")
+                     and not n.endswith("?") and "!ord" not in n.lower()]
+    assert runtime_named, "no runtime import slot got a name"
+    # the entry stub is the program's own choice — it can be a bare trampoline,
+    # so only the machinery is claimed here, not that the EP names anything
+    va = image.image_base + image.entry_point_rva
+    code = cli.main(["decode", TARGET, "--va", f"{va:X}", "--limit", "50", "--json"])
+    out, err = capsys.readouterr()
+    assert code == 0
+    rows = loads(out)["rows"]
+    assert rows, "entry stub decoded to zero instructions"
+    assert "named via import table" in err
+    for r in rows:
+        if "target" in r:
+            assert "!" in r["target"] and r["target_va"] == r["target_va"].upper()

@@ -138,7 +138,14 @@ surfacing, not an error), `garbage` (with `stopped_at_va`, the first byte the
 engine cannot express) or `no-bytes`. It claims instruction addresses, bytes,
 mnemonics and operands only: nothing here is VB6 syntax, and the operands'
 `0x…` immediates are the engine's own rendering (quoted text), while the
-dump's own address fields stay bare uppercase hex. Missing engine: named
+dump's own address fields stay bare uppercase hex. Each call whose target is
+statically reachable is annotated against the file's own import table:
+`target_va`, plus `target` as `dll!name` when the VA is an import slot —
+bound import tables (VB6-era binders put live addresses in the slots) are
+named through the ILT at the matching index, and `ordN` slots of the VB6
+runtime are resolved via the shipped call table. Late-bound `call [reg+disp]`
+targets stay unannotated because nothing static can name them, and the
+stderr line states how many of the calls were named. Missing engine: named
 refusal, exit 2, install hint.
 
 **Call order is measurable without a decompiler** — as a measurement, not a stage.

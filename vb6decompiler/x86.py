@@ -16,6 +16,8 @@ fields follow the repo rule of bare uppercase hex.
 """
 from __future__ import annotations
 
+import re
+
 ASM_HINT = 'pip install "vb6decompiler[asm]"'
 
 
@@ -70,3 +72,11 @@ def decode(data: bytes, va: int, limit: int = 200) -> dict:
     if ended == "garbage":
         result["stopped_at_va"] = f"{va + consumed:X}"
     return result
+
+
+def call_target(operands: str) -> int | None:
+    """The VA a decoded call operand names statically: ``[0x…]`` (IAT slot or
+    absolute indirection) or a bare ``0x…`` (direct call). ``[reg+disp]`` —
+    late-bound and instance calls — has no static target, and None says so."""
+    m = re.search(r"\[0x([0-9A-Fa-f]+)\]", operands) or re.fullmatch(r"0x([0-9A-Fa-f]+)", operands.strip())
+    return int(m.group(1), 16) if m else None
