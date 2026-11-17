@@ -3,6 +3,21 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.20
+
+* **`decode` honest boundaries — milestone D's second layer:** `--end-va HEX`
+  clamps the dump to one body (the neighbouring procedure VAs the dossier
+  already lists make the range exactly one body), and the ending taxonomy got
+  sharpened: `exhausted` (every byte decoded, no `ret` in range) is now told
+  apart from `garbage` (the engine stopped mid-stream; `stopped_at_va` names
+  the first byte it cannot express), and neither is ever reported as `ret`.
+  Measured on the real build: 402 procedures sampled across the whole VA
+  space (stride over all 34,159 dossier procedure VAs), each bounded by its
+  own range, all 402 decoded `push ebp … ret` — median 169 instructions
+  (range 4 to 32,341), zero garbage, zero run-overs. The body bounds the
+  listings report are real body bounds, so the semantics layer will not have
+  to guess them.
+
 ## 0.4.19
 
 * **`vb6d decode <exe> --va HEX` — milestone D's first layer:** a raw x86

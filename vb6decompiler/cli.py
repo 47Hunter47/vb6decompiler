@@ -140,6 +140,12 @@ def cmd_decode(args) -> int:
         print(f"# error: no file bytes mapped at VA {args.va.upper()} "
               "(outside every section or past its raw data)", file=sys.stderr)
         return 2
+    if args.end_va:
+        end = int(args.end_va, 16)
+        if end <= va:
+            print("# error: --end-va must be above --va", file=sys.stderr)
+            return 2
+        window = window[: end - va]  # the range's own end: nothing past it is decoded
     try:
         result = x86.decode(window, va, limit=args.limit)
     except x86.EngineUnavailable as exc:
@@ -150,8 +156,9 @@ def cmd_decode(args) -> int:
     else:
         for r in result["rows"]:
             print(f"{r['va']}  {r['bytes']:<18} {r['mnemonic']} {r['operands']}".rstrip())
+    stop = f", stopped at {result['stopped_at_va']}" if "stopped_at_va" in result else ""
     print(f"# {result['instructions']} instructions, {result['consumed_bytes']} bytes, "
-          f"ended: {result['ended']}", file=sys.stderr)
+          f"ended: {result['ended']}{stop}", file=sys.stderr)
     return 0
 
 
@@ -458,6 +465,7 @@ def build_parser() -> argparse.ArgumentParser:
     dc = sub.add_parser("decode", help="dump x86 instructions from a VA (needs the [asm] extra)")
     dc.add_argument("exe", help="VB6 executable to read the bytes from")
     dc.add_argument("--va", required=True, help="virtual address to start at, hex (a VA the dossier or xref already reported)")
+    dc.add_argument("--end-va", help="stop at this VA, hex (a neighbouring procedure VA makes the range exactly one body)")
     dc.add_argument("--limit", type=int, default=200, help="max instructions (default 200)")
     dc.add_argument("--window", type=int, default=16384, help="bytes of section data handed to the engine (default 16384)")
     dc.add_argument("--json", action="store_true", help="machine-readable dump including how the decode ended")
