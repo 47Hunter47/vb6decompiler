@@ -3,6 +3,31 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.3
+
+* **A measured answer on the question the roadmap left open: can a native decode
+  give a procedure's runtime-call order?** `scripts/t35_import_call_spike.py` decodes
+  each procedure's own byte range with capstone, resolves every call through the
+  import address table (direct `call [slot]` and `call rel32` to a `jmp [slot]`
+  thunk), and compares that order against the same procedures in a decompiler
+  listing. It ships as a measurement, not a stage: it prints agreement per procedure
+  and never emits a call graph.
+* **What it found, so nobody has to re-run it to learn the shape:** on the reference
+  build, 1,750 procedures in 40 listing files gave 1,451 identical ordered sequences
+  and 299 identical-then-extra, with 0 that ended early and 0 with a different call or
+  a different order. The 299 are the documented `procs.body_bounds` gap — a range runs
+  to the next method-table entry and can contain a helper with no entry of its own —
+  so any field derived from it must say "calls seen in this range", never "this
+  procedure calls".
+* **Two traps the measurement itself hit, now pinned by tests:** a listing prints a
+  direct call to a runtime thunk as `call 00516100h` with no slot, and skipping those
+  made 102 procedures look like a decoder disagreement; and an ordinal-imported call
+  has no name in the binary at all (`ord_598`), which is why the script reports the
+  DLL build behind any ordinal it names. Cost 3.5 ms per procedure.
+* **The extractors are unit-tested without a binary or capstone.** The listing parser
+  keeps order, skips late-bound `call [eax+4]`, follows a thunk to its slot and refuses
+  a thunk outside the image — the four ways this had to be right.
+
 ## 0.4.2
 
 * **A runtime helper imported by ordinal alone can now be named.** A build may fill
