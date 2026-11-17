@@ -42,6 +42,7 @@ host, no database name, no account, no credential, no absolute install path.
 | Runtime call order check | `scripts/t35_import_call_spike.py --exe <exe> --listings <dir> [--dll <msvbvm60.dll>]` | whether a native decode reproduces each procedure's `MSVBVM60` call order; reports agreement per procedure, not a guessed call graph |
 | Credential gate | `vb6d mask <dir>` | files rewritten in place: connection strings redacted, then an audit counting what is still live |
 | Cross-reference query | `vb6d xref <dossier.jsonl> [--literal/--sql SUBSTR]` | the dossier read backwards: which procedures touch a string or SQL fragment (case-insensitive), or a procedure rollup ordered by literal count |
+| x86 raw decode | `vb6d decode <exe> --va HEX` (needs the `[asm]` extra) | instruction dump from a VA each earlier stage already reported: bytes, mnemonic, operands, and an explicit `ended` field (ret / limit / undecodable) — no VB6 semantics claimed yet |
 | Project skeleton | `vb6d project <exe>` | structure, not source: `.vbp` with the object table's modules/classes/forms in table order, one placeholder file per object — forms carry their recovered design record (offset, extent, per-control lines) in comment form — and a `recovery-report.json` separating confirmed / inferred / missing — nothing invented |
 
 Four helpers ship inside the package, so a pip install can run them: `frx_icon`,
@@ -52,7 +53,9 @@ and `semi_laa`. The same files stay runnable from a checkout as
 `win32_gui_probe.py` drives a Windows GUI. `t35_import_call_spike.py` needs
 `pip install "vb6decompiler[asm]"` (capstone) because it decodes x86 bytes, and it
 answers a measurement question rather than producing a stage's output. The library and
-the `vb6d` CLI stay standard-library only.
+the `vb6d` CLI stay standard-library only — with one named exception: `vb6d decode`
+asks for the `[asm]` extra (capstone) and refuses with exit 2 and that hint when the
+engine is missing.
 
 `vb6d dossier` names the runtime helpers a procedure calls (`__vbaFreeStr`,
 `rtcMsgBox`, …) from the export table of the `msvbvm60.dll` the table was generated

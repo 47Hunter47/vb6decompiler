@@ -11,7 +11,7 @@ from __future__ import annotations
 import struct
 
 
-def mini_pe(truncated: bool = False) -> bytes:
+def mini_pe(truncated: bool = False, code: bytes = b"") -> bytes:
     img = bytearray(0x300)
     img[0:2] = b"MZ"
     struct.pack_into("<I", img, 0x3C, 0x80)  # e_lfanew
@@ -38,4 +38,7 @@ def mini_pe(truncated: bool = False) -> bytes:
     struct.pack_into("<I", img, sec + 16, 0x1000 if truncated else 0x100)  # SizeOfRawData
     struct.pack_into("<I", img, sec + 20, 0x200)    # PointerToRawData
     struct.pack_into("<I", img, sec + 36, 0x60000020)
+    if code:
+        assert len(code) <= 0x100, "code must fit the section's raw window"
+        img[0x200:0x200 + len(code)] = code  # the decode tests need real bytes
     return bytes(img)
