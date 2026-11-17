@@ -209,3 +209,39 @@ def test_stitch_on_a_bare_binary_says_why_there_is_nothing(tmp_path, capsys):
     junk = tmp_path / "junk.exe"
     junk.write_bytes(b"MZ\x90\x00garbage-not-a-real-image")
     assert cli.main(["stitch", str(junk)]) == 2
+
+
+# --------------------------------------------------------------------------- blob detail
+def test_blob_json_carries_per_control_geometry(tmp_path, capsys, monkeypatch):
+    # blob.py recovers caption, position, size, array index and the tri-state
+    # Visible per control; the summary-only JSON used to throw all of it away,
+    # which made `blob --json` useless for the forms that have no .frm at all.
+    from vb6decompiler import blob
+
+    forms = [
+        blob.Form(
+            name="fSample", width=3270, height=1905, client_left=8, client_top=8,
+            controls=[
+                blob.Control(name="Text1", type="TextBox", caption="a",
+                             left=100, top=200, width=300, height=60),
+                blob.Control(name="Command1", type="CommandButton", caption=None,
+                             left=100, top=300, width=300, height=120, index=2,
+                             visible=False),
+            ],
+        )
+    ]
+    monkeypatch.setattr(blob, "extract_forms", lambda exe, encoding=None: forms)
+    from _mini_pe import mini_pe
+    exe = tmp_path / "fake.exe"
+    exe.write_bytes(mini_pe())  # a real (if empty) image: codec_for parses the header
+    code, out, _err = _run(["blob", str(exe), "--json"], capsys)
+    assert code == 0
+    forms_out = json.loads(out)
+    (form,) = forms_out
+    assert form["controls_detail"]
+    text1, cmd = form["controls_detail"]
+    assert (text1["left"], text1["top"], text1["width"], text1["height"]) == (100, 200, 300, 60)
+    assert cmd["index"] == 2 and cmd["visible"] is False and cmd["caption"] is None
+    # The text mode keeps its old per-form shape: a new column would break callers.
+    code, out, _err = _run(["blob", str(exe)], capsys)
+    assert out.splitlines()[0] == "name,controls,width,height"

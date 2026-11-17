@@ -198,18 +198,37 @@ def cmd_blob(args) -> int:
         print(report.summary(), file=sys.stderr)
         return 0
     forms = blob.extract_forms(args.exe, encoding=codec)
-    _emit(
-        [
-            {
-                "name": f.name,
-                "controls": len(f.controls),
-                "width": f.width,
-                "height": f.height,
-            }
-            for f in forms
-        ],
-        args.json,
-    )
+    if args.json:
+        # CSV rows are per-form; the per-control detail belongs to --json only,
+        # because its row count is in the ten-thousands on a real build.
+        _emit(
+            [
+                {
+                    "name": f.name,
+                    "controls": len(f.controls),
+                    "width": f.width,
+                    "height": f.height,
+                    "client_left": f.client_left,
+                    "client_top": f.client_top,
+                    "controls_detail": [
+                        {k: getattr(c, k) for k in
+                         ("name", "type", "caption", "left", "top", "width",
+                          "height", "index", "visible", "tab_page", "pages")}
+                        for c in f.controls
+                    ],
+                }
+                for f in forms
+            ],
+            True,
+        )
+    else:
+        _emit(
+            [
+                {"name": f.name, "controls": len(f.controls), "width": f.width, "height": f.height}
+                for f in forms
+            ],
+            False,
+        )
     print(f"# {len(forms)} forms from form-data blobs", file=sys.stderr)
     return 0
 
