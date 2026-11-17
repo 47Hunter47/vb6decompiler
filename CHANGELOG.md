@@ -3,6 +3,14 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.18
+
+* **Consistency fix:** `vb6d project` report JSON now writes addresses as bare
+  uppercase hex (`"996671"`), matching the convention every other command
+  already followed (`dossier`, `literals`, `stitch`). Only human comment lines
+  in the stub files keep the `0x` prefix. A test now pins the rule so a future
+  field cannot drift back to `0x…` in machine output.
+
 ## 0.4.17
 
 * **`vb6d xref`: the dossier read backwards** — the questions agents actually

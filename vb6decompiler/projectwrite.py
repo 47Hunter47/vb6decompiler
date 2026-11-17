@@ -185,7 +185,7 @@ def build_report(project: VBProject, exe_path: str, design: dict | None = None) 
             "kind": o.object_type,
             "status": "placeholder",
             "evidence": {"source": "object table", "object_index": o.index,
-                         "name": o.name, "raw_type": hex(o.raw_type)},
+                         "name": o.name, "raw_type": f"{o.raw_type:X}"},
             "methods_declared": o.method_count,
             "methods_with_verified_address": len(o.method_addresses),
             "names_shape_plausible": len(plausible),
@@ -196,7 +196,7 @@ def build_report(project: VBProject, exe_path: str, design: dict | None = None) 
             entry["design"] = None if d is None else {
                 "source": "exe form-data blob",
                 "record_bytes": d[0].size,
-                "record_offset": hex(d[0].offset),
+                "record_offset": f"{d[0].offset:X}",
                 "controls": len(d[1].controls),
                 "note": "comment-form reconstruction; the binary stream stays in the exe",
             }
