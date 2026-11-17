@@ -335,3 +335,22 @@ reference install, 24 more inside the executable itself).
 * **`.dsr` layout.** `.dsr` files carry no SQL and no caption text; the layout lives
   in the DLL's blob (§6). Any tool that offers to "export the .dsr" is exporting a
   name.
+
+## 8. Open questions — P-Code builds
+
+TODO(needs sample): no P-Code binary has been measured here, so nothing below is a
+fact. These are the comparisons to run on the first P-Code sample supplied, recorded
+as questions so a later reader does not mistake them for a spec:
+
+* Does the `ObjectTable` compile-state field near offset `0x28` differ between a
+  native and a P-Code compile of the same project? (Documented layouts disagree about
+  what lives at `0x28`; `procs.py` reads `total_objects` at `0x2A` and
+  `compiled_objects` at `0x2C`, and neither has been checked against a P-Code build.)
+* Do `lpMethods` arrays hold *something* addressable in a P-Code build (an offset into
+  a p-code stream) instead of the small integers a native build holds?
+* Is the prologue `55 8B EC` ever present at a P-Code entry, i.e. can the prologue
+  count alone distinguish the two compiles?
+* Which `VBHeader` fields differ (`runtime_build`? `thread_flags`? a flag bit)?
+* Does `blob.py`'s form-blob grammar survive unchanged, or does the p-code compile
+  move the design-time blobs? (The blobs are data, so they are expected to stay — that
+  expectation is untested.)

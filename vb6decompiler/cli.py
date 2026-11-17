@@ -72,8 +72,10 @@ def cmd_procs(args) -> int:
     if args.names:
         names = procs.merge_listing_names(args.names)
         stats["names_from_listing"] = len(names)
+    hint = None
     if args.validate:
         stats["prologue"] = procs.prologue_report(args.exe, project)
+        hint = procs.pcode_hint(project)
     if args.json:
         _emit(
             {
@@ -96,6 +98,8 @@ def cmd_procs(args) -> int:
         print(f"\n# {len(project.objects)} objects")
         for o in project.objects[: args.limit]:
             print(f"  [{o.index:4d}] {o.name:<24} {o.object_type:<12} methods={o.method_count}")
+    if hint:
+        print(hint, file=sys.stderr)
     return 0
 
 
