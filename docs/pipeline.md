@@ -163,6 +163,10 @@ elements** (49 groups with a non-contiguous `Index`); `SSTab`: 14 controls, 1,26
 nested children, **0 page captions written** — those live in the `.frx` blob, so
 pages are reported empty rather than guessed.
 
+Extract: `vb6d blob <exe> --json` lists the forms with the geometry its record
+parser already recovers — every control as name, type, caption, position, size,
+array index, tri-state `Visible`, tab page.
+
 `vb6d blob <exe> --validate --frm-dir <listing dir>` — geometry for the forms that
 have **no** `.frm`. Reference: 801 blobs, **24,967/24,967 controls matched
 (100 %)**, 367/369 forms fully matched (99.46 %), client size **368/368**,
