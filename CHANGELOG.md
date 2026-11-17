@@ -3,6 +3,26 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.4.23
+
+* **`vb6d edges <exe> --dossier <file>` — the call graph, produced once
+  (milestone D's fifth layer):** one process decodes every dossier range
+  instead of launching per-procedure, writing `edges.jsonl` with one row per
+  procedure — `calls_imported` (`dll!name` → count), `calls_procedures`
+  (owning range VA → count: attribution, never identity), `calls_late_bound`,
+  `ended`; a procedure that makes no decodable call still gets a row, and
+  the file's last range reads under a fixed cap and says `range_capped`.
+  Measured on the full reference corpus (34,159 procedures, 4m59s including
+  the dossier rebuild): **34,159 / 34,159 ranges end on a `ret` inside the
+  range — zero garbage, zero exhausted across the whole population**, which
+  is the body-bounds claim now proven corpus-wide, not by 402 samples.
+  Totals: 1.897M import-named calls (top: `__vbaHresultCheckObj` 319.979,
+  `__vbaNew2` 217.851), 27.033 edges attributed to listed procedures — one
+  `modApiFuncs` helper holds **17.197 inbound calls** across the program —
+  1.791M late-bound (obj-call `[reg+disp]`, unnameable statically), and
+  10.059 targets below the first listed procedure VA: the helper region the
+  listings never enumerated, counted instead of footnoted.
+
 ## 0.4.22
 
 * **`decode --procs <dossier.jsonl>` — call edges, honestly attributed

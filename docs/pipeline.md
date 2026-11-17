@@ -151,6 +151,20 @@ stderr line states how many of the calls were named. With `--procs
 attribution of a range, never a claim of identity. Missing engine: named
 refusal, exit 2, install hint.
 
+`vb6d edges <exe> --dossier <file>` is the same pass done once for the whole
+corpus instead of one procedure at a time: it decodes every dossier range in
+a single process and writes `edges.jsonl`, one row per procedure (even a
+procedure with no decodable call gets a row — absence is a result). Each row
+carries `calls_imported` (`dll!name` → count), `calls_procedures` (the owning
+range's VA → count), `calls_late_bound`, and `ended`; the last range in the
+file has no next VA, so it reads under a fixed cap and says
+`range_capped: true`. The claim stays the range kind: these are calls *seen
+in the range*, not assertions about who calls whom, and a fourth total —
+targets below the first listed procedure VA — counts hits on code the
+listings never enumerated (helpers with no entry of their own), which is
+where a call graph's edges into unnamed territory become visible instead of
+silent.
+
 **Call order is measurable without a decompiler** — as a measurement, not a stage.
 `scripts/t35_import_call_spike.py` decodes each procedure's own byte range with
 capstone, resolves every call through the import address table (including a direct
