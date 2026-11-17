@@ -1,0 +1,3834 @@
+{
+ "generated_by": "scripts/gen_runtime_table.py",
+ "dll": {
+  "file_version": [
+   6,
+   0,
+   98,
+   48
+  ],
+  "sha256": "898288bd3b21d0e7d5f406df2e0b69a5bbfa4f241baf29a2cdf8a3cf4d4619f2",
+  "size": 1436032,
+  "named_exports": 635,
+  "ordinal_only_exports": 1276
+ },
+ "third_party": {
+  "source": "S1",
+  "license": "Apache-2.0",
+  "url": "https://docs.rs/crate/visualbasic/0.2.1/source/data/msvbvm60_exports.csv",
+  "attribution": "Johann Kempter, visualbasic-rs",
+  "note": "category and description are that author's reverse-engineering notes, re-checked here only for the name; they are unverified and every printed description must say so"
+ },
+ "entries": {
+  "ThunRTMain": {
+   "ordinal": 1,
+   "category": "entry",
+   "description": "runtime initialization; noreturn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "VBDllUnRegisterServer": {
+   "ordinal": 2,
+   "category": "entry",
+   "description": "Unregisters VB project classes; retn varies",
+   "source": "export-table; S1 (unverified)"
+  },
+  "VBDllCanUnloadNow": {
+   "ordinal": 3,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "VBDllRegisterServer": {
+   "ordinal": 4,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "VBDllGetClassObject": {
+   "ordinal": 5,
+   "category": "entry",
+   "description": "User-project class factory creation; compares IIDs; creates basic_class object; retn 0x18",
+   "source": "export-table; S1 (unverified)"
+  },
+  "UserDllMain": {
+   "ordinal": 6,
+   "category": "entry",
+   "description": "VB6 user DLL entry; handles DLL_PROCESS_ATTACH(1); DLL_PROCESS_DETACH(0); DLL_THREAD_ATTACH(2); retn 0x14",
+   "source": "export-table; S1 (unverified)"
+  },
+  "DllRegisterServer": {
+   "ordinal": 7,
+   "category": "entry",
+   "description": "Gets module filename; loads type library; registers; bare retn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "DllUnregisterServer": {
+   "ordinal": 8,
+   "category": "entry",
+   "description": "Unregisters type library; bare retn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryLock": {
+   "ordinal": 9,
+   "category": "array",
+   "description": "Calls SafeArrayLock(psa); stores psa into *ppLocked; returns psa. Raises error 9 if psa is NULL. retn 0x8.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaBoolErrVar": {
+   "ordinal": 10,
+   "category": "convert",
+   "description": "Calls rtBoolFromErrVar; movsx result; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRedimVar2": {
+   "ordinal": 11,
+   "category": "array",
+   "description": "0x660eda90; UDT-aware version with extra pUdtInfo param; delegates to 0x660ed604 with preserve=0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrErrVarCopy": {
+   "ordinal": 12,
+   "category": "string",
+   "description": "Thin wrapper around rtBstrFromErrVar; extracts error BSTR from Variant",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarLateMemCallLd": {
+   "ordinal": 13,
+   "category": "late",
+   "description": "object passed as VARIANT; flag=3",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarLateMemCallLdRf": {
+   "ordinal": 14,
+   "category": "late",
+   "description": "same as VarLateMemCallLd but flag=0x80000003 (ByRef)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarLateMemCallSt": {
+   "ordinal": 15,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaVarLateMemSt": {
+   "ordinal": 16,
+   "category": "late",
+   "description": "object as VARIANT; store via flag=4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarLateMemStAd": {
+   "ordinal": 17,
+   "category": "late",
+   "description": "store-by-address; flag=8; object as VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryVarVarg": {
+   "ordinal": 18,
+   "category": "array",
+   "description": "Wraps a varg array into a VARIANT. Sets pDst->vt=VT_ARRAY|VT_VARIANT (0x200c); calls internal to build SAFEARRAY from stack args. bare retn.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpCDblR4": {
+   "ordinal": 19,
+   "category": "fpu",
+   "description": "0x661120d2; validates FPU st0 fits in double precision (store/reload via qword)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpCDblR8": {
+   "ordinal": 20,
+   "category": "fpu",
+   "description": "export at ordinal 20; round-trip through qword to validate",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpCSngR4": {
+   "ordinal": 21,
+   "category": "fpu",
+   "description": "0x661120bb; validates FPU st0 fits in single precision (store/reload via dword)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpCSngR8": {
+   "ordinal": 22,
+   "category": "fpu",
+   "description": "export at ordinal 22; likely same validation path as FpCDblR4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpCmpCy": {
+   "ordinal": 23,
+   "category": "fpu",
+   "description": "0x661120e9; retn 0x8; compares FPU st0 against CY value on stack; returns -1/0/1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpCy": {
+   "ordinal": 24,
+   "category": "fpu",
+   "description": "0x6611206a; converts FPU st0 to scaled CY (multiply by 10000); returns EDX:EAX",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpI2": {
+   "ordinal": 25,
+   "category": "fpu",
+   "description": "pops ST(0)→int16; frndint+fist; overflow check via fnstsw",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpI4": {
+   "ordinal": 26,
+   "category": "fpu",
+   "description": "pops ST(0)→int32; frndint+fist; overflow check via fnstsw",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpR4": {
+   "ordinal": 27,
+   "category": "fpu",
+   "description": "ST(0)→float; fld1+fmulp with single-precision FPCW",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpR8": {
+   "ordinal": 28,
+   "category": "fpu",
+   "description": "ST(0)→double; fld1+fmulp with double-precision FPCW",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFpUI1": {
+   "ordinal": 29,
+   "category": "fpu",
+   "description": "0x66112045; rounds FPU st0 to integer; validates 0..255 range; returns in EAX",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFreeObj": {
+   "ordinal": 30,
+   "category": "free",
+   "description": "ecx=ppobj; *ppobj→Release then clear",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFreeStr": {
+   "ordinal": 31,
+   "category": "free",
+   "description": "ecx=pbstr; *pbstr→SysFreeString then clear",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFreeVar": {
+   "ordinal": 32,
+   "category": "free",
+   "description": "ecx=pvar; dispatches by vt (SysFreeString/Release/SafeArrayDestroy/VariantClear)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFreeVarg": {
+   "ordinal": 33,
+   "category": "free",
+   "description": "Frees a VARIANT arg; dispatches by vt: SysFreeString for BSTR; Release for objects; SafeArrayDestroy for arrays; else __vbaFreeVar",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI2Abs": {
+   "ordinal": 34,
+   "category": "convert",
+   "description": "Negates if negative; overflow -> error 6",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI2I4": {
+   "ordinal": 35,
+   "category": "convert",
+   "description": "ecx=val; int32→int16 with overflow check; raises error 6",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI2Sgn": {
+   "ordinal": 36,
+   "category": "convert",
+   "description": "Branchless: returns -1/0/1; bare retn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI4Abs": {
+   "ordinal": 37,
+   "category": "convert",
+   "description": "ecx=val; absolute value; raises error 6 if INT_MIN",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI4Sgn": {
+   "ordinal": 38,
+   "category": "convert",
+   "description": "Branchless: returns -1/0/1; bare retn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrCopy": {
+   "ordinal": 39,
+   "category": "string",
+   "description": "ecx=pdst edx=src; SysAllocStringByteLen+SysFreeString",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrMove": {
+   "ordinal": 40,
+   "category": "string",
+   "description": "ecx=pdst edx=src; moves ownership (no copy)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaUI1I2": {
+   "ordinal": 41,
+   "category": "convert",
+   "description": "ecx=val; int16→uint8 with overflow check; raises error 6",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaUI1I4": {
+   "ordinal": 42,
+   "category": "convert",
+   "description": "Range checks value<=0xFF; overflow -> error 6; bare retn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaUI1Sgn": {
+   "ordinal": 43,
+   "category": "convert",
+   "description": "Branchless: returns 0 or 1 (unsigned byte can't be negative); bare retn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarCopy": {
+   "ordinal": 44,
+   "category": "variant",
+   "description": "ecx=dst edx=src; deep copy (BSTR dup/IUnknown AddRef/ByRef deref)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarDup": {
+   "ordinal": 45,
+   "category": "variant",
+   "description": "ecx=dst edx=src; fast memcpy 16 bytes for simple types",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarMove": {
+   "ordinal": 46,
+   "category": "variant",
+   "description": "ecx=dst edx=src; frees dst then moves src; zeroes src vt",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarVargNofree": {
+   "ordinal": 47,
+   "category": "variant",
+   "description": "ecx=dst edx=src; resolves VT_VARIANT|VT_BYREF; no free on dst",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarZero": {
+   "ordinal": 48,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaVargParmRef": {
+   "ordinal": 49,
+   "category": "variant",
+   "description": "Dereferences VT_BYREF|VT_VARIANT; if flag set returns pVar->pvarVal; else returns pVar",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVargVar": {
+   "ordinal": 50,
+   "category": "variant",
+   "description": "Copies 16-byte VARIANT from ecx to pDstVar; if not VT_BYREF; sets VT_BYREF|VT_VARIANT pointing to src",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVargVarCopy": {
+   "ordinal": 51,
+   "category": "variant",
+   "description": "Copies VARIANT via internal helper with flag=0 (deep copy); returns pSrcVar in eax",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVargVarMove": {
+   "ordinal": 52,
+   "category": "variant",
+   "description": "Moves VARIANT via internal helper with flag=1 (move/steal); returns pSrcVar",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVargVarRef": {
+   "ordinal": 53,
+   "category": "variant",
+   "description": "Copies 16 bytes from pSrcVar to pDstVar; if not VT_BYREF; makes it VT_BYREF|VT_VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "DLLGetDocumentation": {
+   "ordinal": 54,
+   "category": "entry",
+   "description": "Loads string resource; converts to BSTR; retn 0x14",
+   "source": "export-table; S1 (unverified)"
+  },
+  "DllCanUnloadNow": {
+   "ordinal": 55,
+   "category": "entry",
+   "description": "Checks global refcount at 0x66119c78; returns S_FALSE(1) if nonzero; S_OK(0) if zero; bare retn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "DllGetClassObject": {
+   "ordinal": 56,
+   "category": "entry",
+   "description": "Compares rclsid to internal CLSID; creates class factory; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_CIatan": {
+   "ordinal": 57,
+   "category": "crt",
+   "description": "FPU intrinsic: pops st(0) to stack; calls atan helper; pushes result back to FPU",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_CIcos": {
+   "ordinal": 58,
+   "category": "crt",
+   "description": "FPU intrinsic: pops st(0) to stack; calls cos helper; pushes result back to FPU",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_CIexp": {
+   "ordinal": 59,
+   "category": "crt",
+   "description": "x87: ST(0) = exp(ST(0))",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_CIlog": {
+   "ordinal": 60,
+   "category": "crt",
+   "description": "FPU intrinsic: pops st(0) to stack; calls log helper; pushes result back to FPU",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_CIsin": {
+   "ordinal": 61,
+   "category": "crt",
+   "description": "FPU intrinsic: pops st(0) to stack; calls sin helper; pushes result back to FPU",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_CIsqrt": {
+   "ordinal": 62,
+   "category": "crt",
+   "description": "FPU intrinsic: pops st(0) to stack; calls sqrt helper; pushes result back to FPU",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_CItan": {
+   "ordinal": 63,
+   "category": "crt",
+   "description": "x87: ST(0) = tan(ST(0))",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAptOffset": {
+   "ordinal": 64,
+   "category": "internal",
+   "description": "Returns apartment thread offset; returns 0 if single-threaded; reads TLS for multi-apartment",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryConstruct2": {
+   "ordinal": 65,
+   "category": "array",
+   "description": "Like AryConstruct but with explicit bounds pointer (3rd param). If descriptor has FADF_AUTO (0x20) bit; dereferences pBounds. retn 0xc.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryConstruct": {
+   "ordinal": 66,
+   "category": "array",
+   "description": "Thin wrapper: calls sub_660482ba(ppAry; pDescriptor; 0) then error handler. Creates array from descriptor with no extra bounds. retn 0x8.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryCopy": {
+   "ordinal": 67,
+   "category": "array",
+   "description": "Erases dst if different from src; then copies src array to dst via SafeArrayCopy. retn 0x8.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryDestruct": {
+   "ordinal": 68,
+   "category": "array",
+   "description": "calls __vbaErase then SafeArrayDestroyData",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryMove": {
+   "ordinal": 69,
+   "category": "array",
+   "description": "erases dst; moves src ptr to dst; NULLs src",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryRebase1Var": {
+   "ordinal": 70,
+   "category": "array",
+   "description": "If pVar holds VT_ARRAY|VT_VARIANT (0x200c) with a 1-dim SAFEARRAY; sets lLbound=1 (Option Base 1). retn 0x4.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryRecCopy": {
+   "ordinal": 71,
+   "category": "array",
+   "description": "Copies a record (UDT) array. Uses pRecInfo for element-level copy semantics. Erases dst first if needed. retn 0xc.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryRecMove": {
+   "ordinal": 72,
+   "category": "array",
+   "description": "Moves a record (UDT) array. Erases dst; then moves src pointer to dst and zeroes src. retn 0xc.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryUnlock": {
+   "ordinal": 73,
+   "category": "array",
+   "description": "Calls SafeArrayUnlock(*ppLocked); then zeroes *ppLocked. retn 0x4.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaAryVar": {
+   "ordinal": 74,
+   "category": "array",
+   "description": "Extracts SAFEARRAY* from a VARIANT. Validates VT_ARRAY bit (0x2000); handles VT_BYREF indirection. Validates element type matches vt. retn 0x8.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaBoolStr": {
+   "ordinal": 75,
+   "category": "convert",
+   "description": "BSTR→VARIANT_BOOL via VarBoolFromStr",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaBoolVar": {
+   "ordinal": 76,
+   "category": "convert",
+   "description": "variant→bool; uses VariantChangeTypeEx (VT_BOOL=0xB)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaBoolVarNull": {
+   "ordinal": 77,
+   "category": "convert",
+   "description": "variant→bool (null-aware); optimized inline VT dispatch",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCVarAryUdt": {
+   "ordinal": 78,
+   "category": "array",
+   "description": "Converts a UDT array to a VARIANT. Creates SAFEARRAY descriptor if needed; sets element size/type; copies IRecordInfo. Stores result in pDst. retn 0x10.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCastObj": {
+   "ordinal": 79,
+   "category": "object",
+   "description": "QueryInterface wrapper; returns requested interface",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCastObjVar": {
+   "ordinal": 80,
+   "category": "object",
+   "description": "extracts obj from VT_DISPATCH/VT_UNKNOWN variant then QI",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCheckType": {
+   "ordinal": 81,
+   "category": "object",
+   "description": "QI to piid; succeeds→Release and return -1; fails→return 0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCheckTypeVar": {
+   "ordinal": 82,
+   "category": "object",
+   "description": "Extracts IDispatch; QueryInterface with GUID; returns -1 match / 0 no match; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaChkstk": {
+   "ordinal": 83,
+   "category": "misc",
+   "description": "custom CC: EAX=alloc size; probes pages in 0x1000 increments",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCopyBytes": {
+   "ordinal": 84,
+   "category": "misc",
+   "description": "memcpy-like: copies cbSize bytes from pSrc to pDst; returns pDst",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCopyBytesZero": {
+   "ordinal": 85,
+   "category": "misc",
+   "description": "Copies cbSize bytes from pSrc to pDst; then zeros pSrc; returns pDst",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyAbs": {
+   "ordinal": 86,
+   "category": "currency",
+   "description": "If high dword negative; neg low + not/sbb high; overflow check; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "ProcCallEngine": {
+   "ordinal": 87,
+   "category": "entry",
+   "description": "Custom CC: edx=RTMI ptr; return addr on stack; sets up P-Code frame; dispatches opcodes via jump table at 0x6610aa24",
+   "source": "export-table; S1 (unverified)"
+  },
+  "DllFunctionCall": {
+   "ordinal": 88,
+   "category": "entry",
+   "description": "resolves Declare imports; returns function pointer",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyAdd": {
+   "ordinal": 89,
+   "category": "currency",
+   "description": "64-bit add via add/adc; overflow→error 6; returns EDX:EAX",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyErrVar": {
+   "ordinal": 90,
+   "category": "currency",
+   "description": "Like CyVar but with Error variant support; thunk -> shared dispatcher",
+   "source": "export-table; S1 (unverified)"
+  },
+  "CopyRecord": {
+   "ordinal": 91,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaCyFix": {
+   "ordinal": 92,
+   "category": "currency",
+   "description": "FPU truncate-toward-zero (chop rounding); returns EDX:EAX",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyForInit": {
+   "ordinal": 93,
+   "category": "currency",
+   "description": "Stores start into *pCounter; then calls ForNext check; retn 0x1C",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyForNext": {
+   "ordinal": 94,
+   "category": "currency",
+   "description": "Adds step via __vbaCyAdd; stores; then checks limit; retn 0x14",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyI2": {
+   "ordinal": 95,
+   "category": "currency",
+   "description": "movsx; imul * 10000; returns in EDX:EAX; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "TipGetAddressOfPredeclaredInstance": {
+   "ordinal": 96,
+   "category": "internal",
+   "description": "Returns ptr to ObjectData+0x8 for predeclared instance; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyI4": {
+   "ordinal": 97,
+   "category": "currency",
+   "description": "imul value * 10000; returns in EDX:EAX; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyInt": {
+   "ordinal": 98,
+   "category": "currency",
+   "description": "FPU floor (round toward -inf); returns EDX:EAX",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyMul": {
+   "ordinal": 99,
+   "category": "currency",
+   "description": "FPU fild/fmul/fdiv by 10000.0; returns EDX:EAX",
+   "source": "export-table; S1 (unverified)"
+  },
+  "MethCallEngine": {
+   "ordinal": 100,
+   "category": "entry",
+   "description": "Custom CC: sub [esp+4];eax adjusts 'this' offset; tail-jumps to ProcCallEngine_Body",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyMulI2": {
+   "ordinal": 101,
+   "category": "currency",
+   "description": "sign-extends I2→I4; delegates to VarCyMulI4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCySgn": {
+   "ordinal": 102,
+   "category": "currency",
+   "description": "Pushes 0:0 and cyValue; calls internal CY compare; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyStr": {
+   "ordinal": 103,
+   "category": "currency",
+   "description": "Calls VarCyFromStr; returns CY in EDX:EAX; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCySub": {
+   "ordinal": 104,
+   "category": "currency",
+   "description": "64-bit sub via sub/sbb; overflow→error 6; returns EDX:EAX",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyUI1": {
+   "ordinal": 105,
+   "category": "currency",
+   "description": "movzx byte; imul 10000; returns in EDX:EAX; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaCyVar": {
+   "ordinal": 106,
+   "category": "currency",
+   "description": "Dispatches via vtype jump table; returns CY in EDX:EAX; thunk -> shared dispatcher",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaDateR4": {
+   "ordinal": 107,
+   "category": "convert",
+   "description": "Widens float->double; range checks VB date bounds; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaDateR8": {
+   "ordinal": 108,
+   "category": "convert",
+   "description": "range-checks double against DATE bounds; returns on ST(0)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaDateStr": {
+   "ordinal": 109,
+   "category": "convert",
+   "description": "Calls VarDateFromStr (fallback VarR8FromStr + range check); retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaDateVar": {
+   "ordinal": 110,
+   "category": "convert",
+   "description": "variant→date; calls __vbaVarDateVar then loads qword to ST(0)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaDerefAry": {
+   "ordinal": 111,
+   "category": "array",
+   "description": "Multi-dimensional array element dereference. Variadic indices follow on stack. Validates dims/bounds; computes pvData + element offset. bare retn (cdecl; caller cleans).",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaDerefAry1": {
+   "ordinal": 112,
+   "category": "array",
+   "description": "1-dimensional array element dereference. Validates dims==1 and bounds; returns pvData + cbElements*(index-lLbound). retn 0x8.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaEnd": {
+   "ordinal": 113,
+   "category": "error",
+   "description": "terminates VB6 program; noreturn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaErase": {
+   "ordinal": 114,
+   "category": "array",
+   "description": "calls SafeArrayDestroyData",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaEraseKeepData": {
+   "ordinal": 115,
+   "category": "array",
+   "description": "Erases array data but keeps the descriptor. Sets FADF_FIXEDSIZE|FADF_STATIC (0x12) before erase; clears after. retn 0x8.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaEraseNoPop": {
+   "ordinal": 116,
+   "category": "array",
+   "description": "Validates array not locked (fFeatures & 0x16 == 0); then calls __vbaErase(0; ppAry). retn 0x4.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaError": {
+   "ordinal": 117,
+   "category": "error",
+   "description": "0x660e6a99; retn 0x4; raises VB error by number; 0 or >0xFFFF maps to error 5 (invalid call)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaErrorOverflow": {
+   "ordinal": 118,
+   "category": "error",
+   "description": "0x660e6ab2; pushes 6 (Overflow) and calls error handler; noreturn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaExceptHandler": {
+   "ordinal": 119,
+   "category": "error",
+   "description": "standard SEH handler; handles stack overflow specially",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaExitEachAry": {
+   "ordinal": 120,
+   "category": "foreach",
+   "description": "0x6611197d; retn 0x4; calls SafeArrayUnlock and clears pointer",
+   "source": "export-table; S1 (unverified)"
+  },
+  "TipSetOption": {
+   "ordinal": 121,
+   "category": "internal",
+   "description": "Sets project option; retn varies",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaExitEachColl": {
+   "ordinal": 122,
+   "category": "foreach",
+   "description": "0x6611199f; retn 0x4; Release()s the enumerator and clears pointer",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaExitEachVar": {
+   "ordinal": 123,
+   "category": "foreach",
+   "description": "0x6611195d; retn 0xc; dispatches to __vbaExitEachAry or __vbaExitEachColl based on ppsa",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaExitProc": {
+   "ordinal": 124,
+   "category": "error",
+   "description": "walks SEH chain via fs:[0]; clears TLS error state",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFPException": {
+   "ordinal": 125,
+   "category": "fpu",
+   "description": "export at ordinal 124; 0x660f5daa is FPInt; FPException likely shares overflow check path at 0x66112026",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFPFix": {
+   "ordinal": 126,
+   "category": "fpu",
+   "description": "export at ordinal 125; FPU st0 truncation toward zero (uses fldcw to set rounding mode)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFPInt": {
+   "ordinal": 127,
+   "category": "fpu",
+   "description": "0x660f5daa; operates on FPU st0; fwait; set truncation rounding mode; frndint; restore rounding mode",
+   "source": "export-table; S1 (unverified)"
+  },
+  "TipUnloadProject": {
+   "ordinal": 128,
+   "category": "internal",
+   "description": "Checks project on stack; enters critsec; cleans up object table; releases ExecProj; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFailedFriend": {
+   "ordinal": 129,
+   "category": "error",
+   "description": "0x660e592d; pushes error 0x61 (97 = Friend access violation) and calls error handler; noreturn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFileClose": {
+   "ordinal": 130,
+   "category": "file",
+   "description": "if 0=no-op; otherwise delegates to internal close",
+   "source": "export-table; S1 (unverified)"
+  },
+  "TipCreateInstanceProject2": {
+   "ordinal": 131,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "EbResetProject": {
+   "ordinal": 132,
+   "category": "internal",
+   "description": "Resets project state; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EbGetHandleOfExecutingProject": {
+   "ordinal": 133,
+   "category": "internal",
+   "description": "Reads TLS -> execution context -> project handle; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFileCloseAll": {
+   "ordinal": 134,
+   "category": "file",
+   "description": "0x660f3c8e; retn 0x4; shares implementation with __vbaFileLock/FileClose path; fileNum=0 closes all",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFileLock": {
+   "ordinal": 135,
+   "category": "file",
+   "description": "nLockType bits: 0x4=lock 0x2=unlock",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFileOpen": {
+   "ordinal": 136,
+   "category": "file",
+   "description": "nMode bitfield: 0-7=access 8-11=share 12-15=open mode",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFileSeek": {
+   "ordinal": 137,
+   "category": "file",
+   "description": "0x660f33b0; retn 0x8; validates file/record num; sets seek position in file channel structure",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFixstrConstruct": {
+   "ordinal": 138,
+   "category": "misc",
+   "description": "Allocates zero-filled fixed-length BSTR; stores in *ppBstr; error 0xe on OOM",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaForEachAry": {
+   "ordinal": 139,
+   "category": "foreach",
+   "description": "0x6610c6a8; retn 0xc; calls __vbaForEachCollVar internally; extracts IDispatch from VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaForEachCollAd": {
+   "ordinal": 140,
+   "category": "foreach",
+   "description": "wraps ForEachCollVar; extracts IDispatch*",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaForEachCollObj": {
+   "ordinal": 141,
+   "category": "foreach",
+   "description": "calls ForEachCollAd; QI for target interface",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaForEachCollVar": {
+   "ordinal": 142,
+   "category": "foreach",
+   "description": "obtains IEnumVARIANT via _NewEnum; calls Next",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaForEachVar": {
+   "ordinal": 143,
+   "category": "foreach",
+   "description": "0x6610c6fa; retn 0xc; creates IEnumVARIANT; calls __vbaNextEachCollVar",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFreeObjList": {
+   "ordinal": 144,
+   "category": "free",
+   "description": "varargs: count void** ptrs follow",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFreeStrList": {
+   "ordinal": 145,
+   "category": "free",
+   "description": "varargs: count BSTR* ptrs follow",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaFreeVarList": {
+   "ordinal": 146,
+   "category": "free",
+   "description": "varargs: count VARIANT* ptrs follow",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaGenerateBoundsError": {
+   "ordinal": 147,
+   "category": "error",
+   "description": "0x660edaf4; pushes error 9 (Subscript out of range) and calls error handler; noreturn",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaGet3": {
+   "ordinal": 148,
+   "category": "file",
+   "description": "thin wrapper for Get# statement",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaGet4": {
+   "ordinal": 149,
+   "category": "file",
+   "description": "0x660f34fd; retn 0x10; file Get# with 4 params (includes length)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaGetFxStr3": {
+   "ordinal": 150,
+   "category": "file",
+   "description": "0x66056863; retn 0xc; Get# for fixed-length string; 3 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaGetFxStr4": {
+   "ordinal": 151,
+   "category": "file",
+   "description": "0x660f358d; retn 0x10; Get# for fixed-length string; 4 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaGetOwner3": {
+   "ordinal": 152,
+   "category": "file",
+   "description": "0x660567f5; retn 0xc; Get# with owner object; 3 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaGetOwner4": {
+   "ordinal": 153,
+   "category": "file",
+   "description": "0x660f3538; retn 0x10; Get# with owner object; 4 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaGosub": {
+   "ordinal": 154,
+   "category": "misc",
+   "description": "Pushes gosub entry: allocates 8-byte node (next; retaddr); links to stack head; returns 0 (success); raises error 7 (OOM) on failure",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaGosubFree": {
+   "ordinal": 155,
+   "category": "misc",
+   "description": "Frees entire gosub stack linked list; walks list freeing each node",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaGosubReturn": {
+   "ordinal": 156,
+   "category": "misc",
+   "description": "Pops gosub stack: restores return address from linked list node; frees node; returns 1 on success; raises error 3 if stack empty",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaHresultCheck": {
+   "ordinal": 157,
+   "category": "error",
+   "description": "0x660427c2; retn 0x10; checks TLS error state; converts specific HRESULTs (0x800A9C68->0x800A01B8); dispatches to error mapper",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaHresultCheckNonvirt": {
+   "ordinal": 158,
+   "category": "error",
+   "description": "export exists; similar to HresultCheck but for non-virtual calls",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaHresultCheckObj": {
+   "ordinal": 159,
+   "category": "error",
+   "description": "checks HRESULT; raises error if failed",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI2Cy": {
+   "ordinal": 160,
+   "category": "convert",
+   "description": "fild qword; fdiv 10000.0; call __vbaFpI2; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI2ErrVar": {
+   "ordinal": 161,
+   "category": "convert",
+   "description": "Dispatches via vtype jump table; entry thunk loads ECX=vtable; jmps to shared dispatcher",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI2ForNextCheck": {
+   "ordinal": 162,
+   "category": "convert",
+   "description": "export exists at ordinal 35; integer For/Next boundary check for Int16",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI2Str": {
+   "ordinal": 163,
+   "category": "convert",
+   "description": "Calls VarI2FromStr; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI2Var": {
+   "ordinal": 164,
+   "category": "convert",
+   "description": "variant→int16; dispatch table on VT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI4Cy": {
+   "ordinal": 165,
+   "category": "convert",
+   "description": "fild qword; fdiv 10000.0; call __vbaFpI4; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EbResetProjectNormal": {
+   "ordinal": 166,
+   "category": "internal",
+   "description": "Normal project reset; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "TipUnloadInstance": {
+   "ordinal": 167,
+   "category": "internal",
+   "description": "Unloads VB object instance; retn varies",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI4ErrVar": {
+   "ordinal": 168,
+   "category": "convert",
+   "description": "error variant→int32; shared dispatch body",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EbLibraryLoad": {
+   "ordinal": 169,
+   "category": "internal",
+   "description": "Stores callback ptr to global 0x66119380; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EbLibraryUnload": {
+   "ordinal": 170,
+   "category": "internal",
+   "description": "Library unload callback registration; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI4ForNextCheck": {
+   "ordinal": 171,
+   "category": "convert",
+   "description": "export exists at ordinal 172; integer For/Next boundary check for Int32",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EbLoadRunTime": {
+   "ordinal": 172,
+   "category": "internal",
+   "description": "Massive function: loads ObjectTable; sets up ExecProj; iterates objects; resolves vtables; ebp-based; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI4Str": {
+   "ordinal": 173,
+   "category": "convert",
+   "description": "Calls VarI4FromStr; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaI4Var": {
+   "ordinal": 174,
+   "category": "convert",
+   "description": "variant→int32; shared dispatch body with I2Var",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EbCreateContext": {
+   "ordinal": 175,
+   "category": "internal",
+   "description": "Allocates 0x1c-byte context; zeroes it; returns ptr via *ppContext; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EbDestroyContext": {
+   "ordinal": 176,
+   "category": "internal",
+   "description": "Destroys execution context; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EbSetContextWorkerThread": {
+   "ordinal": 177,
+   "category": "internal",
+   "description": "Sets worker thread context; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaInStr": {
+   "ordinal": 178,
+   "category": "string",
+   "description": "InStr function; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaInStrB": {
+   "ordinal": 179,
+   "category": "string",
+   "description": "InStrB (byte-level); binary search with memcmp",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaInStrVar": {
+   "ordinal": 180,
+   "category": "string",
+   "description": "InStr for variants",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaInStrVarB": {
+   "ordinal": 181,
+   "category": "string",
+   "description": "InStrB for variants",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaInputFile": {
+   "ordinal": 182,
+   "category": "file",
+   "description": "0x660eace1; var-args; reads typed values from file per type descriptor array",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLateIdCall": {
+   "ordinal": 183,
+   "category": "late",
+   "description": "varargs are VARIANT*; IDispatch::Invoke DISPATCH_METHOD",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLateIdCallLd": {
+   "ordinal": 184,
+   "category": "late",
+   "description": "like LateIdCall but captures return value",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EbGetErrorInfo": {
+   "ordinal": 185,
+   "category": "internal",
+   "description": "Returns error information pointer; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLateIdCallSt": {
+   "ordinal": 186,
+   "category": "late",
+   "description": "0x6610c2f3; wraps __vbaLateIdCall with DISPATCH_METHOD flag; pushes 0 result then delegates to common late-bind dispatcher at 0x66106631",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLateIdNamedCall": {
+   "ordinal": 187,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaLateIdNamedCallLd": {
+   "ordinal": 188,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaLateIdNamedCallSt": {
+   "ordinal": 189,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaLateIdNamedStAd": {
+   "ordinal": 190,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaLateIdSt": {
+   "ordinal": 191,
+   "category": "late",
+   "description": "property store via DISPATCH_PROPERTYPUT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLateIdStAd": {
+   "ordinal": 192,
+   "category": "late",
+   "description": "0x6610c29d; late-bound property store by DispID with address result; flag 0x8 (DISPATCH_PROPERTYPUTREF)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLateMemCall": {
+   "ordinal": 193,
+   "category": "late",
+   "description": "resolves IUnknown→IDispatch first",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLateMemCallLd": {
+   "ordinal": 194,
+   "category": "late",
+   "description": "like LateMemCall but captures return value",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLateMemCallSt": {
+   "ordinal": 195,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaLateMemNamedCall": {
+   "ordinal": 196,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaLateMemNamedCallLd": {
+   "ordinal": 197,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaLateMemNamedCallSt": {
+   "ordinal": 198,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "EbIsProjectOnStack": {
+   "ordinal": 199,
+   "category": "internal",
+   "description": "Checks TLS for project presence on call stack; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "TipCreateInstanceEx": {
+   "ordinal": 200,
+   "category": "internal",
+   "description": "Extended CoCreateInstance wrapper for VB projects; retn varies",
+   "source": "export-table; S1 (unverified)"
+  },
+  "GetMem2": {
+   "ordinal": 201,
+   "category": "mem",
+   "description": "Reads 2 bytes (word) from *src into *dst; returns 0; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "GetMem4": {
+   "ordinal": 202,
+   "category": "mem",
+   "description": "Reads 4 bytes (dword) from *src into *dst; returns 0; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "GetMem8": {
+   "ordinal": 203,
+   "category": "mem",
+   "description": "Reads 8 bytes (qword) from *src into *dst; returns 0; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "GetMemStr": {
+   "ordinal": 204,
+   "category": "mem",
+   "description": "Copies BSTR via SysAllocStringByteLen; returns 0 or 0x8007000e (E_OUTOFMEMORY); retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "GetMemVar": {
+   "ordinal": 205,
+   "category": "mem",
+   "description": "Copies VARIANT via VariantCopy; returns 0; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "GetMemObj": {
+   "ordinal": 206,
+   "category": "mem",
+   "description": "Copies IUnknown* and calls AddRef; returns 0; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "PutMem2": {
+   "ordinal": 207,
+   "category": "mem",
+   "description": "Writes low word of val to *dst; returns 0; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "PutMem4": {
+   "ordinal": 208,
+   "category": "mem",
+   "description": "Writes dword val to *dst; returns 0; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "PutMem8": {
+   "ordinal": 209,
+   "category": "mem",
+   "description": "Writes qword lo:hi to *dst; returns 0; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "PutMemStr": {
+   "ordinal": 210,
+   "category": "mem",
+   "description": "Allocates new BSTR copy; frees old; stores new; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "PutMemVar": {
+   "ordinal": 211,
+   "category": "mem",
+   "description": "Copies VARIANT via VariantCopyInd; handles VT_DISPATCH extraction; ebp-based; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "PutMemObj": {
+   "ordinal": 212,
+   "category": "mem",
+   "description": "Complex: extracts IDispatch from Variant; calls Invoke to assign; ebp-based; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "SetMemVar": {
+   "ordinal": 213,
+   "category": "mem",
+   "description": "Validates VT_DISPATCH/VT_UNKNOWN; swaps object references; ebp-based; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "SetMemObj": {
+   "ordinal": 214,
+   "category": "mem",
+   "description": "AddRef new obj; swap into *dst; Release old; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "GetMemNewObj": {
+   "ordinal": 215,
+   "category": "mem",
+   "description": "Auto-creates object if slot empty; then copies with AddRef; ebp-based; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "PutMemNewObj": {
+   "ordinal": 216,
+   "category": "mem",
+   "description": "Auto-creates object if slot empty; then calls PutMemObj; ebp-based; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "SetMemNewObj": {
+   "ordinal": 217,
+   "category": "mem",
+   "description": "Tail-calls SetMemObj with inner 2 params; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "GetMem1": {
+   "ordinal": 218,
+   "category": "mem",
+   "description": "Reads 1 byte from *src into *dst; returns 0 (S_OK); retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "PutMem1": {
+   "ordinal": 219,
+   "category": "mem",
+   "description": "Writes low byte of val to *dst; returns 0; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "GetMemEvent": {
+   "ordinal": 220,
+   "category": "mem",
+   "description": "Copies IUnknown* from event source with AddRef; 4 params; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "PutMemEvent": {
+   "ordinal": 221,
+   "category": "mem",
+   "description": "Tail-calls PutMemObj with inner 2 params; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "SetMemEvent": {
+   "ordinal": 222,
+   "category": "mem",
+   "description": "Complex event Set: resolves object; calls helper; ebp-based; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLateMemNamedStAd": {
+   "ordinal": 223,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "__vbaLateMemSt": {
+   "ordinal": 224,
+   "category": "late",
+   "description": "resolves IUnknown→IDispatch then property store",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLateMemStAd": {
+   "ordinal": 225,
+   "category": "late",
+   "description": "store-by-address variant; flag=0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLbound": {
+   "ordinal": 226,
+   "category": "array",
+   "description": "Returns lLbound for the given 1-based dimension. Validates dimension >= 1 and <= cDims. retn 0x8.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLdZeroAry": {
+   "ordinal": 227,
+   "category": "array",
+   "description": "Destroys existing array via SafeArrayDestroy; allocates new SAFEARRAY descriptor from template; copies bounds and element info; transfers pvData. retn 0x8.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLenBstr": {
+   "ordinal": 228,
+   "category": "string",
+   "description": "returns char count (byte_len/2); retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLenBstrB": {
+   "ordinal": 229,
+   "category": "string",
+   "description": "returns byte count (raw [bstr-4]); retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLenVar": {
+   "ordinal": 230,
+   "category": "string",
+   "description": "0x6604c83a; retn 0x8; returns Len() of variant; coerces to string then calls __vbaLenBstr",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLenVarB": {
+   "ordinal": 231,
+   "category": "string",
+   "description": "LenB for variants; returns VT_I4 with byte count",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLineInputStr": {
+   "ordinal": 232,
+   "category": "string",
+   "description": "Line Input# statement",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLineInputVar": {
+   "ordinal": 233,
+   "category": "string",
+   "description": "0x660ea5f6; retn 0x8; reads a line into VARIANT (delegates to __vbaLineInputStr for BSTR subtype)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLsetFixstr": {
+   "ordinal": 234,
+   "category": "string",
+   "description": "LSet for fixed strings; left-aligned with space padding",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaLsetFixstrFree": {
+   "ordinal": 235,
+   "category": "string",
+   "description": "LSet wrapper; frees src after",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaMidStmtBstr": {
+   "ordinal": 236,
+   "category": "string",
+   "description": "Mid$ statement (char-level)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaMidStmtBstrB": {
+   "ordinal": 237,
+   "category": "string",
+   "description": "Mid$ statement (byte-level); core impl",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaMidStmtVar": {
+   "ordinal": 238,
+   "category": "string",
+   "description": "Mid$ for variants; doubles len/start and calls VarB",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaMidStmtVarB": {
+   "ordinal": 239,
+   "category": "string",
+   "description": "Mid$ for variants (byte-level)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaNameFile": {
+   "ordinal": 240,
+   "category": "misc",
+   "description": "VB 'Name' statement: converts BSTRs to ANSI; calls MoveFileA; raises VB file errors on failure",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaNew2": {
+   "ordinal": 241,
+   "category": "object",
+   "description": "creates object and stores into *ppobj",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaNew": {
+   "ordinal": 242,
+   "category": "object",
+   "description": "creates object from class descriptor",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaNextEachAry": {
+   "ordinal": 243,
+   "category": "foreach",
+   "description": "0x66111672; retn 0x10; iterates SAFEARRAY element by type; returns -1 if more or 0 if done",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaNextEachCollAd": {
+   "ordinal": 244,
+   "category": "foreach",
+   "description": "wraps NextEachCollVar; extracts IDispatch",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaNextEachCollObj": {
+   "ordinal": 245,
+   "category": "foreach",
+   "description": "wraps NextEachCollAd; QI result for target type",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaNextEachCollVar": {
+   "ordinal": 246,
+   "category": "foreach",
+   "description": "calls IEnumVARIANT::Next(1); returns -1 if exhausted",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaNextEachVar": {
+   "ordinal": 247,
+   "category": "foreach",
+   "description": "0x66111915; retn 0x14; dispatcher: if array type calls __vbaNextEachAry; else __vbaNextEachCollVar",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaObjAddref": {
+   "ordinal": 248,
+   "category": "object",
+   "description": "Extracts IDispatch* from VT_DISPATCH variant (handles VT_BYREF); returns object ptr in EAX; retn 4. Despite name; does NOT call AddRef.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaObjIs": {
+   "ordinal": 249,
+   "category": "object",
+   "description": "QI both to IUnknown and compare identity; -1=same 0=different",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaObjSet": {
+   "ordinal": 250,
+   "category": "object",
+   "description": "releases old (flag=1) stores new; returns *ppobj",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaObjSetAddref": {
+   "ordinal": 251,
+   "category": "object",
+   "description": "AddRefs new without releasing old (flag=0); returns *ppobj",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaObjVar": {
+   "ordinal": 252,
+   "category": "object",
+   "description": "NOTE: export at 0x6600b6ca shares address with __vbaPrintFile (file I/O function). Likely export table alias collision. Code at that address is a Print operation; not object extraction.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaOnError": {
+   "ordinal": 253,
+   "category": "error",
+   "description": "On Error handler; 0xFFFFFFFD=Resume Next",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaOnGoCheck": {
+   "ordinal": 254,
+   "category": "misc",
+   "description": "Validates On...GoTo/GoSub index: clamps to [0; 255] range; raises error 5 if negative",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaPowerR8": {
+   "ordinal": 255,
+   "category": "misc",
+   "description": "double exponentiation; handles special cases",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaPrintFile": {
+   "ordinal": 256,
+   "category": "file",
+   "description": "validates file mode; calls internal print formatter",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaPrintObj": {
+   "ordinal": 257,
+   "category": "file",
+   "description": "export exists at ordinal 255; likely alias for __vbaPrintFile at 0x6600b6ca",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaPut3": {
+   "ordinal": 258,
+   "category": "file",
+   "description": "0x66056727; retn 0xc; file Put# with 3 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaPut4": {
+   "ordinal": 259,
+   "category": "file",
+   "description": "0x660f351b; retn 0x10; file Put# with 4 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaPutFxStr3": {
+   "ordinal": 260,
+   "category": "file",
+   "description": "0x660f3573; retn 0xc; Put# for fixed-length string; 3 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaPutFxStr4": {
+   "ordinal": 261,
+   "category": "file",
+   "description": "0x660f35a9; retn 0x10; Put# for fixed-length string; 4 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaPutOwner3": {
+   "ordinal": 262,
+   "category": "file",
+   "description": "thin wrapper for Put# statement",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaPutOwner4": {
+   "ordinal": 263,
+   "category": "file",
+   "description": "0x660f3556; retn 0x10; Put# with owner object; 4 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR4Cy": {
+   "ordinal": 264,
+   "category": "convert",
+   "description": "fild qword; fdiv 10000.0f; retn 8; returns float in ST0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR4ErrVar": {
+   "ordinal": 265,
+   "category": "convert",
+   "description": "Like R4Var but with Error variant support; thunk -> shared dispatcher",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR4ForNextCheck": {
+   "ordinal": 266,
+   "category": "convert",
+   "description": "0x66112f1e; retn 0xc; For/Next loop check for Single; compares step sign; returns -1 (continue) or 0 (done)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR4Sgn": {
+   "ordinal": 267,
+   "category": "convert",
+   "description": "Compares with 0.0f; returns -1/0/1 in AX; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR4Str": {
+   "ordinal": 268,
+   "category": "string",
+   "description": "BSTR→float via VarR4FromStr; returns on FPU st0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR4Var": {
+   "ordinal": 269,
+   "category": "convert",
+   "description": "Dispatches via vtype jump table; returns float in ST0; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR8Cy": {
+   "ordinal": 270,
+   "category": "convert",
+   "description": "Identical body to R4Cy but divides by 10000.0f returning double; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR8ErrVar": {
+   "ordinal": 271,
+   "category": "convert",
+   "description": "Like R8Var but with Error variant support; thunk -> shared dispatcher",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR8FixI2": {
+   "ordinal": 272,
+   "category": "convert",
+   "description": "Calls __vbaFPFix; fistp word; bare retn; input in FPU ST0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR8FixI4": {
+   "ordinal": 273,
+   "category": "convert",
+   "description": "Calls __vbaFPFix; fistp dword; bare retn; input in FPU ST0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR8ForNextCheck": {
+   "ordinal": 274,
+   "category": "misc",
+   "description": "For...Next boundary check for doubles; 0=continue -1=exit",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR8IntI2": {
+   "ordinal": 275,
+   "category": "convert",
+   "description": "Calls __vbaFPInt; fistp word; bare retn; input in FPU ST0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR8IntI4": {
+   "ordinal": 276,
+   "category": "convert",
+   "description": "Calls __vbaFPInt; fistp dword; bare retn; input in FPU ST0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR8Sgn": {
+   "ordinal": 277,
+   "category": "convert",
+   "description": "Compares with 0.0; returns -1/0/1 in AX; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR8Str": {
+   "ordinal": 278,
+   "category": "convert",
+   "description": "Calls VarR8FromStr; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaR8Var": {
+   "ordinal": 279,
+   "category": "convert",
+   "description": "variant→double; returns on FPU ST(0)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRaiseEvent": {
+   "ordinal": 280,
+   "category": "evtsink",
+   "description": "0x660e90b6; retn 0x10; walks event sink chain; invokes IDispatch::Invoke on each connected sink",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRecAnsiToUni": {
+   "ordinal": 281,
+   "category": "misc",
+   "description": "Destroys pDst fields; then converts ANSI record fields to Unicode; returns pDst",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRecAssign": {
+   "ordinal": 282,
+   "category": "misc",
+   "description": "Assigns UDT record: ecx=pRecInfo used by internal helper; returns pDst",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRecDestruct": {
+   "ordinal": 283,
+   "category": "misc",
+   "description": "Destroys UDT record fields via CleanupPropertyEntries with flags=0; returns pRec",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRecDestructAnsi": {
+   "ordinal": 284,
+   "category": "misc",
+   "description": "Destroys UDT with ANSI conversion flag=2 via CleanupPropertyEntries",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRecUniToAnsi": {
+   "ordinal": 285,
+   "category": "misc",
+   "description": "Destroys pDst fields (ANSI flag=2); then converts Unicode record to ANSI (direction=1); returns pDst",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRedim": {
+   "ordinal": 286,
+   "category": "array",
+   "description": "variadic dim bounds (lbound;ubound pairs) follow numDims",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRedimPreserve": {
+   "ordinal": 287,
+   "category": "array",
+   "description": "same as Redim with preserve semantics",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRedimPreserveVar": {
+   "ordinal": 288,
+   "category": "array",
+   "description": "0x660417cc; same entry as __vbaRedim; flag 0x20 bit determines preserve behavior",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRedimPreserveVar2": {
+   "ordinal": 289,
+   "category": "array",
+   "description": "0x66014f60; same entry as __vbaRedimPreserve",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRedimVar": {
+   "ordinal": 290,
+   "category": "array",
+   "description": "0x660eda6e; var-args for bounds; delegates to internal redim helper 0x660ed604 with preserve=-1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRefVarAry": {
+   "ordinal": 291,
+   "category": "array",
+   "description": "Returns a pointer to the SAFEARRAY* inside a VARIANT. If VT_BYREF; returns *(pVar+8); otherwise returns &pVar->data. Validates VT_ARRAY. retn 0x4.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaResume": {
+   "ordinal": 292,
+   "category": "error",
+   "description": "Resume handler; -2=Resume -1=Resume Next >0=label",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRsetFixstr": {
+   "ordinal": 293,
+   "category": "string",
+   "description": "RSet for fixed strings; right-aligned with space padding",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaRsetFixstrFree": {
+   "ordinal": 294,
+   "category": "string",
+   "description": "RSet wrapper; frees src after",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaSetSystemError": {
+   "ordinal": 295,
+   "category": "error",
+   "description": "calls GetLastError(); stores in TLS+0x9C",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStopExe": {
+   "ordinal": 296,
+   "category": "error",
+   "description": "Displays 'Stop statement encountered' message then raises error 0x9c68; never returns normally",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStr2Vec": {
+   "ordinal": 297,
+   "category": "string",
+   "description": "BSTR→1D byte SAFEARRAY",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrAryToAnsi": {
+   "ordinal": 298,
+   "category": "string",
+   "description": "Wraps internal helper with direction=1 (to ANSI); converts SAFEARRAY of BSTRs to ANSI",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrAryToUnicode": {
+   "ordinal": 299,
+   "category": "string",
+   "description": "Wraps internal helper with direction=0 (to Unicode); converts SAFEARRAY of ANSI strings to BSTRs",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrBool": {
+   "ordinal": 300,
+   "category": "string",
+   "description": "Converts VB Boolean (int16) to BSTR via VariantChangeType(VT_BOOL->VT_BSTR)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EVENT_SINK_QueryInterface": {
+   "ordinal": 301,
+   "category": "evtsink",
+   "description": "COM IUnknown::QueryInterface; retn 0xC",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EVENT_SINK_AddRef": {
+   "ordinal": 302,
+   "category": "evtsink",
+   "description": "COM IUnknown::AddRef; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EVENT_SINK_Release": {
+   "ordinal": 303,
+   "category": "evtsink",
+   "description": "COM IUnknown::Release; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EVENT_SINK_GetIDsOfNames": {
+   "ordinal": 304,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "EVENT_SINK_Invoke": {
+   "ordinal": 305,
+   "category": "evtsink",
+   "description": "COM IDispatch::Invoke; retn 0x24",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrCat": {
+   "ordinal": 306,
+   "category": "string",
+   "description": "concatenation via internal helper; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrCmp": {
+   "ordinal": 307,
+   "category": "string",
+   "description": "binary compare wrapper; calls __vbaStrComp(0 bstr1 bstr2)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrComp": {
+   "ordinal": 308,
+   "category": "string",
+   "description": "mode: 0=binary 1=text; retn 0xC",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrCompVar": {
+   "ordinal": 309,
+   "category": "string",
+   "description": "StrComp for variants; returns VT_I2",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrCy": {
+   "ordinal": 310,
+   "category": "string",
+   "description": "Converts Currency (8-byte CY) to BSTR via VarBstrFromCy",
+   "source": "export-table; S1 (unverified)"
+  },
+  "BASIC_CLASS_QueryInterface": {
+   "ordinal": 311,
+   "category": "internal",
+   "description": "Delegates to inner object at pThis+0x8 via vtable[0] (QI); retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "BASIC_CLASS_AddRef": {
+   "ordinal": 312,
+   "category": "internal",
+   "description": "Delegates to inner object at pThis+0x8 via vtable[1] (AddRef)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "BASIC_CLASS_Release": {
+   "ordinal": 313,
+   "category": "internal",
+   "description": "Delegates to inner object at pThis+0x8 via vtable[2] (Release)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "BASIC_CLASS_GetIDsOfNames": {
+   "ordinal": 314,
+   "category": "internal",
+   "description": "Compares riid to IID_NULL; resolves via EventSink_GetVtableBase; retn 0x18",
+   "source": "export-table; S1 (unverified)"
+  },
+  "BASIC_CLASS_Invoke": {
+   "ordinal": 315,
+   "category": "internal",
+   "description": "Full IDispatch::Invoke; validates riid=IID_NULL; calls IDispatchInvoke; fallback chains through pThis+0x18/+0x10; retn 0x24",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrDate": {
+   "ordinal": 316,
+   "category": "string",
+   "description": "Converts DATE (double) to BSTR via VarBstrFromDate; respects calendar setting",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrFixstr": {
+   "ordinal": 317,
+   "category": "string",
+   "description": "Allocates fixed-length BSTR via SysAllocStringLen; error 0xe (out of memory) on failure",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrI2": {
+   "ordinal": 318,
+   "category": "string",
+   "description": "int16→BSTR via VarBstrFromI2",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrI4": {
+   "ordinal": 319,
+   "category": "string",
+   "description": "int32→BSTR via VarBstrFromI4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrLike": {
+   "ordinal": 320,
+   "category": "string",
+   "description": "Case-sensitive Like comparison; passes mode=0 to internal __vbaLikeStr; returns bool as i32",
+   "source": "export-table; S1 (unverified)"
+  },
+  "BASIC_DISPINTERFACE_GetTICount": {
+   "ordinal": 321,
+   "category": "internal",
+   "description": "Trivially stores 1 into *pctinfo and returns S_OK; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "BASIC_DISPINTERFACE_GetTypeInfo": {
+   "ordinal": 322,
+   "category": "internal",
+   "description": "Validates iTInfo==0; resolves via EventSink_GetVtableBase; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrR4": {
+   "ordinal": 323,
+   "category": "string",
+   "description": "float→BSTR via VarBstrFromR4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrR8": {
+   "ordinal": 324,
+   "category": "string",
+   "description": "double→BSTR via VarBstrFromR8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrTextCmp": {
+   "ordinal": 325,
+   "category": "string",
+   "description": "text compare wrapper; calls __vbaStrComp(1 bstr1 bstr2)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrTextLike": {
+   "ordinal": 326,
+   "category": "string",
+   "description": "Case-insensitive Like comparison; passes mode=1 to internal __vbaLikeStr; returns bool as i32",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrToAnsi": {
+   "ordinal": 327,
+   "category": "string",
+   "description": "Frees old *ppAnsi; converts Unicode BSTR to ANSI char*; returns ppAnsi content",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrToUnicode": {
+   "ordinal": 328,
+   "category": "string",
+   "description": "Frees old *ppBstr via SysFreeString; converts ANSI to Unicode BSTR; returns new BSTR",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrUI1": {
+   "ordinal": 329,
+   "category": "string",
+   "description": "Converts Byte to BSTR via VarBstrFromI2 (zero-extends to i16 first)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrVarCopy": {
+   "ordinal": 330,
+   "category": "string",
+   "description": "Extracts BSTR from VARIANT; if vt!=VT_BSTR; coerces via VariantChangeType; duplicates via SysAllocStringByteLen",
+   "source": "export-table; S1 (unverified)"
+  },
+  "Zombie_QueryInterface": {
+   "ordinal": 331,
+   "category": "internal",
+   "description": "Delegates QI to inner obj at pThis+0x8; validates ppvObj non-null; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "Zombie_AddRef": {
+   "ordinal": 332,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "Zombie_Release": {
+   "ordinal": 333,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "Zombie_GetTypeInfoCount": {
+   "ordinal": 334,
+   "category": "internal",
+   "description": "Returns E_ZOMBIE (0x80010007) immediately; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "Zombie_GetTypeInfo": {
+   "ordinal": 335,
+   "category": "internal",
+   "description": "Returns E_ZOMBIE (0x80010007) immediately; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "Zombie_GetIDsOfNames": {
+   "ordinal": 336,
+   "category": "internal",
+   "description": "Returns E_ZOMBIE (0x80010007) immediately; retn 0x18",
+   "source": "export-table; S1 (unverified)"
+  },
+  "Zombie_Invoke": {
+   "ordinal": 337,
+   "category": "internal",
+   "description": "Returns E_ZOMBIE (0x80010007) immediately; retn 0x24",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrVarMove": {
+   "ordinal": 338,
+   "category": "string",
+   "description": "extracts BSTR from VT_BSTR variant (moves ownership); retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaStrVarVal": {
+   "ordinal": 339,
+   "category": "string",
+   "description": "extracts or converts variant to BSTR; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaUI1Cy": {
+   "ordinal": 340,
+   "category": "convert",
+   "description": "fild qword; fdiv 10000.0; call __vbaFpUI1; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EVENT_SINK2_AddRef": {
+   "ordinal": 341,
+   "category": "evtsink",
+   "description": "Resolves sink base via 0x6601756d; delegates to base vtable[1] (AddRef); retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EVENT_SINK2_Release": {
+   "ordinal": 342,
+   "category": "evtsink",
+   "description": "Resolves sink base via 0x6601756d; delegates to base vtable[2] (Release); retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaUI1ErrVar": {
+   "ordinal": 343,
+   "category": "convert",
+   "description": "Like UI1Var but with Error variant support; thunk -> shared dispatcher",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaUI1Str": {
+   "ordinal": 344,
+   "category": "convert",
+   "description": "Calls __vbaI2Str then range-checks <=0xFF; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaUI1Var": {
+   "ordinal": 345,
+   "category": "convert",
+   "description": "Dispatches via vtype jump table; range checks 0-255; thunk -> shared dispatcher",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaUbound": {
+   "ordinal": 346,
+   "category": "array",
+   "description": "validates dim and returns lbound+cElements-1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaUdtVar": {
+   "ordinal": 347,
+   "category": "object",
+   "description": "extracts UDT record data from VT_RECORD variant",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaUnkVar": {
+   "ordinal": 348,
+   "category": "object",
+   "description": "extracts IUnknown* from VT_DISPATCH/VT_UNKNOWN variant",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVar2Vec": {
+   "ordinal": 349,
+   "category": "string",
+   "description": "Variant(BSTR)→1D byte SAFEARRAY; calls __vbaStr2Vec",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarAbs": {
+   "ordinal": 350,
+   "category": "variant",
+   "description": "calls VarAbs via [0x66119848]; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarAdd": {
+   "ordinal": 351,
+   "category": "variant",
+   "description": "thin wrapper over VarAdd",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarAnd": {
+   "ordinal": 352,
+   "category": "variant",
+   "description": "thin wrapper over VarAnd",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarCat": {
+   "ordinal": 353,
+   "category": "variant",
+   "description": "string concat; handles calendar/date coercion",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarCmpEq": {
+   "ordinal": 354,
+   "category": "variant",
+   "description": "binary; writes VT_BOOL; NULL→VT_NULL; lookup 0x6601d9a4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarCmpGe": {
+   "ordinal": 355,
+   "category": "variant",
+   "description": "binary; writes VT_BOOL; NULL→VT_NULL; lookup 0x6601d9c4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarCmpGt": {
+   "ordinal": 356,
+   "category": "variant",
+   "description": "binary; writes VT_BOOL; NULL→VT_NULL; lookup 0x6601d9b0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarCmpLe": {
+   "ordinal": 357,
+   "category": "variant",
+   "description": "binary; writes VT_BOOL; NULL→VT_NULL; lookup 0x6601d9c8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarCmpLt": {
+   "ordinal": 358,
+   "category": "variant",
+   "description": "writes VT_BOOL result variant; handles NULL→VT_NULL",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarCmpNe": {
+   "ordinal": 359,
+   "category": "variant",
+   "description": "writes VT_BOOL result variant; handles NULL→VT_NULL",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarDateVar": {
+   "ordinal": 360,
+   "category": "convert",
+   "description": "coerces src to VT_DATE into dest VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarDiv": {
+   "ordinal": 361,
+   "category": "variant",
+   "description": "thin wrapper over VarDiv",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarEqv": {
+   "ordinal": 362,
+   "category": "variant",
+   "description": "calls VarEqv via [0x66119828]; retn 0xC",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarErrI4": {
+   "ordinal": 363,
+   "category": "variant",
+   "description": "creates VT_ERROR (vt=0xA); errcode OR'd with 0x800a0000; validates 0..0xffff; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarFix": {
+   "ordinal": 364,
+   "category": "variant",
+   "description": "calls VarFix via [0x6611984c]; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarForInit": {
+   "ordinal": 365,
+   "category": "variant",
+   "description": "For...Next init; 6 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarForNext": {
+   "ordinal": 366,
+   "category": "variant",
+   "description": "For...Next step; returns 0=continue -1=exit",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarIdiv": {
+   "ordinal": 367,
+   "category": "variant",
+   "description": "thin wrapper over VarIdiv",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarImp": {
+   "ordinal": 368,
+   "category": "variant",
+   "description": "calls VarImp via [0x66119830]; retn 0xC",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarIndexLoad": {
+   "ordinal": 369,
+   "category": "variant",
+   "description": "bare retn; variadic indices",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarIndexLoadRef": {
+   "ordinal": 370,
+   "category": "variant",
+   "description": "bare retn; frees presult if non-empty first",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarIndexLoadRefLock": {
+   "ordinal": 371,
+   "category": "variant",
+   "description": "bare retn; frees presult if non-empty; locks array data",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarIndexStore": {
+   "ordinal": 372,
+   "category": "variant",
+   "description": "bare retn; push flags=4; store value at index",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarIndexStoreObj": {
+   "ordinal": 373,
+   "category": "variant",
+   "description": "bare retn; push flags=8; Set store at index",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarInt": {
+   "ordinal": 374,
+   "category": "variant",
+   "description": "calls VarInt via [0x66119850]; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarLike": {
+   "ordinal": 375,
+   "category": "variant",
+   "description": "Like operator (binary compare); flag=0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarLikeVar": {
+   "ordinal": 376,
+   "category": "variant",
+   "description": "binary Like; push flag=0; calls LikeHelper; writes result variant; retn 0xC",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarMod": {
+   "ordinal": 377,
+   "category": "variant",
+   "description": "calls VarMod via [0x66119834]; retn 0xC",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarMul": {
+   "ordinal": 378,
+   "category": "variant",
+   "description": "thin wrapper over VarMul",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarNeg": {
+   "ordinal": 379,
+   "category": "variant",
+   "description": "unary; thin wrapper over VarNeg",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarNot": {
+   "ordinal": 380,
+   "category": "variant",
+   "description": "unary; thin wrapper over VarNot",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarOr": {
+   "ordinal": 381,
+   "category": "variant",
+   "description": "thin wrapper over VarOr",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarPow": {
+   "ordinal": 382,
+   "category": "variant",
+   "description": "thin wrapper over VarPow",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarSetObj": {
+   "ordinal": 383,
+   "category": "variant",
+   "description": "frees dst; sets VT_DISPATCH(9); ObjSet flag=1 (release old)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarSetObjAddref": {
+   "ordinal": 384,
+   "category": "variant",
+   "description": "frees dst; sets VT_DISPATCH(9); ObjSet flag=0 (no release)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarSetUnk": {
+   "ordinal": 385,
+   "category": "variant",
+   "description": "frees dst; sets VT_UNKNOWN(0xd); ObjSet flag=1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarSetUnkAddref": {
+   "ordinal": 386,
+   "category": "variant",
+   "description": "frees dst; sets VT_UNKNOWN(0xd); ObjSet flag=0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarSetVar": {
+   "ordinal": 387,
+   "category": "variant",
+   "description": "calls internal VarCopyObj addref flag=1; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarSetVarAddref": {
+   "ordinal": 388,
+   "category": "variant",
+   "description": "calls internal VarCopyObj addref flag=0; retn 8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarSub": {
+   "ordinal": 389,
+   "category": "variant",
+   "description": "thin wrapper over VarSub",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextCmpEq": {
+   "ordinal": 390,
+   "category": "variant",
+   "description": "text; writes VT_BOOL; NULL→VT_NULL",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextCmpGe": {
+   "ordinal": 391,
+   "category": "variant",
+   "description": "text; writes VT_BOOL; NULL→VT_NULL",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextCmpGt": {
+   "ordinal": 392,
+   "category": "variant",
+   "description": "text; writes VT_BOOL; NULL→VT_NULL",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextCmpLe": {
+   "ordinal": 393,
+   "category": "variant",
+   "description": "text; writes VT_BOOL; NULL→VT_NULL",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextCmpLt": {
+   "ordinal": 394,
+   "category": "variant",
+   "description": "text; writes VT_BOOL; NULL→VT_NULL",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextCmpNe": {
+   "ordinal": 395,
+   "category": "variant",
+   "description": "text; writes VT_BOOL; NULL→VT_NULL",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextLike": {
+   "ordinal": 396,
+   "category": "variant",
+   "description": "Like operator (text compare); flag=1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextLikeVar": {
+   "ordinal": 397,
+   "category": "variant",
+   "description": "text Like; push flag=1; calls LikeHelper; writes result variant; retn 0xC",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextTstEq": {
+   "ordinal": 398,
+   "category": "variant",
+   "description": "text cmp mode=1; lookup 0x6601d9a4; 0/-1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextTstGe": {
+   "ordinal": 399,
+   "category": "variant",
+   "description": "text cmp mode=1; lookup 0x6601d9c4; 0/-1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextTstGt": {
+   "ordinal": 400,
+   "category": "variant",
+   "description": "text cmp mode=1; lookup 0x6601d9b0; 0/-1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextTstLe": {
+   "ordinal": 401,
+   "category": "variant",
+   "description": "text cmp mode=1; lookup 0x6601d9c8; 0/-1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextTstLt": {
+   "ordinal": 402,
+   "category": "variant",
+   "description": "text cmp mode=1; lookup 0x6601d9a8; 0/-1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTextTstNe": {
+   "ordinal": 403,
+   "category": "variant",
+   "description": "text cmp mode=1; lookup 0x6601d9b8; 0/-1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTstEq": {
+   "ordinal": 404,
+   "category": "variant",
+   "description": "test equality; returns 0 or -1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTstGe": {
+   "ordinal": 405,
+   "category": "variant",
+   "description": "binary cmp mode=0; lookup 0x6601d9c4; 0/-1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTstGt": {
+   "ordinal": 406,
+   "category": "variant",
+   "description": "test greater than; returns 0 or -1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTstLe": {
+   "ordinal": 407,
+   "category": "variant",
+   "description": "test less or equal; returns 0 or -1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTstLt": {
+   "ordinal": 408,
+   "category": "variant",
+   "description": "test less than; returns 0 or -1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarTstNe": {
+   "ordinal": 409,
+   "category": "variant",
+   "description": "test not equal; returns 0 or -1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVarXor": {
+   "ordinal": 410,
+   "category": "variant",
+   "description": "calls VarXor via [0x66119844]; retn 0xC",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVargObj": {
+   "ordinal": 411,
+   "category": "variant",
+   "description": "Sets pVar to VT_DISPATCH with AddRef; if already holds obj; releases old first",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVargObjAddref": {
+   "ordinal": 412,
+   "category": "variant",
+   "description": "Like VargObj but does NOT AddRef the source (flag=0 to internal helper)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLeftBstr": {
+   "ordinal": 413,
+   "category": "string",
+   "description": "retn 0x8; returns leftmost length bytes of string via SysAllocStringByteLen",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLeftVar": {
+   "ordinal": 414,
+   "category": "string",
+   "description": "retn 0xc; extracts string from VARIANT; calls rtcLeftBstr; returns VT_BSTR VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRightBstr": {
+   "ordinal": 415,
+   "category": "string",
+   "description": "no frame ptr; SysAllocStringByteLen from tail; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRightVar": {
+   "ordinal": 416,
+   "category": "string",
+   "description": "push ebp; TLS variant coerce; calls rtcRightBstr; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcAnsiValueBstr": {
+   "ordinal": 417,
+   "category": "misc",
+   "description": "retn 0x4; WideCharToMultiByte on first char; returns ANSI value in AX",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLowerCaseBstr": {
+   "ordinal": 418,
+   "category": "string",
+   "description": "no frame ptr; SysAllocStringLen + lowercase fill; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLowerCaseVar": {
+   "ordinal": 419,
+   "category": "string",
+   "description": "VB6 LCase$()",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcTrimBstr": {
+   "ordinal": 420,
+   "category": "string",
+   "description": "retn 0x4; VB Trim$(); delegates to internal trimmer",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcTrimVar": {
+   "ordinal": 421,
+   "category": "string",
+   "description": "VB6 Trim$()",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLeftTrimBstr": {
+   "ordinal": 422,
+   "category": "string",
+   "description": "retn 0x4; trims leading whitespace; returns new BSTR",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLeftTrimVar": {
+   "ordinal": 423,
+   "category": "string",
+   "description": "retn 0x8; wraps rtcLeftTrimBstr; returns VT_BSTR VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRightTrimBstr": {
+   "ordinal": 424,
+   "category": "string",
+   "description": "push ebp; trims trailing spaces via internal helper; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRightTrimVar": {
+   "ordinal": 425,
+   "category": "string",
+   "description": "push ebp; TLS variant coerce; calls rtcRightTrimBstr; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSpaceBstr": {
+   "ordinal": 426,
+   "category": "string",
+   "description": "no frame ptr; SysAllocStringLen + fill 0x20; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSpaceVar": {
+   "ordinal": 427,
+   "category": "string",
+   "description": "push ebp; calls rtcSpaceBstr; wraps in VARIANT(VT_BSTR); retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcUpperCaseBstr": {
+   "ordinal": 428,
+   "category": "string",
+   "description": "retn 0x4; VB UCase$(); delegates to internal case converter",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcUpperCaseVar": {
+   "ordinal": 429,
+   "category": "string",
+   "description": "retn 0x8; Variant wrapper; calls rtcUpperCaseBstr internally",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcKillFiles": {
+   "ordinal": 430,
+   "category": "file",
+   "description": "retn 0x4; deletes files matching filespec pattern",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcChangeDir": {
+   "ordinal": 431,
+   "category": "file",
+   "description": "retn 0x4; ChDir; calls SetCurrentDirectoryA",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcMakeDir": {
+   "ordinal": 432,
+   "category": "file",
+   "description": "no frame ptr; thin wrapper pushing path+const to directory creation helper; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRemoveDir": {
+   "ordinal": 433,
+   "category": "file",
+   "description": "no frame ptr; thin wrapper; delegates to directory removal helper; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcChangeDrive": {
+   "ordinal": 434,
+   "category": "file",
+   "description": "retn 0x4; ChDrive; extracts drive letter A-Z; validates",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcBeep": {
+   "ordinal": 435,
+   "category": "misc",
+   "description": "bare retn; calls MessageBeep(0)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetTimer": {
+   "ordinal": 436,
+   "category": "misc",
+   "description": "retn; returns seconds since midnight as Single via FPU (GetLocalTime)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcStrFromVar": {
+   "ordinal": 437,
+   "category": "string",
+   "description": "retn 0x4; VB Str() on variant; coerces to string with leading-space formatting",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcBstrFromAnsi": {
+   "ordinal": 438,
+   "category": "misc",
+   "description": "retn 0x4; MultiByteToWideChar; returns SysAllocStringLen result",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcPackDate": {
+   "ordinal": 439,
+   "category": "misc",
+   "description": "push ebp; packs SYSTEMTIME; retval via hidden ptr; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcPackTime": {
+   "ordinal": 440,
+   "category": "misc",
+   "description": "push ebp; packs SYSTEMTIME with fixed date 1899-12-30; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetDateValue": {
+   "ordinal": 441,
+   "category": "misc",
+   "description": "retn 0x8; calls VarDateFromStr; returns VT_DATE VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetTimeValue": {
+   "ordinal": 442,
+   "category": "misc",
+   "description": "retn 0x8; calls VarDateFromStr with time flags; returns VT_DATE VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetDayOfMonth": {
+   "ordinal": 443,
+   "category": "misc",
+   "description": "retn 0x8; extracts day field from decoded date; returns VT_I2 VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetHourOfDay": {
+   "ordinal": 444,
+   "category": "misc",
+   "description": "retn 0x8; extracts hour field; returns VT_I2 VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetMinuteOfHour": {
+   "ordinal": 445,
+   "category": "misc",
+   "description": "retn 0x8; extracts minute field; returns VT_I2 VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetMonthOfYear": {
+   "ordinal": 446,
+   "category": "misc",
+   "description": "retn 0x8; extracts month field; returns VT_I2 VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetPresentDate": {
+   "ordinal": 447,
+   "category": "misc",
+   "description": "retn 0x4; gets current date+time via GetLocalTime; returns VT_DATE VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetSecondOfMinute": {
+   "ordinal": 448,
+   "category": "misc",
+   "description": "retn 0x8; extracts second field; returns VT_I2 VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSetDateVar": {
+   "ordinal": 449,
+   "category": "misc",
+   "description": "push ebp; converts variant to DATE; calls SetLocalTime; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSetDateBstr": {
+   "ordinal": 450,
+   "category": "misc",
+   "description": "no frame ptr; thin wrapper; delegates to internal date setter; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSetTimeVar": {
+   "ordinal": 451,
+   "category": "misc",
+   "description": "push ebp; converts variant to DATE; calls SetLocalTime with fixed date; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSetTimeBstr": {
+   "ordinal": 452,
+   "category": "misc",
+   "description": "no frame ptr; thin wrapper; delegates to internal time setter; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetDayOfWeek": {
+   "ordinal": 453,
+   "category": "misc",
+   "description": "retn 0xc; computes weekday with adjustable first-day; returns VT_I2 VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetYear": {
+   "ordinal": 454,
+   "category": "misc",
+   "description": "retn 0x8; extracts year field; returns VT_I2 VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFileReset": {
+   "ordinal": 455,
+   "category": "misc",
+   "description": "bare retn; Reset; flushes and closes all open files",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFileAttributes": {
+   "ordinal": 456,
+   "category": "file",
+   "description": "retn 0x8; FileAttr(); returns file mode (1=input; 2=output)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIsArray": {
+   "ordinal": 457,
+   "category": "misc",
+   "description": "retn 0x4; checks VT_ARRAY bit (bit 13); returns VB boolean (-1/0)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIsDate": {
+   "ordinal": 458,
+   "category": "misc",
+   "description": "retn 0x4; checks if variant can be parsed as date; complex type checking",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIsEmpty": {
+   "ordinal": 459,
+   "category": "misc",
+   "description": "retn 0x4; checks if VT == VT_EMPTY (0); returns VB boolean",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIsError": {
+   "ordinal": 460,
+   "category": "misc",
+   "description": "retn 0x4; checks if VT == VT_ERROR (0xa); returns VB boolean",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIsNull": {
+   "ordinal": 461,
+   "category": "misc",
+   "description": "retn 0x4; checks if VT == VT_NULL (1); returns VB boolean",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIsNumeric": {
+   "ordinal": 462,
+   "category": "misc",
+   "description": "VB6 IsNumeric(); returns VB bool",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIsObject": {
+   "ordinal": 463,
+   "category": "misc",
+   "description": "VB6 IsObject(); checks vt==9",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcVarType": {
+   "ordinal": 464,
+   "category": "misc",
+   "description": "retn 0x4; VB VarType(); returns VT code as zero-extended uint16",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtDecFromVar": {
+   "ordinal": 465,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "rtcFileWidth": {
+   "ordinal": 466,
+   "category": "misc",
+   "description": "retn 0x8; Width #; sets record width on file channel",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcInputCount": {
+   "ordinal": 467,
+   "category": "file",
+   "description": "retn 0x8; reads byteCount bytes from file; returns byte-string BSTR",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcInputCountVar": {
+   "ordinal": 468,
+   "category": "file",
+   "description": "retn 0xc; wraps rtcInputCount; returns VT_BSTR VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFileSeek": {
+   "ordinal": 469,
+   "category": "misc",
+   "description": "retn 0x4; Seek(); returns current byte position + 1",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFileLocation": {
+   "ordinal": 470,
+   "category": "misc",
+   "description": "retn 0x4; Loc(); current file position / 128 for seq files",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFileLength": {
+   "ordinal": 471,
+   "category": "file",
+   "description": "retn 0x4; LOF(); seek to end; get position; seek back",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcEndOfFile": {
+   "ordinal": 472,
+   "category": "misc",
+   "description": "retn 0x4; EOF(); checks file position vs length",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcHexBstrFromVar": {
+   "ordinal": 473,
+   "category": "string",
+   "description": "retn 0x4; converts variant to hex string BSTR",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcHexVarFromVar": {
+   "ordinal": 474,
+   "category": "string",
+   "description": "retn 0x8; wraps rtcHexBstrFromVar; returns VT_BSTR VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcOctBstrFromVar": {
+   "ordinal": 475,
+   "category": "string",
+   "description": "push ebp; converts variant to octal BSTR via TLS; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcOctVarFromVar": {
+   "ordinal": 476,
+   "category": "string",
+   "description": "push ebp; calls rtcOctBstrFromVar; wraps result in VARIANT; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFileCopy": {
+   "ordinal": 477,
+   "category": "file",
+   "description": "retn 0x8; FileCopy; reads/writes in blocks",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFileDateTime": {
+   "ordinal": 478,
+   "category": "file",
+   "description": "retn 0x8; FileDateTime(); stat + FileTimeToSystemTime -> DATE variant",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFileLen": {
+   "ordinal": 479,
+   "category": "file",
+   "description": "retn 0x4; FileLen(); stat file; returns nFileSizeLow",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetFileAttr": {
+   "ordinal": 480,
+   "category": "file",
+   "description": "retn 0x4; calls internal attr helper; masks out 0x80 (normal)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSetFileAttr": {
+   "ordinal": 481,
+   "category": "file",
+   "description": "push ebp; calls SetFileAttributesA; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcR8ValFromBstr": {
+   "ordinal": 482,
+   "category": "convert",
+   "description": "push ebp; strips whitespace then calls VariantChangeTypeEx; FPU return; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSin": {
+   "ordinal": 483,
+   "category": "misc",
+   "description": "push ebp; fabs range check then fsin; FPU return; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCos": {
+   "ordinal": 484,
+   "category": "misc",
+   "description": "retn 0x8; fcos instruction; returns via FPU ST(0)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcTan": {
+   "ordinal": 485,
+   "category": "misc",
+   "description": "retn 0x8; VB Tan(); validates range; FPTAN + FDIVP",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcAtn": {
+   "ordinal": 486,
+   "category": "misc",
+   "description": "VB6 Atn(); arctangent via fpatan",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcExp": {
+   "ordinal": 487,
+   "category": "misc",
+   "description": "VB6 Exp(); calls _CIexp",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLog": {
+   "ordinal": 488,
+   "category": "misc",
+   "description": "VB6 Log(); natural log via fyl2x",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRgb": {
+   "ordinal": 489,
+   "category": "misc",
+   "description": "no frame ptr; clamps 0-255; packs BGR into int32; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcQBColor": {
+   "ordinal": 490,
+   "category": "misc",
+   "description": "no frame ptr; table lookup (16-entry QBColor table); retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcMacId": {
+   "ordinal": 491,
+   "category": "misc",
+   "description": "push ebp; WideCharToMultiByte conversion; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcTypeName": {
+   "ordinal": 492,
+   "category": "misc",
+   "description": "retn 0x4; VB TypeName(); inspects VT; IDispatch/IUnknown; returns type string",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIsMissing": {
+   "ordinal": 493,
+   "category": "misc",
+   "description": "retn 0x4; checks for VT_ERROR with E_PARAMNOTFOUND (0x80020004)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRandomNext": {
+   "ordinal": 494,
+   "category": "misc",
+   "description": "no frame ptr; optional VARIANT seed; calls Rnd helper with float; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRandomize": {
+   "ordinal": 495,
+   "category": "misc",
+   "description": "no frame ptr; optional VARIANT seed; calls Randomize helper; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcMsgBox": {
+   "ordinal": 496,
+   "category": "misc",
+   "description": "VB6 MsgBox(); retn 0x14",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcInputBox": {
+   "ordinal": 497,
+   "category": "misc",
+   "description": "retn 0x1c; displays input dialog; 7 params",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcAppActivate": {
+   "ordinal": 498,
+   "category": "misc",
+   "description": "retn 0x8; VB AppActivate; finds window by title/PID; calls SetForegroundWindow",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcDoEvents": {
+   "ordinal": 499,
+   "category": "misc",
+   "description": "VB6 DoEvents; processes message queue",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSendKeys": {
+   "ordinal": 500,
+   "category": "misc",
+   "description": "no frame ptr; optional wait; posts keystrokes; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcShell": {
+   "ordinal": 501,
+   "category": "misc",
+   "description": "retn 0x8; VB Shell(); calls CreateProcessA/W; returns PID as double",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcArray": {
+   "ordinal": 502,
+   "category": "misc",
+   "description": "retn 0x8; builds VT_ARRAY|VT_VARIANT (0x200c); copies 16-byte result",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVargUnk": {
+   "ordinal": 503,
+   "category": "variant",
+   "description": "Sets pVar to VT_UNKNOWN with AddRef; parallel to VargObj for IUnknown",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVargUnkAddref": {
+   "ordinal": 504,
+   "category": "variant",
+   "description": "Like VargUnk but does NOT AddRef (flag=0)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaVerifyVarObj": {
+   "ordinal": 505,
+   "category": "variant",
+   "description": "validates VT_DISPATCH(9) or VT_UNKNOWN(0xd) with VT_BYREF mask (0xbfff); error 0x1a8 if invalid; retn 4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetErl": {
+   "ordinal": 506,
+   "category": "misc",
+   "description": "retn; reads TLS+0x98 error line number from thread state",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcStringBstr": {
+   "ordinal": 507,
+   "category": "string",
+   "description": "retn 0x8; VB String$(n; char); fills BSTR with repeated character",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcStringVar": {
+   "ordinal": 508,
+   "category": "string",
+   "description": "retn 0xc; Variant wrapper for rtcStringBstr",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcVarBstrFromAnsi": {
+   "ordinal": 509,
+   "category": "convert",
+   "description": "retn 0x8; wraps rtcBstrFromAnsi result in VARIANT(VT_BSTR)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetDateBstr": {
+   "ordinal": 510,
+   "category": "misc",
+   "description": "retn; calls GetLocalTime; formats date as MM-DD-YYYY BSTR",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetDateVar": {
+   "ordinal": 511,
+   "category": "misc",
+   "description": "retn 0x4; calls rtcGetPresentDate; returns date-only VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetTimeBstr": {
+   "ordinal": 512,
+   "category": "misc",
+   "description": "retn; formats current time as HH:MM:SS BSTR",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetTimeVar": {
+   "ordinal": 513,
+   "category": "misc",
+   "description": "retn 0x4; computes seconds since midnight / 86400.0; returns VT_DATE VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcVarStrFromVar": {
+   "ordinal": 514,
+   "category": "convert",
+   "description": "retn 0x8; Variant wrapper for rtcStrFromVar; handles Null->Null",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSqr": {
+   "ordinal": 515,
+   "category": "misc",
+   "description": "retn 0x8; VB Sqr(); validates value >= 0; then FSQRT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIMEStatus": {
+   "ordinal": 516,
+   "category": "misc",
+   "description": "retn; checks locale flag; calls GetFocus+internal IME helper",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLeftCharBstr": {
+   "ordinal": 517,
+   "category": "string",
+   "description": "retn 0x8; wrapper doubles length then calls rtcLeftBstr (char=2 bytes)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLeftCharVar": {
+   "ordinal": 518,
+   "category": "string",
+   "description": "retn 0xc; doubles length and calls rtcLeftVar",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRightCharBstr": {
+   "ordinal": 519,
+   "category": "string",
+   "description": "no frame ptr; doubles length then calls rtcRightBstr; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRightCharVar": {
+   "ordinal": 520,
+   "category": "string",
+   "description": "push ebp; doubles length; delegates to rtcRightVar; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcInputCharCount": {
+   "ordinal": 521,
+   "category": "file",
+   "description": "retn 0x8; reads charCount characters from file; returns BSTR (wide chars)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcInputCharCountVar": {
+   "ordinal": 522,
+   "category": "file",
+   "description": "retn 0xc; wraps rtcInputCharCount; returns VT_BSTR VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcStrConvVar": {
+   "ordinal": 523,
+   "category": "string",
+   "description": "retn 0xc; delegates to rtcStrConvVar2 with nLocaleID=0",
+   "source": "export-table; S1 (unverified)"
+  },
+  "__vbaWriteFile": {
+   "ordinal": 524,
+   "category": "file",
+   "description": "Write # statement: opens channel; writes fields with type-dispatched formatting; caller cleans stack",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetHostLCID": {
+   "ordinal": 525,
+   "category": "misc",
+   "description": "retn; reads global LCID from static [0x66114318]",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCreateObject": {
+   "ordinal": 526,
+   "category": "misc",
+   "description": "retn 0x8; CoCreateInstance wrapper; VT_DISPATCH result",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetObject": {
+   "ordinal": 527,
+   "category": "misc",
+   "description": "retn 0xc; uses MkParseDisplayName/GetActiveObject/CoCreateInstance",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcAppleScript": {
+   "ordinal": 528,
+   "category": "misc",
+   "description": "stub; always raises error 5 (not supported on Windows)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcMidBstr": {
+   "ordinal": 529,
+   "category": "string",
+   "description": "no frame ptr; SysAllocStringByteLen; optional len via VARIANT; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcMidVar": {
+   "ordinal": 530,
+   "category": "string",
+   "description": "push ebp; retval via hidden ptr; calls rtcMidBstr; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcInStr": {
+   "ordinal": 531,
+   "category": "string",
+   "description": "retn 0x14; InStr with all-VARIANT args; returns VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcMidCharBstr": {
+   "ordinal": 532,
+   "category": "string",
+   "description": "push ebp; char-based mid; delegates to rtcMidBstr after doubling start; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcMidCharVar": {
+   "ordinal": 533,
+   "category": "string",
+   "description": "VB6 Mid$()",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcInStrChar": {
+   "ordinal": 534,
+   "category": "string",
+   "description": "retn 0x14; InStr with int compare mode; returns VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtBstrFromErrVar": {
+   "ordinal": 535,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "rtBoolFromErrVar": {
+   "ordinal": 536,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "rtCyFromErrVar": {
+   "ordinal": 537,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "rtI2FromErrVar": {
+   "ordinal": 538,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "rtI4FromErrVar": {
+   "ordinal": 539,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "rtR4FromErrVar": {
+   "ordinal": 540,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "rtR8FromErrVar": {
+   "ordinal": 541,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "rtcDateFromVar": {
+   "ordinal": 542,
+   "category": "misc",
+   "description": "retn 0x4; CDate(); wraps __vbaDateVar; returns DATE double via FPU",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcVarFromVar": {
+   "ordinal": 543,
+   "category": "convert",
+   "description": "retn 0x8; copies VARIANT via VariantCopyInd",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCVErrFromVar": {
+   "ordinal": 544,
+   "category": "misc",
+   "description": "retn 0x8; converts error number to VT_ERROR variant (0x800A0000 | errnum)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "VarPtr": {
+   "ordinal": 545,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "rtcDir": {
+   "ordinal": 546,
+   "category": "file",
+   "description": "retn 0x8; Dir$(); FindFirstFile/FindNextFile",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCurrentDirBstr": {
+   "ordinal": 547,
+   "category": "misc",
+   "description": "retn 0x4; CurDir$ string version",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCurrentDir": {
+   "ordinal": 548,
+   "category": "misc",
+   "description": "retn 0x8; CurDir variant version; returns VT_BSTR in VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFreeFile": {
+   "ordinal": 549,
+   "category": "file",
+   "description": "retn 0x4; finds free file number; returns file number as int16",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCompareBstr": {
+   "ordinal": 550,
+   "category": "misc",
+   "description": "retn 0x10; wraps __vbaStrCompVar",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcBstrFromFormatVar": {
+   "ordinal": 551,
+   "category": "misc",
+   "description": "retn 0x10; Format$() implementation",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcBstrFromError": {
+   "ordinal": 552,
+   "category": "convert",
+   "description": "retn 0x4; error code to message string via LoadString/SysAllocString",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcVarFromError": {
+   "ordinal": 553,
+   "category": "convert",
+   "description": "retn 0x8; wraps rtcBstrFromError in VARIANT(VT_BSTR)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLenCharVar": {
+   "ordinal": 554,
+   "category": "string",
+   "description": "retval via hidden ptr; calls __vbaLenVar; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcLenVar": {
+   "ordinal": 555,
+   "category": "string",
+   "description": "retval via hidden ptr; calls __vbaLenVarB; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFixVar": {
+   "ordinal": 556,
+   "category": "convert",
+   "description": "retn 0x8; wraps __vbaVarFix; truncates toward zero",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcAbsVar": {
+   "ordinal": 557,
+   "category": "convert",
+   "description": "retn 0x8; wraps __vbaVarAbs; writes 16-byte VARIANT to result ptr",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIntVar": {
+   "ordinal": 558,
+   "category": "convert",
+   "description": "retn 0x8; calls __vbaVarInt; returns truncated integer VARIANT",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSgnVar": {
+   "ordinal": 559,
+   "category": "convert",
+   "description": "push ebp; sign of variant; returns -1/0/1 in VARIANT; switch table; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fdiv_m16i": {
+   "ordinal": 560,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcVarFromFormatVar": {
+   "ordinal": 561,
+   "category": "string",
+   "description": "VB6 Format$()",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcDateAdd": {
+   "ordinal": 562,
+   "category": "misc",
+   "description": "retn 0x14; DateAdd(); adds time interval to date",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcDateDiff": {
+   "ordinal": 563,
+   "category": "misc",
+   "description": "retn 0x18; DateDiff(); computes interval difference",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcDatePart": {
+   "ordinal": 564,
+   "category": "misc",
+   "description": "retn 0x14; DatePart(); extracts year/month/day/etc.",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcPartition": {
+   "ordinal": 565,
+   "category": "misc",
+   "description": "push ebp; string partition ranges; complex formatting; retn 0x14",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcChoose": {
+   "ordinal": 566,
+   "category": "misc",
+   "description": "retn 0xC; Choose() function; 1-based index into variant array",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcEnvironVar": {
+   "ordinal": 567,
+   "category": "misc",
+   "description": "retn 0x8; Environ() variant wrapper; calls rtcEnvironBstr then wraps in VT_BSTR variant",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcEnvironBstr": {
+   "ordinal": 568,
+   "category": "misc",
+   "description": "retn 0x4; Environ$(); GetEnvironmentVariableA",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSwitch": {
+   "ordinal": 569,
+   "category": "misc",
+   "description": "retn 0x8; VB Switch(); walks expr/value pairs in SafeArray",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCommandBstr": {
+   "ordinal": 570,
+   "category": "misc",
+   "description": "bare retn; Command$(); returns SysAllocString of command line",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCommandVar": {
+   "ordinal": 571,
+   "category": "misc",
+   "description": "VB6 Command$",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSLN": {
+   "ordinal": 572,
+   "category": "misc",
+   "description": "no frame ptr; (cost-salvage)/life; FPU return; retn 0x18",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSYD": {
+   "ordinal": 573,
+   "category": "misc",
+   "description": "push ebp; sum-of-years-digits depreciation; FPU return; retn 0x20",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcDDB": {
+   "ordinal": 574,
+   "category": "misc",
+   "description": "retn 0x24; double-declining-balance depreciation; returns via FPU",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIPMT": {
+   "ordinal": 575,
+   "category": "misc",
+   "description": "retn 0x28; interest payment calculation; returns double via FPU",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcPPMT": {
+   "ordinal": 576,
+   "category": "misc",
+   "description": "push ebp; calls rtcPMT+rtcIPMT; retn 0x28",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcPMT": {
+   "ordinal": 577,
+   "category": "misc",
+   "description": "push ebp; FPU financial calc; optional VARIANT Missing checks; retn 0x20",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcPV": {
+   "ordinal": 578,
+   "category": "misc",
+   "description": "push ebp; present value; optional VARIANT Missing; retn 0x20",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFV": {
+   "ordinal": 579,
+   "category": "misc",
+   "description": "retn 0x20; FV() financial function; future value calculation",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcNPer": {
+   "ordinal": 580,
+   "category": "misc",
+   "description": "push ebp; optional VARIANT params with 0x80020004 Missing check; retn 0x20",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRate": {
+   "ordinal": 581,
+   "category": "misc",
+   "description": "push ebp; Newton-Raphson iteration (max 40); FPU return; retn 0x24",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcImmediateIf": {
+   "ordinal": 582,
+   "category": "misc",
+   "description": "retn 0x10; IIf(); evaluates condition then copies truePart or falsePart",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcIRR": {
+   "ordinal": 583,
+   "category": "misc",
+   "description": "retn 0x8; internal rate of return via Newton-Raphson iteration; returns double via FPU",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcMIRR": {
+   "ordinal": 584,
+   "category": "misc",
+   "description": "push ebp; SafeArray 1D; FPU return st0; retn 0x14",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcNPV": {
+   "ordinal": 585,
+   "category": "misc",
+   "description": "push ebp; net present value; SafeArray 1D; FPU return; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcErrObj": {
+   "ordinal": 586,
+   "category": "misc",
+   "description": "bare retn; returns TLS error object IDispatch ptr; AddRef before return",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtUI1FromErrVar": {
+   "ordinal": 587,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "rtcVarDateFromVar": {
+   "ordinal": 588,
+   "category": "convert",
+   "description": "retn 0x8; VB CDate() variant; calls __vbaVarDateVar",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fdiv_m32": {
+   "ordinal": 589,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetSetting": {
+   "ordinal": 590,
+   "category": "misc",
+   "description": "retn 0x1c; registry read from HKCU; last param is inline VARIANT (7 dwords total)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSaveSetting": {
+   "ordinal": 591,
+   "category": "misc",
+   "description": "push ebp; registry write to HKCU; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcDeleteSetting": {
+   "ordinal": 592,
+   "category": "misc",
+   "description": "retn 0x24; DeleteSetting; registry HKCU/Software/VB and VBA...; large stack frame with variant args",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetAllSettings": {
+   "ordinal": 593,
+   "category": "misc",
+   "description": "retn 0xc; reads registry HKCU; returns 2D VARIANT array via pResult",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcByteValueBstr": {
+   "ordinal": 594,
+   "category": "misc",
+   "description": "retn 0x4; returns first byte of BSTR (ANSI byte value)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcBstrFromByte": {
+   "ordinal": 595,
+   "category": "misc",
+   "description": "retn 0x4; SysAllocStringByteLen with 1 byte",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcVarBstrFromByte": {
+   "ordinal": 596,
+   "category": "convert",
+   "description": "retn 0x8; wraps rtcBstrFromByte result in VARIANT(VT_BSTR)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCharValueBstr": {
+   "ordinal": 597,
+   "category": "misc",
+   "description": "retn 0x4; returns first Unicode char value (AscW)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcBstrFromChar": {
+   "ordinal": 598,
+   "category": "misc",
+   "description": "retn 0x4; range-checks 0x8000..0xFFFF; SysAllocStringLen 1 wchar",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcVarBstrFromChar": {
+   "ordinal": 599,
+   "category": "convert",
+   "description": "retn 0x8; wraps rtcBstrFromChar result in VARIANT(VT_BSTR)",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSetCurrentCalendar": {
+   "ordinal": 600,
+   "category": "misc",
+   "description": "no frame ptr; validates 0-1; delegates to internal setter; retn 0x4",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcGetCurrentCalendar": {
+   "ordinal": 601,
+   "category": "misc",
+   "description": "retn; reads TLS thread state; returns calendar type from locale data",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fdiv_m32i": {
+   "ordinal": 602,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFormatNumber": {
+   "ordinal": 603,
+   "category": "string",
+   "description": "retn 0x14; FormatNumber(); indirect call through function pointer",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFormatCurrency": {
+   "ordinal": 604,
+   "category": "string",
+   "description": "retn 0x14; FormatCurrency(); indirect call through function pointer",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFormatPercent": {
+   "ordinal": 605,
+   "category": "string",
+   "description": "retn 0x14; FormatPercent(); indirect call through function pointer",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFormatDateTime": {
+   "ordinal": 606,
+   "category": "string",
+   "description": "retn 0x8; FormatDateTime(); indirect call through function pointer",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcWeekdayName": {
+   "ordinal": 607,
+   "category": "misc",
+   "description": "retn 0xc; VB WeekdayName(); uses calendar-aware lookup",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcMonthName": {
+   "ordinal": 608,
+   "category": "misc",
+   "description": "push ebp; calendar-aware; calls GetDateFormatW; retn 0x8",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcFilter": {
+   "ordinal": 609,
+   "category": "misc",
+   "description": "retn 0x14; Filter(); searches string array for matches",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcInStrRev": {
+   "ordinal": 610,
+   "category": "string",
+   "description": "retn 0x10; searches from right; returns position as int32",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcJoin": {
+   "ordinal": 611,
+   "category": "string",
+   "description": "retn 0x8; joins array elements with delimiter; returns BSTR",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcSplit": {
+   "ordinal": 612,
+   "category": "string",
+   "description": "retn 0x14; VB Split(); creates SafeArray of BSTR",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcReplace": {
+   "ordinal": 613,
+   "category": "string",
+   "description": "push ebp; compare mode resolution; delegates to internal replacer; retn 0x18",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcStrReverse": {
+   "ordinal": 614,
+   "category": "string",
+   "description": "retn 0x4; VB StrReverse(); allocates new BSTR; copies chars in reverse",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcRound": {
+   "ordinal": 615,
+   "category": "convert",
+   "description": "push ebp; calls VarRound (OLEAUT32); retval via hidden ptr; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCallByName": {
+   "ordinal": 616,
+   "category": "misc",
+   "description": "retn 0x18; IDispatch::Invoke wrapper",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcCreateObject2": {
+   "ordinal": 617,
+   "category": "misc",
+   "description": "retn 0xC; CreateObject with remote server; MkParseDisplayName/BindToObject",
+   "source": "export-table; S1 (unverified)"
+  },
+  "rtcStrConvVar2": {
+   "ordinal": 618,
+   "category": "string",
+   "description": "retn 0x10; VB StrConv() with locale; uses GetLocaleInfoA; LCMapString",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fdiv_m64": {
+   "ordinal": 619,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fdiv_r": {
+   "ordinal": 620,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fdivr_m16i": {
+   "ordinal": 621,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fdivr_m32": {
+   "ordinal": 622,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fdivr_m32i": {
+   "ordinal": 623,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fdivr_m64": {
+   "ordinal": 624,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fpatan": {
+   "ordinal": 625,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fprem": {
+   "ordinal": 626,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fprem1": {
+   "ordinal": 627,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_adj_fptan": {
+   "ordinal": 628,
+   "category": "fdiv",
+   "description": "Pentium FDIV bug workaround",
+   "source": "export-table; S1 (unverified)"
+  },
+  "_allmul": {
+   "ordinal": 629,
+   "category": "crt",
+   "description": "CRT 64-bit multiply; result in edx:eax; retn 0x10",
+   "source": "export-table; S1 (unverified)"
+  },
+  "TipInvokeMethod2": {
+   "ordinal": 900,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "TipInvokeMethod": {
+   "ordinal": 917,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "IID_IVbaHost": {
+   "ordinal": 925,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "EbGetObjConnectionCounts": {
+   "ordinal": 926,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  },
+  "CreateIExprSrvObj": {
+   "ordinal": 1901,
+   "category": "internal",
+   "description": "Creates expression server COM object; allocates 0x18c bytes; returns IUnknown*; retn 0xc",
+   "source": "export-table; S1 (unverified)"
+  },
+  "EbGetVBAObject": {
+   "ordinal": 1911,
+   "category": null,
+   "description": null,
+   "source": "export-table"
+  }
+ }
+}
