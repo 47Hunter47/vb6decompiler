@@ -44,10 +44,15 @@ printing plausible garbage.
 from __future__ import annotations
 
 import codecs
+import os
 
 #: Code page used when nothing else is known. CP1254 keeps every pre-existing
 #: behaviour and output byte for byte, which is what the historical callers assume.
 DEFAULT_CODEPAGE = "cp1254"
+
+#: Environment variable that sets the code page for a whole shell. Second in the
+#: order (flag > env > header LCID > default), see :func:`choice`.
+ENV_VAR = "VB6D_ENCODING"
 
 #: ANSI code pages a VB6 build can legitimately use. Anything outside this set is
 #: refused: the parsers rely on one byte being one character, and an arbitrary
@@ -191,3 +196,27 @@ def resolve_encoding(explicit: str | None, lcid: int | None) -> tuple[str, str]:
             validate_single_byte(codec)
             return codec, "lcid"
     return DEFAULT_CODEPAGE, "default"
+
+
+def env_codepage() -> str | None:
+    """The code page named by ``VB6D_ENCODING``, or ``None`` when unset/empty.
+
+    The variable is the second source in the order (flag > env > header LCID >
+    default): a shell-wide default for a batch of builds, overridable per run.
+    """
+    raw = os.environ.get(ENV_VAR, "").strip()
+    return raw or None
+
+
+def choice(explicit: str | None, lcid: int | None) -> tuple[str, str]:
+    """``resolve_encoding`` with the environment variable in second place.
+
+    Every CLI stage goes through this one function so the three sources can never
+    disagree about their order between stages.
+    """
+    return resolve_encoding(explicit or env_codepage(), lcid)
+
+
+def summary_line(codec: str, source: str) -> str:
+    """The one ``#`` line a stage prints so the user sees which code page it used."""
+    return f"# encoding: {codec} ({source})"

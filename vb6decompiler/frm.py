@@ -71,6 +71,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Iterable, Iterator, Sequence
 
+from .encoding import DEFAULT_CODEPAGE
+
 __all__ = [
     "TWIPS_PER_PX_ASSUMED",
     "FrmError",
@@ -109,8 +111,10 @@ FALSE_EXPLICIT = "false"  # property written and falsy
 ABSENT = "absent"         # property not written: VB6 default applies, *do not* read as false
 
 #: Encoding of a VB6 ``.frm``'s non-ASCII text.  Measured: Turkish captions in
-#: the target decode correctly as CP1254 and incorrectly as latin-1.
-FRM_ENCODING = "cp1254"
+#: the target decode correctly as CP1254 and incorrectly as latin-1.  A ``.frm`` has
+#: no header to ask, so this stays the default and ``--encoding`` overrides it
+#: (see :mod:`vb6decompiler.encoding`).
+FRM_ENCODING = DEFAULT_CODEPAGE
 
 # --------------------------------------------------------------------------- grammar
 # ``Begin VB.TextBox Sutun4`` / ``Begin TabDlg.SSTab SSTab1`` /
@@ -236,16 +240,19 @@ class ParseWarning:
         return f"{self.path}:{self.line}: {self.reason}: {self.text!r}"
 
 
-def decode_cp1254(data: bytes) -> str:
+def decode_cp1254(data: bytes, encoding: str = DEFAULT_CODEPAGE) -> str:
     """Decode VB6 text the way the format requires, keeping a lossy path explicit.
 
     ``errors="replace"`` is deliberate: a decompiled file may contain bytes that
-    are not valid CP1254, and dropping the whole file would lose the other 25,000
-    controls.  U+FFFD in the output is a *finding* that :func:`summarize` counts,
-    not something to hide.  The raw bytes stay available on
+    are not valid in the code page, and dropping the whole file would lose the other
+    25,000 controls.  U+FFFD in the output is a *finding* that :func:`summarize`
+    counts, not something to hide.  The raw bytes stay available on
     :attr:`Property.raw_bytes`.
+
+    The name is historical and kept for its callers; ``encoding`` carries the build's
+    ANSI code page (:mod:`vb6decompiler.encoding`).
     """
-    return data.decode(FRM_ENCODING, "replace")
+    return data.decode(encoding, "replace")
 
 
 def _split_comment(text: str) -> tuple[str, str | None]:
@@ -672,20 +679,21 @@ class _Frame:
 
 
 def parse_frm_text(text: str, *, path: str | None = None,
-                   raw: bytes | None = None) -> Form:
+                   raw: bytes | None = None,
+                   encoding: str = DEFAULT_CODEPAGE) -> Form:
     """Parse a decoded design block.
 
     ``text`` must already be decoded (see :func:`decode_cp1254`); ``raw`` is the
     matching byte string and is only used to keep :attr:`Property.raw_bytes`
     pointing at the file's own bytes.  When ``raw`` is omitted the raw bytes are
-    the CP1254 encoding of ``text``, which is exact for every file this parser
+    the ``encoding`` encoding of ``text``, which is exact for every file this parser
     can read and lossy only in the U+FFFD cases that are reported as warnings.
     """
     if raw is None:
-        raw = text.encode(FRM_ENCODING, "replace")
+        raw = text.encode(encoding, "replace")
     # Split the decoded text and the raw bytes in lockstep so a property's bytes
-    # can be located without re-encoding (CP1254 is single-byte, so byte offsets
-    # of ASCII '=' and quotes equal character offsets).
+    # can be located without re-encoding (every code page this module accepts is
+    # single-byte, so byte offsets of ASCII '=' and quotes equal character offsets).
     lines = text.split("\n")
     raw_lines = raw.split(b"\n") if raw.count(b"\n") == len(lines) - 1 else []
 
@@ -817,7 +825,7 @@ def parse_frm_text(text: str, *, path: str | None = None,
             if raw_lines and lineno - 1 < len(raw_lines) and vstart >= 0:
                 vbytes = raw_lines[lineno - 1][vstart:vend]
             else:
-                vbytes = value_text.encode(FRM_ENCODING, "replace")
+                vbytes = value_text.encode(encoding, "replace")
             value, kind = _parse_value(value_text, comment)
             if kind == KIND_UNKNOWN:
                 warn(lineno, line, "unrecognised property value")
@@ -863,21 +871,24 @@ def parse_frm_text(text: str, *, path: str | None = None,
     return form
 
 
-def parse_bytes(data: bytes, *, path: str | None = None) -> Form:
-    """Decode ``data`` as CP1254 and parse its design block.
+def parse_bytes(data: bytes, *, path: str | None = None,
+                encoding: str = DEFAULT_CODEPAGE) -> Form:
+    """Decode ``data`` in ``encoding`` and parse its design block.
 
     The whole file is decoded, not just the design block: finding the block
     boundary requires scanning to ``Attribute``, and byte offsets must stay in
-    step with character offsets (true for a single-byte codec like CP1254).
+    step with character offsets (true for a single-byte codec, which
+    :func:`~vb6decompiler.encoding.validate_single_byte` enforces upstream).
     """
-    return parse_frm_text(decode_cp1254(data), path=path, raw=data)
+    return parse_frm_text(decode_cp1254(data, encoding), path=path, raw=data,
+                          encoding=encoding)
 
 
-def parse_frm(path: str) -> Form:
+def parse_frm(path: str, encoding: str = DEFAULT_CODEPAGE) -> Form:
     """Parse one ``.frm`` file from disk.  Raises :class:`NoDesignBlock` if it has none."""
     with open(path, "rb") as fh:
         data = fh.read()
-    return parse_bytes(data, path=path)
+    return parse_bytes(data, path=path, encoding=encoding)
 
 
 # --------------------------------------------------------------------------- directory
@@ -900,6 +911,9 @@ class ScanResult:
     no_design: list[str] = field(default_factory=list)
     failures: list[tuple[str, str]] = field(default_factory=list)
     warnings: list[ParseWarning] = field(default_factory=list)
+    #: Code page the files were decoded with, so a summary can name it instead of
+    #: claiming CP1254 for a run that used something else.
+    encoding: str = DEFAULT_CODEPAGE
 
 
 def _frm_files(root: str, recursive: bool = False) -> list[str]:
@@ -917,13 +931,14 @@ def _frm_files(root: str, recursive: bool = False) -> list[str]:
     return sorted(out)
 
 
-def scan_directory(root: str, *, recursive: bool = False) -> ScanResult:
+def scan_directory(root: str, *, recursive: bool = False,
+                   encoding: str = DEFAULT_CODEPAGE) -> ScanResult:
     """Parse every ``.frm`` under ``root`` and account for all of them."""
-    res = ScanResult(root=root)
+    res = ScanResult(root=root, encoding=encoding)
     for path in _frm_files(root, recursive):
         res.files_seen += 1
         try:
-            form = parse_frm(path)
+            form = parse_frm(path, encoding=encoding)
         except NoDesignBlock:
             res.no_design.append(path)
             continue
@@ -1010,7 +1025,7 @@ def summarize(res: ScanResult) -> dict[str, object]:
     client_sizes = sum(1 for f in res.forms if f.client_size is not None)
     incomplete = [f for f in res.forms if not f.complete]
 
-    return {
+    out = {
         "directory": res.root,
         "files_seen": res.files_seen,
         "files_parsed": len(res.forms),
@@ -1043,11 +1058,21 @@ def summarize(res: ScanResult) -> dict[str, object]:
         "warnings": len(res.warnings),
         "warning_examples": [str(w) for w in res.warnings[:10]],
     }
+    # Only a non-default run names its code page: a default run's output must stay
+    # byte-identical to what earlier versions printed.
+    if res.encoding != DEFAULT_CODEPAGE:
+        out["codec"] = res.encoding
+    return out
 
 
 def format_summary(summary: dict[str, object]) -> str:
     """Render :func:`summarize` output as text with denominators on every line."""
     s = summary
+    # The one line that names the code page. For the default it keeps the historical
+    # spelling, so an existing run's output is byte-identical (Rule: output must not
+    # change); a non-default run names the code page it actually used instead.
+    codec: str = summary.get("codec", DEFAULT_CODEPAGE)  # type: ignore[assignment]
+    codec_label = "CP1254" if codec == DEFAULT_CODEPAGE else codec
     lines = [
         f"directory: {s['directory']}",
         f"files: {s['files_parsed']} parsed / {s['files_seen']} seen "
@@ -1066,7 +1091,7 @@ def format_summary(summary: dict[str, object]) -> str:
         f"(Tab= written on {s['sstab_selected_page_written']})",
         f"forms writing ClientWidth+ClientHeight: {s['forms_with_client_size']} / {s['files_parsed']}",
         f"incomplete design blocks (no closing End): {s['forms_incomplete']} / {s['files_parsed']}",
-        f"captions containing U+FFFD after CP1254 decode: "
+        f"captions containing U+FFFD after {codec_label} decode: "
         f"{s['captions_containing_replacement_char']} / {s['controls_total']}",
         f"captions stored in .frx (text not in the design block): "
         f"{s['captions_stored_in_frx']} / {s['controls_total']}",
@@ -1096,8 +1121,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("directory", help="directory containing .frm files")
     ap.add_argument("--recursive", action="store_true", help="walk subdirectories")
     ap.add_argument("--json", action="store_true", help="emit JSON instead of text")
+    ap.add_argument("--encoding", default=DEFAULT_CODEPAGE,
+                    help="code page of the .frm text (default: cp1254)")
     args = ap.parse_args(argv)
-    res = scan_directory(args.directory, recursive=args.recursive)
+    res = scan_directory(args.directory, recursive=args.recursive, encoding=args.encoding)
     s = summarize(res)
     print(json.dumps(s, indent=1, ensure_ascii=False) if args.json else format_summary(s))
     return 0 if not res.failures else 1
