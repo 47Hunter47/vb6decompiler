@@ -1,19 +1,25 @@
-"""Tests for the decompiler-side scripts (no Ghidra install needed).
+"""The decompiler-side helpers: the in-package ones and the two that stay in scripts/.
 
-Synthetic pseudo-C only: the scripts parse text, so the fixtures are text too.
+Synthetic pseudo-C only: these helpers parse text, so the fixtures are text too.
+No Ghidra install is needed: `ghidra_bridge` is imported for its pure functions
+(its pyghidra import is lazy), and `pseudoc_inventory`/`literal_visibility` moved
+into the package in 0.3.1 so a pip install can run them.
 """
 import csv
 import os
+import subprocess
 import sys
 
 import pytest
 
+from vb6decompiler import literal_visibility as lv
+from vb6decompiler import pseudoc_inventory as pi
+
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
+SCRIPTS = os.path.join(os.path.dirname(HERE), "scripts")
+sys.path.insert(0, SCRIPTS)
 
 import ghidra_bridge as gb  # noqa: E402
-import literal_visibility as lv  # noqa: E402
-import pseudoc_inventory as pi  # noqa: E402
 
 GOVDE = """int DemoSub(void)
 
@@ -117,3 +123,20 @@ def test_inventory_emits_order_calls_vtable_globals(tmp_path):
     par = list(csv.DictReader(open(out / "pseudoc_params.csv", encoding="utf-8-sig")))
     assert [(r["kind"], r["target"], r["note"]) for r in par] == [
         ("concat", "param_1", "sql_demo_select_00a46408")]
+
+
+# --------------------------------------------------------------------------- packaging
+# 0.3.1 moved four helpers into the package. Both entry points must work: the old
+# `python scripts/x.py` (quoted in older notes) and the new `python -m
+# vb6decompiler.x` (the only form a pip install has).
+@pytest.mark.parametrize("name", ["frx_icon", "literal_visibility", "pseudoc_inventory", "semi_laa"])
+def test_both_entry_points_print_the_same_usage(name):
+    shim = subprocess.run([sys.executable, os.path.join(SCRIPTS, name + ".py"), "--help"],
+                          capture_output=True, text=True)
+    module = subprocess.run([sys.executable, "-m", "vb6decompiler." + name, "--help"],
+                            capture_output=True, text=True)
+    assert shim.returncode == 0, shim.stderr
+    assert module.returncode == 0, module.stderr
+    # prog= differs by definition (script path vs module); the options must not.
+    assert shim.stdout.replace(os.path.join(SCRIPTS, name + ".py"), "PROG") == \
+        module.stdout.replace("vb6decompiler." + name, "PROG")
