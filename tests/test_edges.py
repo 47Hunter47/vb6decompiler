@@ -97,3 +97,37 @@ def test_edges_cli_writes_jsonl_and_counts(fixture, tmp_path, capsys):
     r0 = json.loads(out2.read_text(encoding="utf-8").splitlines()[0])
     assert len(r0["events"]) == 4
     assert cli.main(["edges", str(exe), "--dossier", str(tmp_path / "nope.jsonl")]) == 2
+
+
+# --------------------------------------------------------------------------- lane failure reporting
+# The object-table lane used to catch Exception and pretend the naming simply
+# was not there - which was honest for "not a VB6 build" and a black hole for
+# everything else. The expected error stays silent; anything else says so.
+def test_a_fault_in_the_naming_lane_says_so_and_the_run_completes(fixture, monkeypatch, capsys):
+    from vb6decompiler import edges, procs
+
+    exe, dossier = fixture
+
+    def boom(path, encoding=None):
+        raise RuntimeError("planted fault")
+
+    monkeypatch.setattr(procs, "read", boom)
+    rows, _bad, _totals = edges.collect(str(exe), str(dossier))
+    _out, err = capsys.readouterr()
+    assert "object-table lane unavailable: RuntimeError" in err
+    assert rows, "the edge rows do not depend on the naming lane"
+
+
+def test_the_expected_not_a_vb6_build_stays_silent(fixture, monkeypatch, capsys):
+    from vb6decompiler import edges, procs
+
+    exe, dossier = fixture
+
+    def not_vb6(path, encoding=None):
+        raise procs.VBError("x.exe: no 'VB5!' header (not a VB5/VB6 build)")
+
+    monkeypatch.setattr(procs, "read", not_vb6)
+    rows, _bad, _totals = edges.collect(str(exe), str(dossier))
+    _out, err = capsys.readouterr()
+    assert err == "", f"absence of an object table is a result, not news: {err!r}"
+    assert rows

@@ -20,6 +20,7 @@ from __future__ import annotations
 import bisect
 import json
 import re
+import sys
 
 from . import blob, pe, x86
 
@@ -61,16 +62,22 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
     # the object table names whole objects, and its function entries are plain
     # VAs - exact hits below the listed population can be attributed to their
     # object even though native entry names are junk (never quoted here).
-    # A non-VB6 exe has no such table: edges still work, without the naming.
+    # A non-VB6 exe has no such table: edges still works, without the naming.
+    # That expected absence (_procs.VBError) stays silent; every other failure
+    # of the lane leaves a one-line trace on stderr instead of vanishing —
+    # a silent catch of everything hides real faults beside the expected one.
+    from . import procs as _procs
+
     objfunc: dict[int, str] = {}
     try:
-        from . import procs as _procs
-
         proj = _procs.read(exe)
         for o, m in proj.methods_by_address():
             objfunc.setdefault(m.address, o.name)
-    except Exception:
+    except _procs.VBError:
         objfunc = {}
+    except Exception as exc:
+        objfunc = {}
+        print(f"# object-table lane unavailable: {type(exc).__name__}", file=sys.stderr)
     # native builds keep Method.address=None (measured and documented in
     # procs.py), so on a compiled exe objfunc stays empty - by design, not
     # by omission; builds that DO expose entry addresses get the naming.
