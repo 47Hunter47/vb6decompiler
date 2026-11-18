@@ -706,7 +706,7 @@ def _parse_control(b: bytes, name: str, cls_p: int, hdr_index: int | None,
     pages: tuple[str, ...] = ()
     members: dict[str, int] = {}
     if type_name.rsplit(".", 1)[-1] == "SSTab":
-        pages, members = sstab_region(b, post, min(end, len(b)))  # type: ignore[assignment]  # list in, sealed to a tuple on the next line  # type: ignore[assignment]  # list in, sealed to a tuple on the next line
+        pages, members = sstab_region(b, post, min(end, len(b)))  # type: ignore[assignment]  # list in, sealed to a tuple on the next line
         pages = tuple(pages)
 
     # Page membership is resolved by the caller, which owns the sibling list.
@@ -999,7 +999,7 @@ def validate(exe_path: str, frm_dir: str | None = None,
 
         bad = 0
         for truth_ctrl in truth:
-            ctrl = got.get((truth_ctrl.name.lower(), truth_ctrl.index))  # type: ignore[assignment]  # absence is the case reported below  # type: ignore[assignment]  # absence is the case reported below
+            ctrl = got.get((truth_ctrl.name.lower(), truth_ctrl.index))  # type: ignore[assignment]  # absence is the case reported below
             if ctrl is None:
                 report.field_diffs["control missing"] += 1
                 bad += 1

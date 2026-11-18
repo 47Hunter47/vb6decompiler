@@ -84,7 +84,7 @@ def mask_text(text: str) -> str:
         pass
     out = text
     for pattern, repl in _PATTERNS:
-        out = pattern.sub(repl, out)  # type: ignore[call-overload]  # replacement is a string or Match->str; the list keeps them as object  # type: ignore[call-overload]  # replacement is a string or Match->str; the list keeps them as object
+        out = pattern.sub(repl, out)  # type: ignore[call-overload]  # replacement is a string or Match->str; the list keeps them as object
     return out
 
 

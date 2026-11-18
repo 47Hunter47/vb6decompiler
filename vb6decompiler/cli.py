@@ -620,7 +620,7 @@ def main(argv: list[str] | None = None) -> int:
     # from UTF-16 are not encodable there. Cosmetic only: never changes exit codes.
     for stream in (sys.stdout, sys.stderr):
         try:
-            stream.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[union-attr]  # AttributeError is caught on the next line for stripped stdouts  # type: ignore[union-attr]  # AttributeError is caught on the next line for stripped stdouts
+            stream.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[union-attr]  # AttributeError is caught on the next line for stripped stdouts
         except (AttributeError, OSError):
             pass
     try:

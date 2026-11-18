@@ -221,7 +221,7 @@ def main(argv=None) -> int:
             if metin_i >= 0 and (adres_i is None or metin_i < adres_i):
                 yer, kaynak = metin_i, "text"
             else:
-                yer, kaynak = adres_i, "address"  # type: ignore[assignment]  # text in one branch, address in the other; rows are heterogeneous  # type: ignore[assignment]  # text in one branch, address in the other; rows are heterogeneous
+                yer, kaynak = adres_i, "address"  # type: ignore[assignment]  # text in one branch, address in the other; rows are heterogeneous
             sira.append({"va": va, "label": label, "sira": yer, "addr": kanon(a),
                          "text": " ".join(lit["text"].split())[:160],
                          "is_sql": lit["is_sql"], "source": kaynak})

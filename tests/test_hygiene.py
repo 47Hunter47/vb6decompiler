@@ -130,3 +130,22 @@ def test_denylist_from_the_private_project_is_empty_here():
             if re.search(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % re.escape(token), text, re.IGNORECASE):
                 bad.append((name, token))
     assert not bad, f"project-specific names present in the tool repo: {bad[:10]}"
+
+
+TOOL_COMMENTS = ("type: ignore", "noqa:")
+
+
+def test_no_duplicated_tool_comments():
+    """One copy of each tool comment: a duplicated ignore reads as noise, and a
+    generator that appends twice would otherwise go unnoticed."""
+    bad = []
+    for name in _tracked_files():
+        if not name.endswith(".py"):
+            continue
+        text = _text(name)
+        if text is None:
+            continue
+        for line, body in enumerate(text.splitlines(), 1):
+            if any(body.count(token) > 1 for token in TOOL_COMMENTS):
+                bad.append((name, line))
+    assert not bad, f"duplicated tool comments: {bad[:10]}"

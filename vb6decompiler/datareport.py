@@ -571,7 +571,7 @@ def _make_record(
     end: int,
     detail_top: int | None,
 ) -> Record:
-    common = dict(  # noqa: C408  # keyword form names the field defaults; quotes would add noise  # noqa: C408  # keyword form names the field defaults; quotes would add noise
+    common = dict(  # noqa: C408  # keyword form names the field defaults; quotes would add noise
         index=index,
         kind=kind,
         name=text,
@@ -585,12 +585,12 @@ def _make_record(
     if kind == "control":
         left, top, width, height, note, inferred = _classify_geometry(ints, section, detail_top)
         return Record(left=left, top=top, width=width, height=height,
-                      geometry=note, top_inferred=inferred, **common)  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields
+                      geometry=note, top_inferred=inferred, **common)  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields
     if kind == "section":
         # Section record: the first int32 is the section height in twips.
         height = ints[0] if ints else None
-        return Record(height=height, geometry="section", **common)  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields
-    return Record(geometry="none", **common)  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields
+        return Record(height=height, geometry="section", **common)  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields
+    return Record(geometry="none", **common)  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields
 
 
 def parse_design(head: DesignHead, buf: bytes, path: str) -> Design:
