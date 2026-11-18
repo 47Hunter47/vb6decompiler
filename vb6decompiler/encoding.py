@@ -4,7 +4,7 @@ Why this exists
 ---------------
 Every parser in this package used to decode text as CP1254 by name. That is right
 for the builds it was calibrated on and silently wrong for every other code page:
-a German build decodes ``ä`` into a box, a Russian build turns half its menu into
+a CP1252 build gets its ``ä`` garbled, a CP1251 build turns half its menu into
 ``?``. The bytes never belonged to one language; the *build machine's* ANSI code
 page chose them, and the
 ``VB5!`` header records the developer's LCID (``procs._vb_header``) — a hint, not
