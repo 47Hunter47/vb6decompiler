@@ -220,14 +220,10 @@ def cmd_edges(args) -> int:
     from . import edges, fileio
 
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.dossier)), "edges.jsonl")
-    try:
-        # a typo'd dossier is unusable input, not an empty edge set: name it
-        # with the path as typed before collect() opens anything
-        fileio.require(args.dossier)
-        rows, bad, totals = edges.collect(args.exe, args.dossier, events=args.events)
-    except OSError as exc:
-        print(f"# error: {exc}", file=sys.stderr)
-        return 2
+    # a typo'd dossier is unusable input, not an empty edge set: name it
+    # with the path as typed before collect() opens anything
+    fileio.require(args.dossier)
+    rows, bad, totals = edges.collect(args.exe, args.dossier, events=args.events)
     if bad:
         print(f"# warning: {bad} unreadable lines skipped in {args.dossier}", file=sys.stderr)
     with open(out, "w", encoding="utf-8") as fh:
@@ -245,12 +241,8 @@ def cmd_outline(args) -> int:
     from . import fileio, outline
 
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.edges)), "outline.jsonl")
-    try:
-        fileio.require(args.edges)  # same contract: the path as typed, one line, exit 2
-        fh = open(args.edges, encoding="utf-8")
-    except OSError as exc:
-        print(f"# error: {exc}", file=sys.stderr)
-        return 2
+    fileio.require(args.edges)  # same contract: the path as typed, one line, exit 2
+    fh = open(args.edges, encoding="utf-8")
     rows = categorized = unlisted = api = bad = 0
     with fh, open(out, "w", encoding="utf-8") as sink:
         for line in fh:

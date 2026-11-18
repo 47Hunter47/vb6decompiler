@@ -77,11 +77,7 @@ def test_missing_input_is_one_line_exit_two(command, missing, capsys):
 
 
 def test_missing_path_is_reported_with_the_path_as_typed(missing, capsys):
-    """The exact sentences the 0.4.31 review asked for, per subcommand.
-
-    edges/outline prefix their one line with ``#`` (their handler style);
-    every other command reports through main()'s named-error line.
-    """
+    """The exact sentence the 0.4.31 review asked for, per subcommand."""
     expected = f"error: {missing}: no such file or directory\n"
     for command in SUBCOMMANDS:
         if command == "frm":  # frm announces the code page before scanning: two lines
@@ -89,9 +85,20 @@ def test_missing_path_is_reported_with_the_path_as_typed(missing, capsys):
         capsys.readouterr()  # drain what the previous command printed
         code = cli.main(_argv(command, missing))
         _out, err = capsys.readouterr()
-        prefix = "# " if command in ("edges", "outline") else ""
         assert code == 2, (command, err)
-        assert err == prefix + expected, (command, err)
+        assert err == expected, (command, err)
+
+
+@pytest.mark.parametrize("command", SUBCOMMANDS)
+def test_every_input_error_uses_the_same_prefix(command, missing, capsys):
+    """One prefix for an unusable input, on every command: `error:`, never `# error:`
+    (the `#` form marks a footnote, not a failure)."""
+    cli.main(_argv(command, missing))
+    _out, err = capsys.readouterr()
+    lines = err.splitlines()
+    first = next(line for line in lines if not line.startswith("#"))
+    assert first.startswith("error: "), (command, err)
+    assert not any(line.startswith("# error:") for line in lines), (command, err)
 
 
 # --------------------------------------------------------------------------- malformed PE
