@@ -117,13 +117,17 @@ def test_same_path_spots_the_same_file_under_each_spelling(tmp_path):
     target = tmp_path / "Dir" / "App.exe"
     target.parent.mkdir()
     target.write_bytes(b"MZ")
+    folding = os.path.normcase("A") == os.path.normcase("a")  # case ignores spelling: Windows
     same = [
-        str(target.parent.parent / "Dir" / "App.exe"),  # relative detour
-        str(target).upper(),                            # Windows is case-insensitive
+        str(target.parent.parent / "Dir" / "App.exe"),  # absolute detour
         str(target.parent) + os.sep + ".." + os.sep + "Dir" + os.sep + "App.exe",
     ]
+    if folding:
+        same.append(str(target).upper())  # Windows is case-insensitive
     for other in same:
         assert fileio.same_path(str(target), other), other
+    if not folding:  # on POSIX the case spelling names a DIFFERENT file
+        assert not fileio.same_path(str(target), str(target).upper())
     assert not fileio.same_path(str(target), str(target.parent / "other.exe"))
     assert not fileio.same_path(str(target.parent), str(target))  # a dir is not its file
 
@@ -131,8 +135,11 @@ def test_same_path_spots_the_same_file_under_each_spelling(tmp_path):
 def test_refuse_overwrite_inputs_names_the_input_before_anything_opens(tmp_path):
     listing = tmp_path / "fDemo.bas"
     listing.write_text("'x\n", encoding="utf-8")
+    # a detour spelling of the very same file: identical on case-folding and
+    # case-sensitive filesystems alike (a case spelling is only the same file on Windows)
+    out = str(tmp_path / "sub" / os.sep.join(["..", "fDemo.bas"]))
     with pytest.raises(fileio.InputError, match="input files"):
-        fileio.refuse_overwrite_inputs(str(tmp_path / "fDEMO.bas"), [str(listing)])
+        fileio.refuse_overwrite_inputs(out, [str(listing)])
     assert not list(tmp_path.glob("*.vb6d-tmp"))  # the guard ran before the writer
 
 
