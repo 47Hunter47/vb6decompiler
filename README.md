@@ -55,9 +55,10 @@ and `semi_laa`. The same files stay runnable from a checkout as
 `win32_gui_probe.py` drives a Windows GUI. `t35_import_call_spike.py` needs
 `pip install "vb6decompiler[asm]"` (capstone) because it decodes x86 bytes, and it
 answers a measurement question rather than producing a stage's output. The library and
-the `vb6d` CLI stay standard-library only — with one named exception: `vb6d decode`
-asks for the `[asm]` extra (capstone) and refuses with exit 2 and that hint when the
-engine is missing.
+the `vb6d` CLI stay standard-library only — with named exceptions: `vb6d decode` and
+`vb6d edges` ask for the `[asm]` extra (capstone) and refuse with exit 2 and that
+hint when the engine is missing; `vb6d outline`, `xref` and `dossier` need no engine
+at all.
 
 `vb6d dossier` names the runtime helpers a procedure calls (`__vbaFreeStr`,
 `rtcMsgBox`, …) from the export table of the `msvbvm60.dll` the table was generated
@@ -242,6 +243,9 @@ developed, so you can tell at a glance whether your own numbers look sane:
 | `.frm` design | 369 forms, 30,000 controls, 126 forms with control arrays |
 | form blobs | 801 blobs, 24,967/24,967 controls (100 %), 367/369 forms |
 | DataReports | 437 layouts (413 in report DLLs + 24 embedded in the executable) |
+| dossier | 34,159 procedures in 52 s (4,416 of them carrying CLOSED SQL) |
+| edges | 4 m 47 s single pass: 34,159/34,159 ranges end on `ret` inside their own bounds; 1,897,375 calls named via imports + 9,980 via import thunks; 27,033 edges attributed to listed procedures; 1,791,902 late-bound; 79 hits still unnamed |
+| outline | 1,882,740 of 1,907,355 runtime hits (98.7 %) land in a runtime-table category, in 2 s, engine-free |
 
 A different program legitimately gives different numbers. The tests assert
 invariants and lower bounds, not these totals. The `stitch` row was measured before
@@ -272,7 +276,13 @@ never be used to claim.
 6. Count embedded reports when you run `vb6d datareport`. A scan limited to
    `rpt*.dll` misses 24 of the 437 layouts the reference build carries inside its
    own executable.
-7. `vb6d mask . --dry-run` before sharing anything you produced. A non-zero exit
+7. `vb6d dossier --listings <dir>` is the evidence hub the later stages read:
+   `vb6d xref` answers "which procedures touch X" from the other side,
+   `vb6d edges` turns dossier plus executable into a call graph (add `--events`
+   for named events in program order), and `vb6d outline` reads that file
+   through the runtime table without an engine. `edges` asks for the `[asm]`
+   extra; `xref` and `outline` do not.
+8. `vb6d mask . --dry-run` before sharing anything you produced. A non-zero exit
    means the artefacts are not publishable, not that you should retry quietly.
 
 Things that cost days to learn:
