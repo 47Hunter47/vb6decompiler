@@ -44,8 +44,28 @@ vb6d blob        <app.exe> --validate --frm-dir <frm dir>   geometry for forms w
 vb6d datareport  <install dir>        report sections from the report DLLs (and the exe)
 vb6d dossier     --listings <dir>     one JSON object per procedure: literals in order,
                                       SQL closed vs open, name hints, runtime calls
+vb6d xref        <dossier.jsonl>      read the dossier back: which procedures mention a
+                                      string or SQL fragment (--literal/--sql SUBSTR),
+                                      rollup ordered by literal count, --full double index
+vb6d decode      <app.exe> --va HEX   instruction dump [asm]: bytes, mnemonic, operands,
+                                      an explicit `ended` field; call targets named from
+                                      the file's import table; --end-va limits to one body;
+                                      --procs <dossier.jsonl> attributes in-image targets
+vb6d edges       <app.exe> --dossier <dossier.jsonl>
+                                      one pass over every procedure range -> edges.jsonl:
+                                      imported / thunk / procedure-range / object / other +
+                                      late-bound counts; --events adds the ordered stream
+vb6d outline     <edges.jsonl>        operations outline via the runtime table:
+                                      unverified_operations, api_calls, runtime_unlisted
+vb6d project     <app.exe>            project skeleton: .vbp + design-record placeholder
+                                      files + recovery-report.json (structure, not source)
 vb6d mask        <out dir> --dry-run  credential audit before publishing anything
 ```
+
+`decode` and `edges` need the `[asm]` extra (`pip install "vb6decompiler[asm]"`); without
+the engine they exit `2` with an install hint, never a traceback. `outline` reads
+`edges.jsonl` with no engine. `edges --events` is opt-in and large; event text is raw, so
+an events file goes through `mask` before it leaves the machine.
 
 `procs` alone carries no addresses or names; they appear only after
 `--names <listing dir>` merges a decompiler listing.
