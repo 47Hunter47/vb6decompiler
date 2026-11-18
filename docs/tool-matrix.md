@@ -5,6 +5,10 @@ VB6 ERP executable** with a lost source tree, plus its 8 VB6 report DLLs. Nothin
 here is a vendor claim; where a tool published a figure, the figure is quoted with
 the reason it does not apply.
 
+Measured here: the **free or Lite edition** of three VB6-specific decompilers and
+three generic analysis engines, run against the same target. Paid editions of
+those tools were not measured; nothing in this file is a statement about them.
+
 ## Summary
 
 | Tool | Forms | Procedure bodies | String literals | Form blobs | DataReports | Verdict |

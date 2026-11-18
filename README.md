@@ -6,8 +6,9 @@
 
 Recovering what a native-compiled VB6 program actually does, with evidence.
 
-Commercial VB6 decompilers stop at one of two walls: they give you forms without
-code, or code without the semantics that make it portable. This toolkit was built
+The tools measured in `docs/tool-matrix.md` - three VB6-specific decompilers on
+their free/Lite tiers plus three generic analysis engines - each stopped at one of
+two walls: forms without code, or code without the semantics that make it portable. This toolkit was built
 while recovering a large native-compiled VB6 application (111 MB, ~34,000
 procedures) whose source was lost. Every claim below is a measurement, and every
 measurement has a command that reproduces it.
@@ -23,12 +24,27 @@ The point is not another disassembler. VB6 is not plain x86 at the level that
 matters: strings are length-prefixed `BSTR`s stored inside `.text`, procedures are
 entered through a fixed runtime prologue, most calls go through `MSVBVM60` vtable
 dispatch, forms are serialised into the executable as binary property blobs, and
-reports live in separate VB6 DLLs as `DataReport` blobs. Off-the-shelf tools read
-none of that. These modules do.
+reports live in separate VB6 DLLs as `DataReport` blobs. None of the tools measured in
+`docs/tool-matrix.md` reads all of that. These modules do.
 
 Nothing here points at the program it was developed against: no target name, no
 host, no database name, no account, no credential, no absolute install path.
 **You supply every path.**
+
+## Quick start
+
+Install, then the five commands a new target gets first. Each output line shown
+is a shape a run actually prints (measured on the developer's fixture corpus;
+N/M stand for your target's counts):
+
+```bash
+pip install vb6decompiler                              # add "[asm]" for decode/edges only
+vb6d pe        "<install dir>"                         # stderr: # N images, M import a VB6 runtime, K unreadable
+vb6d procs     "<app.exe>" > app.txt                  # stdout: [ 37] fDemo901  form  methods=44 per object
+vb6d literals  "<app.exe>" > literals.csv             # CSV on stdout; stderr: # N literals
+vb6d stitch    "<listings dir>"                       # statements + buckets; stderr: # {'candidates': N, 'closed': M, ...}
+vb6d dossier   --listings "<listings dir>"            # dossier.jsonl INSIDE the listings dir; its path on stderr
+```
 
 ## What it does
 
@@ -37,22 +53,22 @@ host, no database name, no account, no credential, no absolute install path.
 | PE surface of an install | `vb6d pe <dir>` | imports, exports, VB6 runtime dependency, ActiveX/COM classification |
 | Procedure inventory | `vb6d procs <exe>` | object table: objects and method counts, entry points verified by prologue |
 | String / SQL harvest | `vb6d literals <exe or listing dir>` | `BSTR` (UTF-16LE) literals the ASCII scanners miss, with code addresses |
-| SQL reconstruction | `vb6d stitch <listing dir>` | fragments joined into whole statements, with explicit "not provable statically" buckets; binary text belongs to `vb6d literals` |
+| SQL reconstruction | `vb6d stitch <listing dir>` | fragments joined into whole statements, with unprovable buckets - [evidence details](docs/commands.md#sql-reconstruction) |
 | Form design | `vb6d frm <dir>` | controls, geometry, `Visible`, control arrays, `SSTab` pages from `.frm` text |
 | Form geometry from binary | `vb6d blob <exe> --validate` | geometry for forms that have no `.frm`, calibrated against `.frm` ground truth |
-| Per-procedure evidence | `vb6d dossier --listings <dir>` | one JSON object per procedure: its literals in order, its SQL with closed/open kept apart, name hints, plus an optional pseudo-C inventory merged by VA — evidence for re-specification, not source |
+| Per-procedure evidence | `vb6d dossier --listings <dir>` | one JSON object per procedure: literals, SQL, hints - [evidence details](docs/commands.md#per-procedure-evidence) |
 | DataReport layout | `vb6d datareport <dll or dir>` | report sections, controls, captions recovered from the runtime blobs |
-| Form icons from `.frx` | `python -m vb6decompiler.frx_icon <frx dir> <out> [--validate <frm dir>]` | standalone `.ico` per form, extracted from the leading ICON record without the executable; coverage cross-checked against `.frm` Icon references |
-| Second-opinion decompiler run | `scripts/ghidra_bridge.py --ghidra <dir> --bin <exe> --targets <csv> --out <dir>` | one pseudo-C file per procedure: our bounds and names, engine ceilings as flags, the JDK requirement read from the install before anything is imported |
-| Literal visibility check | `python -m vb6decompiler.literal_visibility --corpus <dir> --literals <csv> --out <csv>` | measured visible / catalogued per procedure — an address token (`DAT_`, `PTR_PTR_`) **or** inlined text counts, with a denominator instead of a hunch |
-| Pseudo-C inventories | `python -m vb6decompiler.pseudoc_inventory --corpus <dir> --out-dir <dir>` | literal order, indirect-call object+slot, ordered calls with line numbers, branch conditions, unnamed-global census |
-| Runtime call order check | `scripts/t35_import_call_spike.py --exe <exe> --listings <dir> [--dll <msvbvm60.dll>]` | whether a native decode reproduces each procedure's `MSVBVM60` call order; reports agreement per procedure, not a guessed call graph |
+| Form icons from `.frx` | `python -m vb6decompiler.frx_icon <frx dir> <out> [--validate <frm dir>]` | standalone `.ico` per form, straight from the `.frx` files - [evidence details](docs/commands.md#form-icons-from-frx) |
+| Second-opinion decompiler run | `scripts/ghidra_bridge.py --ghidra <dir> --bin <exe> --targets <csv> --out <dir>` | one pseudo-C file per procedure, from a local Ghidra - [evidence details](docs/commands.md#second-opinion-decompiler-run) |
+| Literal visibility check | `python -m vb6decompiler.literal_visibility --corpus <dir> --literals <csv> --out <csv>` | measured visible vs catalogued, with a denominator - [evidence details](docs/commands.md#literal-visibility-check) |
+| Pseudo-C inventories | `python -m vb6decompiler.pseudoc_inventory --corpus <dir> --out-dir <dir>` | literal order, indirect calls, branch conditions per corpus - [evidence details](docs/commands.md#pseudo-c-inventories) |
+| Runtime call order check | `scripts/t35_import_call_spike.py --exe <exe> --listings <dir> [--dll <msvbvm60.dll>]` | does a decode reproduce each procedure's call order - [evidence details](docs/commands.md#runtime-call-order-check) |
 | Credential gate | `vb6d mask <dir>` | files rewritten in place: connection strings redacted, then an audit counting what is still live |
-| Cross-reference query | `vb6d xref <dossier.jsonl> [--literal/--sql SUBSTR]` | the dossier read backwards: which procedures touch a string or SQL fragment (case-insensitive), or a procedure rollup ordered by literal count |
-| x86 raw decode | `vb6d decode <exe> --va HEX [--end-va HEX] [--procs <dossier.jsonl>]` (needs the `[asm]` extra) | instruction dump from a VA each earlier stage already reported: bytes, mnemonic, operands, an explicit `ended` field (ret / limit / exhausted / garbage + stop address), call targets named via the file's own import table (`target` = `dll!name`, `target_va`; late-bound `[reg+disp]` stays unnamed), and with `--procs` procedure attribution of in-image targets (`target_proc` = the dossier procedure whose reported range holds the target) — no VB6 semantics claimed yet |
-| Program call edges | `vb6d edges <exe> --dossier <dossier.jsonl> [--out F] [--events]` (needs the `[asm]` extra) | one process pass over every dossier range: `edges.jsonl`, one row per procedure — `calls_imported` (`dll!name` → count), `calls_thunks` (targets that are `jmp [import slot]` thunks, named via the slot), `calls_procedures` (owner range-VA → count, range attribution not identity), `calls_objects` (hits on object-table function entries, named by object only), `calls_other` (unnamed hits, target VA → count), `calls_late_bound`, `ended`; `--events` adds an ordered per-procedure `events` stream (named calls + loads of immediates that are dossier literals — only events with a name or text make it in); stderr totals split named / thunk-named / attributed / late-bound / object-named / still-unnamed |
-| Operation outline | `vb6d outline <edges.jsonl> [--out F]` (no engine needed) | the edges file read through the runtime table: per procedure `unverified_operations` (runtime category → count; the categories are a third party's reverse-engineering notes, the field is named for the marker and stderr repeats it), `api_calls` (other dlls, counted not interpreted), `runtime_unlisted` (names the table does not categorize) — and never an invented category |
-| Project skeleton | `vb6d project <exe>` | structure, not source: `.vbp` with the object table's modules/classes/forms in table order, one placeholder file per object — forms carry their recovered design record (offset, extent, per-control lines) in comment form — and a `recovery-report.json` separating confirmed / inferred / missing — nothing invented |
+| Cross-reference query | `vb6d xref <dossier.jsonl> [--literal/--sql SUBSTR]` | which procedures touch a string or SQL fragment - [evidence details](docs/commands.md#cross-reference-query) |
+| x86 raw decode | `vb6d decode <exe> --va HEX [--end-va HEX] [--procs <dossier.jsonl>]` (needs the `[asm]` extra) | instruction dump from a VA an earlier stage already reported - [evidence details](docs/commands.md#x86-raw-decode) |
+| Program call edges | `vb6d edges <exe> --dossier <dossier.jsonl> [--out F] [--events]` (needs the `[asm]` extra) | one row per procedure: every call target named or counted - [evidence details](docs/commands.md#program-call-edges) |
+| Operation outline | `vb6d outline <edges.jsonl> [--out F]` (no engine needed) | runtime categories from the shipped table, never invented - [evidence details](docs/commands.md#operation-outline) |
+| Project skeleton | `vb6d project <exe>` | .vbp plus placeholder files plus an honest recovery report - [evidence details](docs/commands.md#project-skeleton) |
 
 Four helpers ship inside the package, so a pip install can run them: `frx_icon`,
 `literal_visibility`, `pseudoc_inventory` (the one `vb6d dossier --inventory` reads)
