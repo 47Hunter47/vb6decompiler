@@ -28,6 +28,29 @@ from . import blob, pe, x86
 # bytes and mark the row capped; upgrade needs an image-end rule
 LAST_RANGE_CAP = 0x10000
 
+
+def owner_index(vas: list[int], target: int) -> int | None:
+    """Which listed procedure's analysis range holds ``target``, by list index.
+
+    One policy for every consumer (edges, ``decode --procs``): procedure i
+    covers ``[vas[i], vas[i+1])`` and the last one covers
+    ``[vas[-1], vas[-1] + LAST_RANGE_CAP)`` — the same window edges decodes.
+    A bare ``bisect_right`` answers "nearest start below the target", which
+    overruns the capped last range; a target below the first start has no
+    owner. Returns ``None`` in both cases: unattributed, never re-labelled
+    onto the nearest procedure. Equal starts: the later record owns (the
+    sort is stable, so both consumers pick the same one).
+    """
+    if not vas:
+        return None
+    j = bisect.bisect_right(vas, target) - 1
+    if j < 0:
+        return None
+    if j == len(vas) - 1 and target >= vas[j] + LAST_RANGE_CAP:
+        return None
+    return j
+
+
 # an operand slot that is a plain immediate: VB6 loads string-literal
 # descriptors with push/mov/lea, so only those mnemonics are worth parsing
 _IMM_RE = re.compile(r"0x([0-9A-Fa-f]+)$")
@@ -141,14 +164,15 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
                     totals["named"] += 1
                     label = name
                 else:
-                    j = bisect.bisect_right(vas, t) - 1
-                    if j >= 0:
+                    j = owner_index(vas, t)
+                    if j is not None:
                         key = f"{vas[j]:X}"
                         edges[key] = edges.get(key, 0) + 1
                         totals["edges"] += 1
                         label = f"proc:{key}"
                     else:
-                        # below the listed population: a `jmp [import slot]`
+                        # outside every listed range (below the first start or
+                        # past the capped last window): a `jmp [import slot]`
                         # thunk is identity, a bare count is not - try the two
                         # named hops first
                         tn = thunk_name(t)

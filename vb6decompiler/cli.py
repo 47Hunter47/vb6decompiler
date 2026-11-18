@@ -156,7 +156,7 @@ def cmd_decode(args) -> int:
     iat = pe.import_names(pe.read(args.exe))
     vas, owners = [], []
     if args.procs:
-        import bisect
+        from .edges import owner_index
 
         bad = 0
         with open(args.procs, encoding="utf-8") as fh:
@@ -189,9 +189,10 @@ def cmd_decode(args) -> int:
             named += 1
         elif args.procs:
             # attribution, not identity: the target lands inside the range a
-            # listing reported for that procedure (t35's standing warning)
-            i = bisect.bisect_right(vas, t) - 1
-            if i >= 0:
+            # listing reported for that procedure (t35's standing warning);
+            # the SAME policy edges uses, cap on the last range included
+            i = owner_index(vas, t)
+            if i is not None:
                 o = owners[i]
                 row["target_proc"] = {"va": f"{vas[i]:X}",
                                       "object_name": o.get("object_name"),

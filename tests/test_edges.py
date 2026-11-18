@@ -130,3 +130,99 @@ def test_the_expected_not_a_vb6_build_stays_silent(fixture, monkeypatch, capsys)
     _out, err = capsys.readouterr()
     assert err == "", f"absence of an object table is a result, not news: {err!r}"
     assert rows
+
+
+# --------------------------------------------------------------------------- range attribution
+# One policy for both consumers (review item C): procedure i covers
+# [vas[i], vas[i+1]), the LAST one covers [vas[-1], vas[-1] + LAST_RANGE_CAP)
+# — the window edges actually decodes. A bare bisect answered "nearest start
+# below", silently labelling a target past the capped last range as that
+# procedure's call. Bounds below are the fixture's own arithmetic:
+# last start 401080 + cap 0x10000 = 411100.
+def test_owner_index_is_range_containment_not_nearest_start():
+    from vb6decompiler.edges import LAST_RANGE_CAP, owner_index
+
+    vas = [0x401000, 0x401100, 0x402000]  # last start 402000, capped at 412000
+    assert owner_index(vas, 0x401000) == 0                    # exactly a start
+    assert owner_index(vas, 0x4010FF) == 0                    # inside a normal range
+    assert owner_index(vas, 0x401100) == 1                    # exactly the NEXT start
+    assert owner_index(vas, 0x400FF8) is None                 # before the first start
+    assert owner_index(vas, 0x402000 + LAST_RANGE_CAP - 1) == 2   # last byte inside the cap
+    assert owner_index(vas, 0x402000 + LAST_RANGE_CAP) is None    # exactly the boundary
+    assert owner_index(vas, 0x412001) is None                 # past the final boundary
+    assert owner_index([], 0x401000) is None
+    dup = [0x401000, 0x401000, 0x401100]
+    assert owner_index(dup, 0x401000) == 1                    # equal starts: the later record, deterministically
+
+
+def _bounds_fixture(tmp_path):
+    """A synthetic image whose calls hit every attribution boundary (probed)."""
+    pytest.importorskip("capstone")
+    from _mini_pe import mini_pe
+
+    def call(target, at):
+        return b"\xe8" + (target - (at + 5)).to_bytes(4, "little", signed=True)
+
+    code = bytearray(b"\x90" * 0x90)
+    for at, tgt in [(0x401010, 0x401015), (0x401015, 0x401050), (0x40101A, 0x401060),
+                    (0x40101F, 0x401005), (0x401024, 0x411080), (0x401029, 0x41107F),
+                    (0x40102E, 0x421100)]:
+        code[at - 0x401000:at - 0x401000 + 5] = call(tgt, at)
+    code[0x33] = 0xC3  # modA's ret
+    code[0x50:0x55] = call(0x401085, 0x401050)  # modDup's body: into modZ's range
+    code[0x55] = 0xC3
+    code[0x80:0x85] = call(0x41107E, 0x401080)  # modZ's body: inside its own capped range
+    code[0x85] = 0xC3
+    exe = tmp_path / "bounds.exe"
+    exe.write_bytes(mini_pe(code=bytes(code)))
+    dos = tmp_path / "dossier.jsonl"
+    dos.write_text(
+        '{"va": "401080", "object_name": "modZ", "name_hint": {"names": ["ProcZ"]}}\n'
+        '{"va": "401050", "object_name": "modB", "name_hint": {"names": ["ProcB"]}}\n'
+        '{"va": "401010", "object_name": "modA", "name_hint": {"names": ["ProcA"]}}\n'
+        '{"va": "401050", "object_name": "modDup", "literals": []}\n',
+        encoding="utf-8")  # deliberately unsorted, with a duplicate start
+    return exe, dos
+
+
+def test_calls_outside_every_range_stay_unattributed(tmp_path):
+    from vb6decompiler import edges
+
+    exe, dos = _bounds_fixture(tmp_path)
+    rows, bad, totals = edges.collect(str(exe), str(dos))
+    assert bad == 0
+    by = {(r["va"], r["object_name"]): r for r in rows}
+    a = by[("401010", "modA")]
+    assert a["calls_procedures"] == {"401010": 1, "401050": 2, "401080": 1}
+    # 401005 is below every start; 411080 and 421100 are past the capped last
+    # range (401080 + 0x10000 = 411100). They count as unnamed hits, never as
+    # the nearest procedure's calls.
+    assert a["calls_other"] == {"401005": 1, "411080": 1, "421100": 1}
+    z = by[("401080", "modZ")]
+    assert z["calls_procedures"] == {"401080": 1}  # 41107E is inside its own capped window
+    assert z["range_capped"] is True
+    # an equal start empties the EARLIER record's range: [401050, 401050)
+    assert by[("401050", "modB")]["instructions"] == 0
+    assert by[("401050", "modDup")]["calls_procedures"] == {"401080": 1}
+    assert totals["edges"] == 6 and totals["uncensus"] == 3
+
+
+def test_decode_procs_and_edges_agree_on_every_target(tmp_path, capsys):
+    """Same dossier, same policy: what edges attributes, decode attributes."""
+    import json
+
+    from vb6decompiler import cli, edges
+
+    exe, dos = _bounds_fixture(tmp_path)
+    rows, _bad, _totals = edges.collect(str(exe), str(dos))
+    edges_map = {r["va"]: r["calls_procedures"] for r in rows}
+    assert edges_map["401010"] == {"401010": 1, "401050": 2, "401080": 1}
+    code = cli.main(["decode", str(exe), "--va", "401010", "--procs", str(dos), "--json"])
+    assert code == 0
+    out, err = capsys.readouterr()
+    assert "4 land on known procedures" in err  # the 3 unnamed hits stayed unnamed
+    calls = [r for r in json.loads(out)["rows"] if r["mnemonic"].startswith("call")]
+    landed = [r for r in calls if "target_proc" in r]
+    missed = [r for r in calls if "target_proc" not in r]
+    assert sorted(r["target_va"] for r in landed) == ["401015", "401050", "401060", "41107F"]
+    assert sorted(r["target_va"] for r in missed) == ["401005", "411080", "421100"]
