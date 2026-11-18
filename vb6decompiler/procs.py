@@ -50,8 +50,8 @@ handler" — a form method is just a method whose name happens to look like
 
 Text is ANSI, in the code page of the machine that compiled the project. The header
 records the developer's LCID and :meth:`read` uses it as a hint
-(:mod:`vb6decompiler.encoding`); the default stays CP1254 so an existing Turkish
-target keeps decoding exactly as before.
+(:mod:`vb6decompiler.encoding`); the default stays CP1254 so builds that relied
+on it keep decoding exactly as before.
 """
 
 from __future__ import annotations
@@ -289,8 +289,8 @@ def read(path: str, encoding: str | None = None) -> VBProject:
     """Decode the VB6 header chain of one executable or DLL.
 
     ``encoding=None`` asks the build: the header's LCID picks the ANSI code page
-    (falling back to :data:`DEFAULT_CODEPAGE`), which is why a Russian build no longer
-    has its object names decoded as Turkish. Pass a code page to override the hint.
+    (falling back to :data:`DEFAULT_CODEPAGE`), which is why a Cyrillic build's
+    object names are no longer read through CP1254. Pass a code page to override the hint.
     """
     with fileio.image(path) as data:
         return _read_image(path, data, encoding)

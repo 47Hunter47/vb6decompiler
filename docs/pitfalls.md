@@ -16,7 +16,7 @@ name that the file really contains. Scan every executable section.
 convention. Check the prefix (`declared == 2 × chars`) — that check is what
 separates a literal from a coincidence.
 
-**3. Turkish letters break the "high byte is zero" rule.**
+**3. Non-ASCII letters break the "high byte is zero" rule.**
 `ş`, `ğ`, `İ` are UTF-16 code units above 0x7F. A rule that requires `data[i+1] == 0`
 splits any string carrying them into pieces and silently loses the SQL around it. Decode
 the pair as a code unit and test the character.
@@ -312,7 +312,9 @@ one project directory each.
 **48. A `VB5!` header's LCID is a hint about the developer, not the compiler.** The
 field records the language the IDE ran in; the string bytes follow the ANSI code page
 of the machine that compiled the project. They usually agree and occasionally do not
-(a Turkish program built on an English Windows writes CP1252 text and a Turkish LCID).
+(a program localized for one language but compiled on a machine set to another
+writes that machine's code page under its own header — the two can name different
+pages).
 So `--encoding` outranks the header, the header outranks the default, and every stage
 prints which one it used. Measured on Windows: `GetLocaleInfoEx(LOCALE_IDEFAULTANSICODEPAGE)`
 gives the LCID→code-page pairs in `vb6decompiler/encoding.py`; LCIDs it answers with no

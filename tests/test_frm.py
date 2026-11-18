@@ -76,7 +76,7 @@ def test_enumeration_zero_is_not_boolean_false(array_form):
 
 # --------------------------------------------------------------------- trap 2: CP1254
 def test_cp1254_text_is_decoded_and_raw_bytes_kept(array_form):
-    """Turkish text must be CP1254, and the original bytes must stay reachable."""
+    """CP1254 text decodes correctly, and the original bytes must stay reachable."""
     assert array_form.control("mnuCikis").caption == "Çıkış"
     # CP1254 bytes for Ç ı k ı ş, still wrapped in the quotes VB6 writes.
     assert array_form.control("mnuCikis").caption_bytes == b'"\xc7\xfdk\xfd\xfe"'
@@ -305,7 +305,7 @@ def test_real_frm_directory_parses_without_failures():
     assert summary["files_parsed"] + summary["files_without_design_block"] \
         == summary["files_seen"]
     assert summary["controls_total"] > 0
-    # CP1254 decoding of a Turkish target must not produce replacement characters
+    # CP1254 decoding of the fixture must not produce replacement characters
     assert summary["captions_containing_replacement_char"] == 0
 
     # Every control-array element carries an Index and groups are ordered.

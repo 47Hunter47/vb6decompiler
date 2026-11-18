@@ -38,8 +38,8 @@ Record grammar (measured; the layout below is what the parser implements)
   property is then ``<pid> 0x00 0x80 <4 x int32>`` (the ``0x8000`` marker is a
   uint16 flag after the pid byte).
 * Strings are ``<len:uint16> <bytes> 0x00`` in the build's ANSI code page for
-  control properties (CP1254 on a Turkish build — see
-  :mod:`vb6decompiler.encoding`), and UTF-16LE for ``SSTab`` page data.
+  control properties (resolved by :mod:`vb6decompiler.encoding`; CP1254 is only
+  the fallback default), and UTF-16LE for ``SSTab`` page data.
 * A blob may contain more than one form object (class ``0x0D``): the main form
   plus nested form objects.  Each one opens a segment, and controls belong to
   the segment they appear in.

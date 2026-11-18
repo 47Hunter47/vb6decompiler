@@ -49,9 +49,10 @@ MIN_CHARS = 4
 #: Longer than this and it is not a literal someone typed; it is a blob.
 MAX_CHARS = 400
 
-#: Characters allowed inside a recovered literal. Turkish letters are listed because
-#: VB6 stores them as UTF-16 code units above 0x7F: a "high byte must be zero" rule
-#: silently drops ``ş``, ``ğ`` and ``İ`` and splits the literal around them.
+#: Characters allowed inside a recovered literal. Letters above ASCII are listed
+#: because VB6 stores them as UTF-16 code units above 0x7F: a "high byte must be
+#: zero" rule silently drops ``ş``, ``ğ``, ``İ`` — or ``я``, ``ä``, ``é`` — and
+#: splits the literal around them.
 _ALLOWED = (
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     " _.,;:!?'\"()[]{}<>+-*/=%&|\\@#$^~`\t\r\n"
@@ -177,8 +178,9 @@ _ASCII_RUN = re.compile(rb"[\x20-\x7e]{%d,%d}" % (MIN_CHARS, MAX_CHARS))
 def _scan_ascii(data: bytes, start: int, end: int, image, section):
     """ASCII runs terminated by a NUL: connection strings and paths look like this.
 
-    Turkish CP1254 bytes (0x80+) are deliberately excluded here: a literal that
-    needs them is a UI message, recovered by the UTF-16 pass instead. Including
+    High code-page bytes (0x80+ of the resolved ANSI page) are deliberately
+    excluded here: a literal that needs them is a UI message, recovered by the
+    UTF-16 pass instead. Including
     0x80+ in this pass turned dense code bytes into thousands of false strings.
 
     Because only 0x20-0x7E can match, the decode is the same for every ANSI code page;
