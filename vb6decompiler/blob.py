@@ -699,14 +699,14 @@ def _parse_control(b: bytes, name: str, cls_p: int, hdr_index: int | None,
     visible: bool | None = None
     rule_pid = VISIBLE_PID.get(type_name)
     post = geo_pos + (16 if wide else 8)
-    if rule_pid is not None and post + 1 < len(b):
-        if b[post] == rule_pid and b[post + 1] == 0x00:
-            visible = False
+    if (rule_pid is not None and post + 1 < len(b)
+            and b[post] == rule_pid and b[post + 1] == 0x00):
+        visible = False
 
     pages: tuple[str, ...] = ()
     members: dict[str, int] = {}
     if type_name.rsplit(".", 1)[-1] == "SSTab":
-        pages, members = sstab_region(b, post, min(end, len(b)))
+        pages, members = sstab_region(b, post, min(end, len(b)))  # type: ignore[assignment]  # list in, sealed to a tuple on the next line  # type: ignore[assignment]  # list in, sealed to a tuple on the next line
         pages = tuple(pages)
 
     # Page membership is resolved by the caller, which owns the sibling list.
@@ -775,7 +775,7 @@ def extract_form(blob: FormBlob, encoding: str = DEFAULT_CODEPAGE) -> Form | Non
         members = getattr(tab, "_sstab_members", None)
         if not members:
             continue
-        by_name = {}
+        by_name: dict[str, Control] = {}
         for ctrl in controls:
             by_name.setdefault(ctrl.name, ctrl)
         for member_name, page in members.items():
@@ -883,7 +883,7 @@ def parse_frm(path: str, encoding: str = DEFAULT_CODEPAGE) -> tuple[str | None, 
             line = _strip_comment(raw_line)
             m = _RE_BEGIN.match(line)
             if m:
-                node = {"name": m.group(3), "type": m.group(2), "props": {},
+                node: dict = {"name": m.group(3), "type": m.group(2), "props": {},
                         "parent": stack[-1]["name"] if stack else None}
                 stack.append(node)
                 if len(stack) == 1 and m.group(2).endswith("Form"):
@@ -999,7 +999,7 @@ def validate(exe_path: str, frm_dir: str | None = None,
 
         bad = 0
         for truth_ctrl in truth:
-            ctrl = got.get((truth_ctrl.name.lower(), truth_ctrl.index))
+            ctrl = got.get((truth_ctrl.name.lower(), truth_ctrl.index))  # type: ignore[assignment]  # absence is the case reported below  # type: ignore[assignment]  # absence is the case reported below
             if ctrl is None:
                 report.field_diffs["control missing"] += 1
                 bad += 1
@@ -1095,11 +1095,33 @@ if __name__ == "__main__":
 
 
 __all__ = [
-    "CLASS_NAME", "GEOM_PID", "GEOM_PID_OCX", "POST_PIDS", "SKIP_TYPES",
-    "VISIBLE_PID", "SSTAB_SIGNATURES", "Section", "FormBlob", "Control", "Form",
-    "ValidationReport", "TruthControl", "load_sections", "read_va",
-    "find_form_records", "iter_form_blobs", "blobs_from", "codec_for", "record_starts",
+    "CLASS_NAME",
+    "GEOM_PID",
+    "GEOM_PID_OCX",
+    "POST_PIDS",
+    "SKIP_TYPES",
+    "SSTAB_SIGNATURES",
+    "VISIBLE_PID",
+    "Control",
+    "Form",
+    "FormBlob",
+    "Section",
+    "TruthControl",
+    "ValidationReport",
+    "blobs_from",
+    "codec_for",
+    "extract_form",
+    "extract_forms",
+    "find_form_records",
+    "iter_form_blobs",
+    "load_sections",
+    "main",
+    "parse_frm",
+    "plausible",
     "read_str",
-    "read_utf16", "plausible", "sstab_region", "extract_form", "extract_forms",
-    "parse_frm", "validate", "main",
+    "read_utf16",
+    "read_va",
+    "record_starts",
+    "sstab_region",
+    "validate",
 ]

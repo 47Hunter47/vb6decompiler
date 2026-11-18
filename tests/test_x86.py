@@ -7,9 +7,9 @@ import json
 import sys
 
 import pytest
+from _mini_pe import mini_pe
 
 from vb6decompiler import x86
-from _mini_pe import mini_pe
 
 PROLOGUE = bytes.fromhex("558BEC83C4F8535657E800000000C3")
 
@@ -78,13 +78,13 @@ def test_end_va_stops_the_dump_at_the_boundary(tmp_path, capsys):
     exe = tmp_path / "two.exe"
     exe.write_bytes(mini_pe(code=PROLOGUE + PROLOGUE))  # two back-to-back bodies
     code = cli.main(["decode", str(exe), "--va", "401000", "--end-va", "40100F", "--json"])
-    out, err = capsys.readouterr()
+    out, _err = capsys.readouterr()
     assert code == 0
     d = json.loads(out)
     assert d["ended"] == "ret" and d["instructions"] == 8  # first body only
     # cut the range just before its ret: the dump must not run into the next body
     code = cli.main(["decode", str(exe), "--va", "401000", "--end-va", "40100E", "--json"])
-    out, err = capsys.readouterr()
+    out, _err = capsys.readouterr()
     assert code == 0
     d = json.loads(out)
     assert d["ended"] == "exhausted" and d["rows"][-1]["mnemonic"] == "call"

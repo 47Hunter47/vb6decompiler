@@ -10,8 +10,6 @@ stay counts because nothing here can say what they were.
 """
 from __future__ import annotations
 
-import json
-
 from . import runtime_table
 
 #: hits on this dll (case-insensitive) go through the runtime table

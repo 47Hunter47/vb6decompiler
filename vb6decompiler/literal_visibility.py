@@ -116,7 +116,7 @@ def main(argv=None) -> int:
         elif adres_i is not None:
             gorunur, nasil, indeks = True, "address", adres_i
         else:
-            gorunur, nasil, indeks = False, "", ""
+            gorunur, nasil, indeks = False, "", ""  # type: ignore[assignment]  # index column is address-or-text by branch; rows are heterogeneous  # type: ignore[assignment]  # index column is address-or-text by branch; rows are heterogeneous
         satirlar.append({"va": "%08x" % int("0" + va, 16), "file": os.path.basename(dosyalar[anahtar]),
                          "addr": "%08x" % adres, "visible": int(gorunur), "how": nasil,
                          "at_index": indeks, "is_sql": (r.get("is_sql") or "").strip(),
@@ -128,7 +128,7 @@ def main(argv=None) -> int:
         w.writeheader()
         w.writerows(satirlar)
 
-    g = sum(s["visible"] for s in satirlar)
+    g = sum(s["visible"] for s in satirlar)  # type: ignore[misc]  # row values are untyped; visible holds ints  # type: ignore[misc]  # row values are untyped; visible holds ints
     sql_t = sum(1 for s in satirlar if s["is_sql"] == "1")
     sql_g = sum(1 for s in satirlar if s["is_sql"] == "1" and s["visible"])
     adres_g = sum(1 for s in satirlar if s["visible"] and s["how"] == "address")

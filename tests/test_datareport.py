@@ -21,7 +21,6 @@ import pytest
 
 from vb6decompiler import datareport as dr
 
-
 # ---------------------------------------------------------------------------
 # synthetic record builders (the measured grammar, written out by hand)
 # ---------------------------------------------------------------------------

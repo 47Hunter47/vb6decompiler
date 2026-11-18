@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from vb6decompiler.frx_icon import main  # noqa: E402
+from vb6decompiler.frx_icon import main
 
 if __name__ == "__main__":
     raise SystemExit(main())

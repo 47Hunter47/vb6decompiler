@@ -240,7 +240,7 @@ def test_find_form_records_and_iter_form_blobs(tmp_path):
     exe.write_bytes(_minimal_pe(payload))
 
     records = blob.find_form_records(exe.read_bytes())
-    assert [(r[2], r[3]) for r in records][0][0] == "fAlpha"
+    assert [(r[2], r[3]) for r in records][0][0] == "fAlpha"  # noqa: RUF015  # the slice-and-index reads as "first tuple, first field"  # noqa: RUF015  # the slice-and-index reads as "first tuple, first field"
 
     blobs = blob.iter_form_blobs(str(exe))
     assert [b.name for b in blobs] == ["fAlpha"]

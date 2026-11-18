@@ -12,10 +12,10 @@ import os
 
 import pytest
 
-from vb6decompiler import fileio
-
 # Reuse the PE builder from the DataReport suite: the only synthetic PE in the tree.
 from test_datareport import build_pe, design_record, event
+
+from vb6decompiler import fileio
 
 
 def test_a_small_file_is_read_not_mapped(tmp_path):
@@ -55,10 +55,9 @@ def test_the_mapping_is_closed_when_the_block_raises(tmp_path):
     path = tmp_path / "large.bin"
     path.write_bytes(b"\x00" * (fileio.MMAP_MIN_BYTES + 1))
     captured = {}
-    with pytest.raises(RuntimeError):
-        with fileio.image(str(path)) as data:
-            captured["m"] = data
-            raise RuntimeError("parser blew up")
+    with pytest.raises(RuntimeError), fileio.image(str(path)) as data:
+        captured["m"] = data
+        raise RuntimeError("parser blew up")
     assert captured["m"].closed
 
 

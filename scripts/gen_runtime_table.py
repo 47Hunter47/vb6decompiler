@@ -29,7 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from vb6decompiler import pe  # noqa: E402
+from vb6decompiler import pe
 
 DEFAULT_OUT = ROOT / "vb6decompiler" / "data" / "runtime_calls.json"
 # A VB6 runtime exports this; anything else is the wrong file.

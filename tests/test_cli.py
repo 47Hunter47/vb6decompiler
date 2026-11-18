@@ -16,7 +16,7 @@ import os
 
 import pytest
 
-from vb6decompiler import cli
+from vb6decompiler import cli, procs
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
@@ -38,7 +38,7 @@ def test_every_subcommand_is_wired_to_a_function():
     assert set(subs) == {"pe", "procs", "project", "literals", "stitch", "frm", "blob",
                          "datareport", "dossier", "decode", "edges", "outline", "xref", "mask"}
     for name, sub in subs.items():
-        assert hasattr(sub.get_default("func"), "__call__"), f"{name} has no func"
+        assert callable(sub.get_default("func")), f"{name} has no func"
 
 
 def test_missing_subcommand_exits_nonzero():
@@ -127,7 +127,7 @@ def test_vb6d_debug_keeps_the_traceback(tmp_path, monkeypatch):
     junk = tmp_path / "junk.exe"
     junk.write_bytes(b"MZ\x90\x00garbage-not-a-real-image")
     monkeypatch.setenv("VB6D_DEBUG", "1")
-    with pytest.raises(Exception):
+    with pytest.raises(procs.VBError):  # measured: this junk file escapes as VBError
         cli.main(["procs", str(junk)])
 
 
@@ -261,9 +261,11 @@ def test_project_command_writes_skeleton_and_reports(tmp_path, capsys, monkeypat
     """The skeleton is provenance first: report on stdout, files beside a name
     that never touches the exe, and no progress text inside the JSON."""
     import dataclasses
-    from vb6decompiler import procs
-    from test_projectwrite import make_project
+
     from _mini_pe import mini_pe
+    from test_projectwrite import make_project
+
+    from vb6decompiler import procs
 
     exe = tmp_path / "fake.exe"
     exe.write_bytes(mini_pe())

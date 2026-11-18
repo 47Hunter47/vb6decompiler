@@ -188,7 +188,7 @@ def main(argv=None) -> int:
         for r in read_rows(args.literals, ("va", "addr", "text")):
             kartlar[norm(r["va"])].append({"addr": norm(r["addr"]), "text": r["text"],
                                            "is_sql": (r.get("is_sql") or "").strip()})
-    kuresel = {}
+    kuresel: dict[str, tuple] = {}  # setdefault stores (text, is_sql) tuples
     if args.global_literals:
         for r in read_rows(args.global_literals, ("addr", "text")):
             kuresel.setdefault(norm(r["addr"]), (r["text"], (r.get("is_sql") or "").strip()))
@@ -221,7 +221,7 @@ def main(argv=None) -> int:
             if metin_i >= 0 and (adres_i is None or metin_i < adres_i):
                 yer, kaynak = metin_i, "text"
             else:
-                yer, kaynak = adres_i, "address"
+                yer, kaynak = adres_i, "address"  # type: ignore[assignment]  # text in one branch, address in the other; rows are heterogeneous  # type: ignore[assignment]  # text in one branch, address in the other; rows are heterogeneous
             sira.append({"va": va, "label": label, "sira": yer, "addr": kanon(a),
                          "text": " ".join(lit["text"].split())[:160],
                          "is_sql": lit["is_sql"], "source": kaynak})
@@ -245,7 +245,7 @@ def main(argv=None) -> int:
         # Calls are aggregated per (procedure, callee) and keep the first line: a
         # hot helper called 40 times is 40 rows of noise otherwise, and ordering is
         # still readable from first_satir_no.
-        sayan = collections.OrderedDict()
+        sayan: collections.OrderedDict[tuple[str, str], list[int]] = collections.OrderedDict()
         for no, sat in enumerate(alt, 1):
             for obj, slot in VTABLE_RE.findall(sat):
                 vt.append({"va": va, "label": label, "satir_no": no, "object_addr": obj,
@@ -260,7 +260,7 @@ def main(argv=None) -> int:
                 anahtar = ("named", sozcu)
                 kayit = sayan.setdefault(anahtar, [0, no])
                 kayit[0] += 1
-        vba = collections.Counter()
+        vba: collections.Counter[str] = collections.Counter()
         for sat in alt:
             for eslesme in VBA_RE.findall(sat):
                 vba[eslesme.strip(" (")] += 1

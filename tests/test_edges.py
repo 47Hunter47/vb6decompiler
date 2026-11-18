@@ -5,7 +5,6 @@ Needs the decode engine: same isolation as the other capstone tests.
 import json
 
 import pytest
-
 from _mini_pe import mini_pe
 
 CODE = bytes.fromhex("FF25B4104000" + "00" * 10

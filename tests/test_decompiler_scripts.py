@@ -19,7 +19,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS = os.path.join(os.path.dirname(HERE), "scripts")
 sys.path.insert(0, SCRIPTS)
 
-import ghidra_bridge as gb  # noqa: E402
+import ghidra_bridge as gb
 
 GOVDE = """int DemoSub(void)
 

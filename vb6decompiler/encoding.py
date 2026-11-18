@@ -192,7 +192,7 @@ def resolve_encoding(explicit: str | None, lcid: int | None) -> tuple[str, str]:
         validate_single_byte(codec)
         return codec, "explicit"
     if lcid is not None:
-        codec = codepage_for_lcid(lcid)
+        codec = codepage_for_lcid(lcid)  # type: ignore[assignment]  # None when the codepage is unknown; the guard below handles it
         if codec is not None:
             validate_single_byte(codec)
             return codec, "lcid"

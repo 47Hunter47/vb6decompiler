@@ -55,7 +55,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from vb6decompiler import pe  # noqa: E402
+from vb6decompiler import pe
 
 #: Body bound used when the next procedure start is further away than this. Not a
 #: measurement of any real procedure: the experiment in the docstring shows "listing

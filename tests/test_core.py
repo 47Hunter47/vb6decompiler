@@ -7,9 +7,6 @@ points at a real VB6 build.
 from __future__ import annotations
 
 import os
-import struct
-
-import pytest
 
 from vb6decompiler import literals, mask, sqlstitch
 

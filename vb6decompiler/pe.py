@@ -27,8 +27,8 @@ from __future__ import annotations
 
 import os
 import struct
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from . import fileio
 
@@ -298,7 +298,7 @@ def _parse_header(path: str, data) -> PEImage:
 
 
 def _read_imports(data: bytes, directory: tuple[int, int], rva_to_off, bits: int):
-    rva, size = directory
+    rva, _size = directory
     if not rva:
         return []
     off = rva_to_off(rva)
@@ -380,7 +380,7 @@ def _is_x86(data: bytes) -> bool:
 
 
 def _read_exports(data: bytes, directory: tuple[int, int], rva_to_off):
-    rva, size = directory
+    rva, _size = directory
     if not rva:
         return []
     off = rva_to_off(rva)
