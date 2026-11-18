@@ -101,7 +101,7 @@ def starts_statement(text: str) -> bool:
     """Does this candidate begin where a statement can begin?
 
     Without this gate, a chain starting in the middle of an expression closes
-    perfectly well — measured output included ``AltStockCode' AND AltStockType = '…'``
+    perfectly well — measured output included ``AltCode' AND AltKind = '…'``
     reported as CLOSED. A fragment before the verb belongs to the previous statement.
     """
     return bool(re.match(r"\s*(select|insert|update|delete)\b", text, re.IGNORECASE))

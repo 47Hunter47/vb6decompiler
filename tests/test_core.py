@@ -65,7 +65,7 @@ def test_listing_header_gives_literals_their_procedure():
 
     body = (
         "Private Sub FisButton_Click() '15F6040\n"
-        'loc_015F6050: push 00A3F970h ; "SELECT HOrderNo FROM tOrder "\n'
+        'loc_015F6050: push 00A3F970h ; "SELECT OrderNo FROM tOrder "\n'
         'loc_015F6058: mov edx, 00A3F980h ; "WHERE DepDate = "\n'
         "End Sub\n"
         "\n"
@@ -86,7 +86,7 @@ def test_listing_header_gives_literals_their_procedure():
 
 
 def test_stitch_closes_across_two_fragments():
-    a = literals.Literal(va=0xA3F970, text="SELECT HOrderNo FROM tOrder WHERE ", encoding="listing", proc_va=1)
+    a = literals.Literal(va=0xA3F970, text="SELECT OrderNo FROM tOrder WHERE ", encoding="listing", proc_va=1)
     b = literals.Literal(va=0xA3F980, text="DepDate = 'E1'", encoding="listing", proc_va=1)
     cands = sqlstitch.stitch_all([a, b])
     assert len(cands) == 1
@@ -95,7 +95,7 @@ def test_stitch_closes_across_two_fragments():
 
 def test_balanced_single_statement_closes():
     chain = [
-        _lit("SELECT HOrderNo FROM tOrder WHERE "),
+        _lit("SELECT OrderNo FROM tOrder WHERE "),
         _lit("DepDate = 'E1'"),
     ]
     cands = sqlstitch.stitch(chain, 0)
@@ -110,7 +110,7 @@ def test_open_quote_is_reported_not_guessed():
 
 
 def test_verb_inside_quotes_is_not_a_second_statement():
-    text = "UPDATE tAuditLog SET AuditMsg = 'UPDATE tOrder SET HOrderFlag = 0' WHERE AuditCode = 1"
+    text = "UPDATE tAuditLog SET AuditMsg = 'UPDATE tOrder SET OrderFlag = 0' WHERE AuditCode = 1"
     assert sqlstitch.statements(text) == 1
 
 
@@ -266,7 +266,7 @@ def test_concatenated_data_does_not_hide_a_second_statement():
 
 def test_a_candidate_must_begin_where_a_statement_can_begin():
     chain = [
-        _lit("AltStockCode' AND AltStockType = 'AltStockType' AND UnitCode = ''"),
+        _lit("AltCode' AND AltKind = 'AltKind' AND UnitCode = ''"),
     ]
     assert sqlstitch.stitch(chain, 0) == []
     assert not sqlstitch.starts_statement(chain[0].text)

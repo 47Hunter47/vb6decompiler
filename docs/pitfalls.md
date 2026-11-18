@@ -84,7 +84,7 @@ the *second* SELECT and a two-statement join is reported CLOSED. Match after
 
 **11b. A join may only start where a statement can start.**
 Stitching from every fragment produces thousands of perfectly balanced
-mid-expression joins (`AltStockCode' AND AltStockType = '…'`) that pass every other
+mid-expression joins (`AltCode' AND AltKind = '…'`) that pass every other
 gate. Require the *first* fragment to open with SELECT/INSERT/UPDATE/DELETE. This
 one gate changed 4,629 "closed" candidates into 8,745 real statements out of
 10,691 honest starts.
