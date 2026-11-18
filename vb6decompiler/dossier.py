@@ -268,6 +268,11 @@ def _sql_candidates(chain: list[literals_mod.Literal],
             "parts": c.parts,
             "reason": c.reason,
             "tables": c.tables,
+            # The candidate's first-fragment address, same convention as
+            # sqlstitch.Candidate.as_dict: uppercase prefix-free hex, "" when the
+            # fragment carries no address. xref --full indexes SQL by exactly this
+            # field; dropping it here used to bury every real SQL record under "".
+            "text_va": f"{c.text_va:X}" if c.text_va else "",
         }
         for c in ordered[:MAX_SQL_PER_PROC]
     ]

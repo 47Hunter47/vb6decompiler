@@ -178,3 +178,53 @@ def test_cli_on_a_missing_directory_exits_two(capsys, tmp_path):
     _out, err = capsys.readouterr()
     assert code == 2
     assert "error:" in err and "Traceback" not in err
+
+
+# ------------------------------------------------------------- SQL lineage (review item B)
+# xref --full indexes SQL records by the text_va field; the dossier builder is the
+# only thing that decides whether the stitched candidate's first-fragment address
+# survives serialization. Dropping it used to file every real SQL record under "".
+SQL_LISTING = (
+    'Attribute VB_Name = "modDemo"\n'
+    "Private Sub LoadGrid() '401000\n"
+    '  00401000h ; "Dim w"\n'
+    '  00401014h ; "SELECT cUST_ID, cNAME"\n'
+    '  0040101Ch ; "  FROM tCUSTOMER WHERE cACTIVE = 1"\n'
+    "End Sub\n"
+)
+
+
+def _sql_dossier(tmp_path):
+    listings = tmp_path / "listings"
+    listings.mkdir()
+    (listings / "modDemo.bas").write_text(SQL_LISTING, encoding="cp1254")
+    out = tmp_path / "dossier.jsonl"
+    with open(out, "w", encoding="utf-8", newline="") as fh:
+        dossier.stream(str(listings), fh, encoding="cp1254")
+    return out
+
+
+def test_sql_rows_carry_the_first_fragments_address(tmp_path):
+    out = _sql_dossier(tmp_path)
+    row = json.loads(out.read_text(encoding="utf-8").splitlines()[0])
+    joined = next(s for s in row["sql"] if "tCUSTOMER" in s["text"])
+    assert joined["parts"] == 2 and joined["closed"]
+    # the address belongs to the fragment that OPENS the statement (401014),
+    # not to the fragment where the table name happens to sit (40101C)
+    assert joined["text_va"] == "401014"
+
+
+def test_dossier_to_xref_full_keeps_sql_at_its_real_address(tmp_path):
+    """The producer-to-consumer path: stitch -> dossier -> xref, no hand-built JSON."""
+    from vb6decompiler import xref
+
+    out = _sql_dossier(tmp_path)
+    with open(out, encoding="utf-8") as fh:
+        procs, bad = xref._procedures(fh)
+    assert bad == [] and len(procs) == 1
+    buckets = {b["sql_va"]: b["procedures"] for b in xref.full(procs)["sql_to_procedures"]}
+    assert "" not in buckets, "a stitched candidate with a known address must not land in the empty bucket"
+    assert set(map(tuple, ((o["va"], o["object_name"]) for o in buckets["401014"]))) \
+        == {("401000", "modDemo")}
+    hits = xref.search(procs, "tCUSTOMER", "sql")["sql"]
+    assert [h["entry"]["text_va"] for h in hits] == ["401014"]
