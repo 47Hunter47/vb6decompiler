@@ -13,6 +13,7 @@
 # (which cannot re-trigger workflows) and carries [skip ci] as a second guard.
 # workflow_dispatch exists because a forced update of master marked this
 # registry row "deleted"; dispatch keeps a manual release path regardless.
+# (file re-touch after a forced update rebuilds the scheduler file mapping)
 name: publish
 on:
   push:
