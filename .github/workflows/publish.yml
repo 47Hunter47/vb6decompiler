@@ -11,6 +11,8 @@
 # variable); ${{ }} appears only in step-level `if:` on outputs this
 # workflow computed itself. The bump commit is pushed with GITHUB_TOKEN
 # (which cannot re-trigger workflows) and carries [skip ci] as a second guard.
+# workflow_dispatch exists because a forced update of master marked this
+# registry row "deleted"; dispatch keeps a manual release path regardless.
 name: publish
 on:
   push:
@@ -19,6 +21,7 @@ on:
       - "vb6decompiler/**"
       - "pyproject.toml"
       - "third_party/**"
+  workflow_dispatch:
 concurrency:
   group: publish
   cancel-in-progress: false

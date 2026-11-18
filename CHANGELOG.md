@@ -3,6 +3,13 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.5.1
+
+A forced history update of master left GitHub marking this publish workflow
+"deleted". A `workflow_dispatch` trigger is added so the manual release path
+survives, and raising `version` re-registers the file through a real release.
+Package code is identical to 0.5.0; only the CI wiring changed.
+
 ## 0.5.0
 
 Every command now treats a path it cannot use as an error: a missing file or
