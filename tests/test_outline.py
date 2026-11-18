@@ -54,3 +54,28 @@ def test_outline_cli(tmp_path, capsys):
     assert "unverified" in err
     assert "1 unreadable lines skipped" in err
     assert cli.main(["outline", str(tmp_path / "nope.jsonl")]) == 2
+
+
+def test_outline_names_every_unusable_line(tmp_path, capsys):
+    from vb6decompiler import cli
+
+    edges = tmp_path / "edges.jsonl"
+    write_edges(
+        edges,
+        [{"va": "1", "object_name": "f", "names": [], "ended": "ret",
+          "instructions": 1, "calls_imported": {}, "calls_procedures": {}}],
+        extra_line="not json\n[]\n"
+                   + '{"object_name": "no-va"}\n{"va": "zz", "calls_imported": {}}\n'
+                   + '{"va": "2", "object_name": "g", "names": [], "ended": "ret",'
+                   + '"instructions": 1, "calls_imported": [1], "calls_procedures": {}}')
+    out = tmp_path / "outline.jsonl"
+    code = cli.main(["outline", str(edges), "--out", str(out)])
+    _o, err = capsys.readouterr()
+    assert code == 0
+    assert len(out.read_text(encoding="utf-8").splitlines()) == 1
+    assert "line 2: not JSON" in err
+    assert "line 3: record is not a JSON object" in err
+    assert "line 4: edges row has no va" in err
+    assert "line 5: va 'zz' is not a hex address" in err
+    assert "line 6: edges row has malformed fields" in err
+    assert "5 unreadable lines skipped" in err

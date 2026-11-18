@@ -226,3 +226,20 @@ def test_decode_procs_and_edges_agree_on_every_target(tmp_path, capsys):
     missed = [r for r in calls if "target_proc" not in r]
     assert sorted(r["target_va"] for r in landed) == ["401015", "401050", "401060", "41107F"]
     assert sorted(r["target_va"] for r in missed) == ["401005", "411080", "421100"]
+
+
+def test_dossier_rejections_name_their_line(fixture, capsys):
+    from vb6decompiler import edges
+
+    exe, procs = fixture
+    procs.write_text(
+        procs.read_text(encoding="utf-8")
+        + "not json\n[]\n" + '{"va": "nothex"}\n',
+        encoding="utf-8")
+    rows, bad, _totals = edges.collect(str(exe), str(procs))
+    assert bad == 3
+    assert [r["va"] for r in rows] == ["401010", "40102B"]  # good lines unaffected
+    _o, err = capsys.readouterr()
+    assert "line 3: not JSON" in err
+    assert "line 4: record is not a JSON object" in err
+    assert "line 5: record has no usable va" in err

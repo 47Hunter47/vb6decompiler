@@ -135,4 +135,5 @@ def test_procs_file_attributes_internal_targets(tmp_path, capsys):
     assert row["target_proc"]["object_name"] == "fB"  # bisect: the range that holds it
     assert row["target_proc"]["names"] == ["Proc_2"]
     assert "1 unreadable lines skipped" in err
+    assert "line 1: not JSON" in err  # the skip names its line (review item G)
     assert "1 land on known procedures" in err

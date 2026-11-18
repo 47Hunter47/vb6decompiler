@@ -160,12 +160,22 @@ def cmd_decode(args) -> int:
 
         bad = 0
         with open(args.procs, encoding="utf-8") as fh:
-            for line in fh:
+            for n, line in enumerate(fh, 1):
                 try:
                     d = json.loads(line)
+                except ValueError:
+                    bad += 1  # builder policy from dossier: count, skip, keep going
+                    print(f"# line {n}: not JSON", file=sys.stderr)
+                    continue
+                if not isinstance(d, dict):
+                    bad += 1
+                    print(f"# line {n}: record is not a JSON object", file=sys.stderr)
+                    continue
+                try:
                     v = int(d["va"], 16)
                 except (ValueError, KeyError, TypeError):
-                    bad += 1  # builder policy from dossier: count, skip, keep going
+                    bad += 1
+                    print(f"# line {n}: record has no usable va", file=sys.stderr)
                     continue
                 vas.append(v)
                 owners.append(d)
@@ -250,12 +260,33 @@ def cmd_outline(args) -> int:
     fh = open(args.edges, encoding="utf-8")
     rows = categorized = unlisted = api = bad = 0
     with fh, fileio.atomic_out(out) as sink:
-        for line in fh:
+        for n, line in enumerate(fh, 1):
             try:
                 edge = json.loads(line)
+            except ValueError:
+                bad += 1  # dossier policy again: count, skip, keep going
+                print(f"# line {n}: not JSON", file=sys.stderr)
+                continue
+            if not isinstance(edge, dict):
+                bad += 1
+                print(f"# line {n}: record is not a JSON object", file=sys.stderr)
+                continue
+            va = edge.get("va")
+            if not isinstance(va, str) or not va:
+                bad += 1
+                print(f"# line {n}: edges row has no va", file=sys.stderr)
+                continue
+            try:
+                int(va, 16)
+            except ValueError:
+                bad += 1
+                print(f"# line {n}: va {va!r} is not a hex address", file=sys.stderr)
+                continue
+            try:
                 r = outline.outline_row(edge)
             except (ValueError, KeyError, TypeError, AttributeError):
-                bad += 1  # dossier policy again: count, skip, keep going
+                bad += 1
+                print(f"# line {n}: edges row has malformed fields", file=sys.stderr)
                 continue
             sink.write(json.dumps(r, ensure_ascii=False) + "\n")
             rows += 1

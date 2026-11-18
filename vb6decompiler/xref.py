@@ -24,13 +24,64 @@ import json
 from typing import TextIO
 
 
+def _usable(rec: object) -> str | None:
+    """Rejection reason for one parsed dossier line, or None when xref can read it.
+
+    A valid JSON document is not a dossier record (review item G): xref reads
+    the fields listed below, and anything else shape-mismatched is REJECTED
+    and counted, never coerced into looking fine. Optional fields may be
+    absent; a field that is present must have the type the dossier builder
+    writes.
+    """
+    if not isinstance(rec, dict):
+        return "record is not a JSON object"
+    va = rec.get("va")
+    if not isinstance(va, str) or not va:
+        return "no va"
+    try:
+        int(va, 16)
+    except ValueError:
+        return f"va {va!r} is not a hex address"
+    hint = rec.get("name_hint")
+    if hint is not None and not isinstance(hint, dict):
+        # the dossier builder itself writes null when a procedure has no hint
+        return "name_hint is not an object"
+    names = (hint or {}).get("names")
+    if names is not None and not (isinstance(names, list)
+                                  and all(isinstance(x, str) for x in names)):
+        return "name_hint.names is not a list of strings"
+    counts = rec.get("counts")
+    if counts is not None and not (isinstance(counts, dict)
+                                   and all(isinstance(v, int) for v in counts.values())):
+        return "counts is not an object of integers"
+    for field in ("literals", "sql"):
+        entries = rec.get(field)
+        if entries is None:
+            continue
+        if not isinstance(entries, list):
+            return f"{field} is not a list"
+        keys = ("va", "text") if field == "literals" else ("text", "text_va")
+        hexkey = "va" if field == "literals" else "text_va"
+        for e in entries:
+            if not isinstance(e, dict):
+                return f"{field} has a non-object entry"
+            if not all(isinstance(e.get(k, ""), str) for k in keys):
+                return f"{field} entry has a non-string {'/'.join(keys)}"
+            try:
+                int(e.get(hexkey, "0"), 16)
+            except ValueError:
+                return f"{field} entry {hexkey} is not a hex address"
+    return None
+
+
 def _procedures(fh: TextIO) -> tuple[list[dict], list[str]]:
     """Parse dossier records into (procedure rollups, bad-line notes).
 
     A dossier written without ``--inventory`` simply has no inventory field;
-    nothing here requires one. Lines that fail JSON parsing are counted and
-    skipped — one corrupt line must not void the file (same policy as the
-    dossier builder).
+    nothing here requires one. Lines that fail JSON parsing or record shape
+    are counted and named (line + reason) — one corrupt line must not void
+    the file, and one crash must not be needed to notice it (same policy as
+    the dossier builder).
     """
     procs, bad = [], []
     for n, line in enumerate(fh, 1):
@@ -41,6 +92,10 @@ def _procedures(fh: TextIO) -> tuple[list[dict], list[str]]:
             rec = json.loads(line)
         except ValueError:
             bad.append(f"line {n}: not JSON")
+            continue
+        reason = _usable(rec)
+        if reason is not None:
+            bad.append(f"line {n}: {reason}")
             continue
         hint = rec.get("name_hint") or {}
         procs.append({

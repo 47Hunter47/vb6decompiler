@@ -75,3 +75,35 @@ def test_xref_cli_shapes_are_parseable_json(tmp_path, capsys):
     # missing input file is the exit-2 contract, not a traceback
     code, out, err = run(["xref", str(tmp_path / "absent.jsonl")])
     assert code == 2
+
+
+def test_malformed_lines_are_named_and_counted_not_fatal(tmp_path):
+    # valid JSON is not automatically a dossier record: xref counts, names
+    # (line + reason) and keeps reading (review item G).
+    p = _file(tmp_path, [
+        _rec("401000", "fDemo012", [], [("410000", "SELECT 1")]),
+        "not json at all",
+        "[]",
+        '"a bare string"',
+        '{"literals": []}',
+        '{"va": "z-z", "literals": []}',
+        '{"va": "403000", "name_hint": 7}',
+        '{"va": "404000", "name_hint": {"names": "Main"}}',
+        '{"va": "405000", "literals": "oops"}',
+        '{"va": "406000", "literals": [7]}',
+        '{"va": "407000", "sql": [{"text": 7, "text_va": "410000"}]}',
+        '{"va": "408000", "counts": {"literals": "3"}}',
+        '{"va": "408100", "literals": [{"va": "zz", "text": "t"}]}',
+        _rec("409000", "fOk", [], [("410010", "OK")]),
+    ])
+    with open(p, encoding="utf-8") as fh:
+        procs, bad = xref._procedures(fh)
+    assert [r["va"] for r in procs] == ["401000", "409000"]
+    assert [note.split(":")[0] for note in bad] == [f"line {n}" for n in range(2, 14)]
+    reasons = " ".join(bad)
+    for word in ("not JSON", "not a JSON object", "no va", "hex address",
+                 "name_hint is not an object", "list of strings", "literals",
+                 "counts", "text/text_va"):
+        assert word in reasons
+    rows = xref.full(procs)["literal_to_procedures"]
+    assert sorted(r["literal_va"] for r in rows) == ["410000", "410010"]

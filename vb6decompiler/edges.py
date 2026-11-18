@@ -61,12 +61,22 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
     procs: list[tuple[int, object, dict]] = []
     bad = 0
     with open(dossier_path, encoding="utf-8") as fh:
-        for line in fh:
+        for n, line in enumerate(fh, 1):
             try:
                 d = json.loads(line)
+            except ValueError:
+                bad += 1  # same policy as the dossier builder: count, skip, go on
+                print(f"# line {n}: not JSON", file=sys.stderr)
+                continue
+            if not isinstance(d, dict):
+                bad += 1
+                print(f"# line {n}: record is not a JSON object", file=sys.stderr)
+                continue
+            try:
                 va = int(d["va"], 16)
             except (ValueError, KeyError, TypeError):
-                bad += 1  # same policy as the dossier builder: count, skip, go on
+                bad += 1
+                print(f"# line {n}: record has no usable va", file=sys.stderr)
                 continue
             procs.append((va, d.get("object_name"), d))
     procs.sort(key=lambda p: p[0])
