@@ -3,7 +3,7 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
-## 0.5.0 (unreleased)
+## 0.5.0
 
 Every command now treats a path it cannot use as an error: a missing file or
 directory, or a single file named on the command line that is unreadable or not a
