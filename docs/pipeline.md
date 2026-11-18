@@ -241,9 +241,12 @@ to void the file — the builder's policy carried through.
 
 ## 3c. Project skeleton
 
-`vb6d project <exe> [--out DIR]` writes a reconstructed project **directory**:
+`vb6d project <exe> [--out DIR] [--force]` writes a reconstructed project **directory**:
 the object table's modules/classes/forms, one placeholder file per object, and
-`recovery-report.json`. Structure is what this proves; text is not.
+`recovery-report.json`. Structure is what this proves; text is not. An existing
+non-empty `--out` directory is refused (exit 2, one line naming it and counting
+its files) unless `--force` says the caller really wants those files replaced —
+a re-run must not silently overwrite a directory someone may have edited.
 
 * `.vbp` listing order: VB6 compiles in `.vbp` order, so the object-table order
   is the closest evidence of the original sequence — labelled *inferred* in the
@@ -251,9 +254,10 @@ the object table's modules/classes/forms, one placeholder file per object, and
 * Junk quarantine: native method entries usually decode to garbage (reference
   build: 626 readable entries, exactly **1** passes an identifier check). Only
   passing names reach the stubs, and a pass is recorded as shape evidence, not
-  truth. `Startup=` is written only when a module has a readable `Main`; the
-  reference build has none, so the line is a comment and the report lists it
-  under gaps.
+  truth. `Startup=` is never written from a method name — the object table records
+  neither Sub-vs-Function, parameters, visibility, nor the startup designation, so
+  even a readable `Main` proves none of them — the line is a comment and the
+  report carries it under gaps.
 * `Type=Exe` is the file's only *assumption*, and it is carried as one in the
   report: the application type is not modelled from the object table.
 * DataReport objects: what this tool recovers is the compiled layout (`vb6d

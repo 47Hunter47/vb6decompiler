@@ -67,7 +67,7 @@ vb6d dossier   --listings "<listings dir>"            # dossier.jsonl INSIDE the
 | x86 raw decode | `vb6d decode <exe> --va HEX [--end-va HEX] [--procs <dossier.jsonl>]` (needs the `[asm]` extra) | instruction dump from a VA an earlier stage already reported - [evidence details](docs/commands.md#x86-raw-decode) |
 | Program call edges | `vb6d edges <exe> --dossier <dossier.jsonl> [--out F] [--events]` (needs the `[asm]` extra) | one row per procedure: every call target named or counted - [evidence details](docs/commands.md#program-call-edges) |
 | Operation outline | `vb6d outline <edges.jsonl> [--out F]` (no engine needed) | runtime categories from the shipped table, never invented - [evidence details](docs/commands.md#operation-outline) |
-| Project skeleton | `vb6d project <exe>` | .vbp plus placeholder files plus an honest recovery report - [evidence details](docs/commands.md#project-skeleton) |
+| Project skeleton | `vb6d project <exe> [--out DIR] [--force]` | .vbp plus placeholder files plus an honest recovery report - [evidence details](docs/commands.md#project-skeleton) |
 
 Four helpers ship inside the package, so a pip install can run them: `frx_icon`,
 `literal_visibility`, `pseudoc_inventory` (the one `vb6d dossier --inventory` reads)

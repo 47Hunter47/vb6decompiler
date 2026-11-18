@@ -57,8 +57,10 @@ vb6d edges       <app.exe> --dossier <dossier.jsonl>
                                       late-bound counts; --events adds the ordered stream
 vb6d outline     <edges.jsonl>        operations outline via the runtime table:
                                       unverified_operations, api_calls, runtime_unlisted
-vb6d project     <app.exe>            project skeleton: .vbp + design-record placeholder
-                                      files + recovery-report.json (structure, not source)
+vb6d project     <app.exe> [--out DIR] [--force]
+                                      project skeleton: .vbp + design-record placeholder
+                                      files + recovery-report.json (structure, not source);
+                                      a non-empty --out dir is refused unless --force
 vb6d mask        <out dir> --dry-run  credential audit before publishing anything
 ```
 

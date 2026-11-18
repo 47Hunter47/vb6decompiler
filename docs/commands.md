@@ -49,5 +49,5 @@ the edges file read through the runtime table: per procedure `unverified_operati
 
 ## Project skeleton
 
-structure, not source: `.vbp` with the object table's modules/classes/forms in table order, one placeholder file per object — forms carry their recovered design record (offset, extent, per-control lines) in comment form — and a `recovery-report.json` separating confirmed / inferred / missing — nothing invented
+structure, not source: `.vbp` with the object table's modules/classes/forms in table order, one placeholder file per object — forms carry their recovered design record (offset, extent, per-control lines) in comment form — and a `recovery-report.json` separating confirmed / inferred / missing — nothing invented. Default output is a sibling `<exe-name>_project` directory; an existing non-empty one is refused unless `--force`, which then replaces files one by one (an interrupted `--force` run can leave a half-written tree)
 
