@@ -325,9 +325,10 @@ def cmd_frm(args) -> int:
                     {
                         "name": f.name,
                         "type": f.type,
-                        "controls": len(f.controls),
+                        "controls": len(f.controls),  # count; details ride in "detail"
                         "client_size_twips": f.client_size,
                         "warnings": len(f.warnings),
+                        "detail": frm.form_json(f),
                     }
                     for f in res.forms
                 ],

@@ -953,6 +953,42 @@ def scan_directory(root: str, *, recursive: bool = False,
 
 
 # --------------------------------------------------------------------------- reporting
+def _value_json(value: object) -> object:
+    if isinstance(value, FrxRef):
+        return {"frx_file": value.file, "offset": value.offset,
+                "offset_text": value.offset_text}
+    return value
+
+
+def _prop_json(p: Property) -> dict:
+    """One property line, all of it: normalised value, written text, comment."""
+    return {"name": p.name, "value": _value_json(p.value), "kind": p.kind,
+            "raw": p.raw, "comment": p.comment, "param": p.param, "line": p.line}
+
+
+def _control_json(c: Control) -> dict:
+    return {"name": c.name, "type": c.type, "parent": c.parent,
+            "parent_type": c.parent_type, "depth": c.depth, "line": c.line,
+            "properties": [_prop_json(p) for p in c.props.values()]}
+
+
+def form_json(f: Form) -> dict:
+    """Everything ``parse_frm`` recovered about one form, in one JSON object.
+
+    Controls are the parser's flat list in document order; parent/depth keep
+    the nesting a screen-reconstruction needs. No raw bytes and nothing the
+    parser did not itself record (see ``blob --json`` for binary geometry).
+    """
+    return {
+        "name": f.name, "type": f.type, "path": f.path,
+        "complete": f.complete, "incomplete_reason": f.incomplete_reason,
+        "properties": [_prop_json(p) for p in f.props.values()],
+        "controls": [_control_json(c) for c in f.controls],
+        "warnings": [{"path": w.path, "line": w.line, "text": w.text,
+                      "reason": w.reason} for w in f.warnings],
+    }
+
+
 def bool_tri_counts(controls: Iterable[Control], name: str) -> dict[str, int]:
     """Count ``true`` / ``false`` / ``absent`` for one boolean property.
 

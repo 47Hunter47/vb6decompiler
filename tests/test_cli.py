@@ -77,6 +77,38 @@ def test_frm_json_is_machine_readable(capsys):
     assert isinstance(payload["no_design_block"], list)
 
 
+def test_frm_json_details_let_an_agent_read_a_form_without_reparsing(capsys):
+    """Review item F: --json used to be counts only; the parser knows far more."""
+    code, out, _err = _run(["frm", FIXTURES, "--json"], capsys)
+    assert code == 0
+    payload = json.loads(out)
+    by = {f["name"]: f for f in payload["forms"]}
+    # back-compat: "controls" stays the integer count; the list rides alongside
+    assert all(isinstance(f["controls"], int) and
+               f["controls"] == len(f["detail"]["controls"]) for f in payload["forms"])
+    tab = by["fSynthTab"]["detail"]
+    assert tab["complete"] is True and tab["incomplete_reason"] is None
+    kids = {c["name"]: c for c in tab["controls"]}
+    assert (kids["txtGeneral"]["parent"], kids["txtGeneral"]["depth"]) == ("SSTab1", 1)
+    assert (kids["lblIc"]["parent"], kids["lblIc"]["depth"]) == ("fraDetail", 2)
+    caps = [(p["param"], p["value"]) for p in kids["SSTab1"]["properties"]
+            if p["name"] == "TabCaption"]
+    assert caps == [(0, "General"), (1, "Detail"), (2, "Summary")]  # indexed props keep their index
+    arr = by["fSynthArray"]["detail"]
+    idxs = sorted(p["value"] for c in arr["controls"] if c["name"] == "txtAd"
+                  for p in c["properties"] if p["name"] == "Index")
+    assert idxs == [0, 1, 2]  # control-array members keep their written Index
+    vis = next(p for p in next(c for c in arr["controls"] if c["name"] == "picKutu")["properties"]
+               if p["name"] == "Visible")
+    assert (vis["value"], vis["kind"], vis["comment"]) == (False, "bool", "False")
+    assert [c["line"] for c in arr["controls"]] == sorted(c["line"] for c in arr["controls"])
+    cap = next(p for p in arr["properties"] if p["name"] == "Caption")
+    assert cap["value"] == "Settings' welcome note" and cap["raw"].startswith('"')
+    kes = by["fKesik"]["detail"]
+    assert kes["complete"] is False and "without closing End" in kes["incomplete_reason"]
+    assert kes["warnings"][0]["line"] == 10  # warnings carry line numbers, not just counts
+
+
 # --------------------------------------------------------------------------- mask
 def test_mask_reports_zero_findings_and_exits_zero(tmp_path, capsys):
     (tmp_path / "notes.md").write_text("nothing secret here\n", encoding="utf-8")
