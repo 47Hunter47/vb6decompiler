@@ -49,8 +49,13 @@ _DIR_IMPORT = 1
 _DIR_RESOURCE = 2
 
 
-class PEError(Exception):
-    """The file is not a PE image this module can read."""
+class PEError(ValueError):
+    """The file is not a PE image this module can read.
+
+    ValueError base, the same lineage as ``FrmError``: callers that already
+    promise ValueError for a bad file — ``blob.load_sections`` and its tests —
+    keep that promise when validation runs through here.
+    """
 
 
 @dataclass
@@ -201,7 +206,23 @@ def read(path: str) -> PEImage:
 
 
 def _parse(path: str, data) -> PEImage:
-    """The parser itself, over a buffer that is already in memory."""
+    """The parser itself, over a buffer that is already in memory.
+
+    A header-field lookup that walks off the end of a stub file is the file's
+    problem, not the caller's: struct.error/IndexError — whose text is
+    ``unpack_from requires a buffer...`` and names nothing — becomes a PEError
+    that names the file. Measured: a 2-byte file starting ``MZ`` used to
+    surface as a bare unpack_from line with no path in it.
+    """
+    try:
+        return _parse_header(path, data)
+    except (struct.error, IndexError) as exc:
+        raise PEError(f"{os.path.basename(path)}: truncated or malformed PE header") from exc
+
+
+def _parse_header(path: str, data) -> PEImage:
+    """The header walk itself. Raises PEError, or struct/IndexError that
+    :func:`_parse` turns into a named error."""
     if data[:2] != b"MZ":
         raise PEError(f"{os.path.basename(path)}: not an MZ image")
     pe_off = _u32(data, 0x3C)
@@ -422,8 +443,17 @@ def import_names(image: PEImage) -> dict[int, str]:
 
 
 def scan_directory(path: str, recursive: bool = False) -> list[dict]:
-    """PE summary for every ``.exe/.dll/.ocx`` under a path (or one file)."""
-    if os.path.isfile(path):
+    """PE summary for every ``.exe/.dll/.ocx`` under a path (or one file).
+
+    A missing path is unusable input and raises, like every other reader. So
+    does a single file named on the command line that cannot be read: "1
+    unreadable, exit 0" used to read as a completed run of a broken file. A
+    directory scan keeps counting its unreadable files — finding them is the
+    point of the stage there (rule 10: one bad file must not void a survey).
+    """
+    fileio.require(path)
+    single = os.path.isfile(path)
+    if single:
         files = [path]
     else:
         files = []
@@ -438,6 +468,8 @@ def scan_directory(path: str, recursive: bool = False) -> list[dict]:
         try:
             out.append(read(f).summary())
         except (PEError, OSError, struct.error) as exc:
+            if single:
+                raise
             out.append({"path": f, "error": str(exc)})
     return out
 

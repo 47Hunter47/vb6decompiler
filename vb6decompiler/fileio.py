@@ -43,6 +43,27 @@ from typing import Iterator
 MMAP_MIN_BYTES = 4 * 1024 * 1024
 
 
+class InputError(OSError):
+    """The path the caller handed us is not there.
+
+    An OSError subclass so the ``except OSError`` handlers built along the way
+    (edges, outline) keep catching it; the CLI's named-error contract turns it
+    into exit 2 with one line.
+    """
+
+
+def require(path: str) -> None:
+    """Reject a missing input up front — a walk of a path that does not exist
+    returns zero files and used to read as "0 images, exit 0".
+
+    The message carries the path exactly as the caller typed it (not resolved,
+    not made absolute): that is the string the stranger recognises as their own
+    argument. Every reader entry point calls this before touching the path.
+    """
+    if not os.path.exists(path):
+        raise InputError(f"{path}: no such file or directory")
+
+
 @contextmanager
 def image(path: str) -> Iterator[bytes | mmap.mmap]:
     """Yield the file's bytes for read-only random access; never leaves it open.
@@ -52,6 +73,7 @@ def image(path: str) -> Iterator[bytes | mmap.mmap]:
     ``bytes`` it always got, so a mapping failure is a performance detail, not a
     different result.
     """
+    require(path)
     with open(path, "rb") as fh:
         size = os.fstat(fh.fileno()).st_size
         if size < MMAP_MIN_BYTES:

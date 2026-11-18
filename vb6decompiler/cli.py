@@ -217,10 +217,13 @@ def cmd_decode(args) -> int:
 
 
 def cmd_edges(args) -> int:
-    from . import edges
+    from . import edges, fileio
 
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.dossier)), "edges.jsonl")
     try:
+        # a typo'd dossier is unusable input, not an empty edge set: name it
+        # with the path as typed before collect() opens anything
+        fileio.require(args.dossier)
         rows, bad, totals = edges.collect(args.exe, args.dossier, events=args.events)
     except OSError as exc:
         print(f"# error: {exc}", file=sys.stderr)
@@ -240,10 +243,11 @@ def cmd_edges(args) -> int:
 
 
 def cmd_outline(args) -> int:
-    from . import outline
+    from . import fileio, outline
 
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.edges)), "outline.jsonl")
     try:
+        fileio.require(args.edges)  # same contract: the path as typed, one line, exit 2
         fh = open(args.edges, encoding="utf-8")
     except OSError as exc:
         print(f"# error: {exc}", file=sys.stderr)
@@ -416,11 +420,11 @@ def cmd_datareport(args) -> int:
 
 
 def cmd_dossier(args) -> int:
-    from . import dossier, encoding
+    from . import dossier, encoding, fileio
 
     # A typo'd listing directory would produce an empty, perfectly valid JSONL file;
-    # os.stat turns that into the exit-2 contract instead of a silent no-op.
-    os.stat(args.listings)
+    # fileio.require turns that into the exit-2 contract instead of a silent no-op.
+    fileio.require(args.listings)
     codec, source = encoding.choice(args.encoding, None)
     _announce(codec, source)
     out_path = args.out or os.path.join(args.listings, dossier.DEFAULT_OUT_NAME)
@@ -434,9 +438,9 @@ def cmd_dossier(args) -> int:
 
 
 def cmd_xref(args) -> int:
-    from . import xref
+    from . import fileio, xref
 
-    os.stat(args.dossier)
+    fileio.require(args.dossier)  # missing input: one line naming the path, exit 2
     with open(args.dossier, encoding="utf-8") as fh:
         procs, bad = xref._procedures(fh)
     for note in bad:
@@ -460,11 +464,11 @@ def cmd_xref(args) -> int:
 
 
 def cmd_mask(args) -> int:
-    from . import mask
+    from . import fileio, mask
 
     # A gate aimed at a typo'd or missing path found nothing because it looked at
     # nothing; exiting 0 there would make every CI run of this gate meaningless.
-    os.stat(args.path)
+    fileio.require(args.path)
     result = mask.mask_tree(args.path, dry_run=args.dry_run)
     changed = {k: v for k, v in result.items() if v}
     print(f"# {len(result)} files scanned, {len(changed)} changed, {sum(changed.values())} lines")

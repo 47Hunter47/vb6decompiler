@@ -105,6 +105,7 @@ import struct
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
+from . import fileio, pe
 from .encoding import DEFAULT_CODEPAGE, choice, resolve_encoding
 from .procs import image_lcid
 
@@ -244,32 +245,23 @@ class Section:
 def load_sections(path: str) -> tuple[bytes, tuple[Section, ...]]:
     """Return the whole file plus its PE section table.
 
-    Raises :class:`ValueError` when the file has no sane PE header — the
-    caller gets an explicit failure instead of an empty (and therefore
-    ambiguous) result.
+    Validation runs through the one PE parser (:func:`vb6decompiler.pe._parse`).
+    The hand-rolled second header check this function used to carry drifted: it
+    accepted any optional-header magic — a PE-shaped stub whose section table
+    was all zeroes came back as "0 forms", exit 0 — and read a 64-bit image
+    base through a 32-bit template. Raises :class:`vb6decompiler.pe.PEError`
+    (a ValueError, the promise this function already made): the caller gets an
+    explicit failure instead of an empty, ambiguous result.
     """
-    with open(path, "rb") as fh:
+    fileio.require(path)
+    with open(path, "rb") as fh:  # the bytes escape to callers: read, not map (fileio.py)
         data = fh.read()
-    if len(data) < 0x40 or data[:2] != b"MZ":
-        raise ValueError(f"{path}: no MZ header, not a PE file")
-    e_lfanew = struct.unpack_from("<I", data, 0x3C)[0]
-    if e_lfanew + 24 > len(data) or data[e_lfanew:e_lfanew + 4] != b"PE\0\0":
-        raise ValueError(f"{path}: no PE signature at 0x{e_lfanew:x}")
-    coff = e_lfanew + 4
-    nsec, = struct.unpack_from("<H", data, coff + 2)
-    opt_size, = struct.unpack_from("<H", data, coff + 16)
-    opt = coff + 20
-    image_base, = struct.unpack_from("<I", data, opt + 28)
-    sections = []
-    for i in range(nsec):
-        off = opt + opt_size + i * 40
-        if off + 40 > len(data):
-            raise ValueError(f"{path}: truncated section table")
-        raw_name = data[off:off + 8].rstrip(b"\x00")
-        v_size, v_addr, r_size, r_ptr = struct.unpack_from("<IIII", data, off + 8)
-        sections.append(Section(raw_name.decode("latin-1"), image_base + v_addr,
-                                v_size, r_ptr, r_size))
-    return data, tuple(sections)
+    image = pe._parse(path, data)
+    return data, tuple(
+        Section(s.name, image.image_base + s.virtual_address, s.virtual_size,
+                s.raw_offset, s.raw_size)
+        for s in image.sections
+    )
 
 
 def read_va(data: bytes, sections, va: int, size: int) -> bytes | None:

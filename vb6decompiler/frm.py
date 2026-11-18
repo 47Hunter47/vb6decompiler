@@ -68,34 +68,35 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
-from typing import Iterable, Iterator, Sequence
 
+from . import fileio
 from .encoding import DEFAULT_CODEPAGE
 
 __all__ = [
+    "ABSENT",
+    "FALSE_EXPLICIT",
+    "TRUE_EXPLICIT",
     "TWIPS_PER_PX_ASSUMED",
-    "FrmError",
-    "NoDesignBlock",
-    "MalformedForm",
-    "ParseWarning",
-    "FrxRef",
-    "Property",
     "Control",
     "Form",
+    "FrmError",
+    "FrxRef",
+    "MalformedForm",
+    "NoDesignBlock",
+    "ParseWarning",
+    "Property",
     "ScanResult",
+    "bool_tri_counts",
+    "decode_cp1254",
+    "format_summary",
     "parse_bytes",
-    "parse_frm_text",
     "parse_frm",
+    "parse_frm_text",
     "scan_directory",
     "summarize",
-    "format_summary",
-    "bool_tri_counts",
     "twips_to_px",
-    "decode_cp1254",
-    "TRUE_EXPLICIT",
-    "FALSE_EXPLICIT",
-    "ABSENT",
 ]
 
 #: Assumed device scale for the optional pixel conversion.  **This is an
@@ -934,6 +935,7 @@ def _frm_files(root: str, recursive: bool = False) -> list[str]:
 def scan_directory(root: str, *, recursive: bool = False,
                    encoding: str = DEFAULT_CODEPAGE) -> ScanResult:
     """Parse every ``.frm`` under ``root`` and account for all of them."""
+    fileio.require(root)  # a missing directory is unusable input, not zero forms
     res = ScanResult(root=root, encoding=encoding)
     for path in _frm_files(root, recursive):
         res.files_seen += 1
