@@ -15,11 +15,11 @@ choices, they were measured on real decompiled output:
    ``None`` (not written).  :func:`bool_tri_counts` reports the three counts
    separately instead of folding "absent" into ``False``.
 
-2. **Text is CP1254 (Turkish).**  Bytes are decoded with
+2. **Text is a single-byte code page, CP1254 by default.**  Bytes are decoded with
    ``errors="replace"`` and the raw bytes of every value stay reachable
    (:attr:`Property.raw_bytes`), so a caller can re-decode or hash the original
    without re-reading the file.  Never ``latin-1``: it decodes without error and
-   silently produces wrong Turkish (``�`` vs ``ý``/``þ``).
+   silently produces wrong characters (``�`` vs ``ý``/``þ``).
 
 3. **Geometry is in twips.**  Form-level ``ClientWidth``/``ClientHeight`` (and
    ``Width``/``Height``) and every control's ``Left``/``Top``/``Width``/``Height``
@@ -110,8 +110,8 @@ TRUE_EXPLICIT = "true"    # property written and truthy
 FALSE_EXPLICIT = "false"  # property written and falsy
 ABSENT = "absent"         # property not written: VB6 default applies, *do not* read as false
 
-#: Encoding of a VB6 ``.frm``'s non-ASCII text.  Measured: Turkish captions in
-#: the target decode correctly as CP1254 and incorrectly as latin-1.  A ``.frm`` has
+#: Encoding of a VB6 ``.frm``'s non-ASCII text.  Measured: captions written in CP1254
+#: decode correctly as CP1254 and incorrectly as latin-1.  A ``.frm`` has
 #: no header to ask, so this stays the default and ``--encoding`` overrides it
 #: (see :mod:`vb6decompiler.encoding`).
 FRM_ENCODING = DEFAULT_CODEPAGE

@@ -3,9 +3,10 @@
 Why this exists
 ---------------
 Every parser in this package used to decode text as CP1254 by name. That is right
-for a Turkish build and silently wrong for anyone else: a German build decodes
-``ä`` into a box, a Russian build turns half its menu into ``?``. The bytes were
-never Turkish-specific; the *build machine's* ANSI code page chose them, and the
+for the builds it was calibrated on and silently wrong for every other code page:
+a German build decodes ``ä`` into a box, a Russian build turns half its menu into
+``?``. The bytes never belonged to one language; the *build machine's* ANSI code
+page chose them, and the
 ``VB5!`` header records the developer's LCID (``procs._vb_header``) — a hint, not
 the answer.
 
@@ -13,8 +14,8 @@ Two facts drive this module:
 
 * **The header LCID is a hint.** It records the language the IDE ran in. The string
   bytes follow the ANSI code page of the machine that compiled the project, which
-  is usually — not always — the same. A developer on an English Windows building a
-  Turkish program writes CP1252 text and a 0x0409 header. So an explicit code page
+  is usually — not always — the same. A developer on an English Windows compiling
+  text localized for another language writes CP1252 bytes and a 0x0409 header. So an explicit code page
   (`--encoding`) always wins over the header, and the header wins over the default.
 * **The parsers index bytes and characters alike.** ``frm.py`` maps a decoded
   character offset straight back onto the raw bytes; that identity holds for a

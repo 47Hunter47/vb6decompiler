@@ -16,7 +16,7 @@ from vb6decompiler import blob, encoding, literals, procs
 
 # --------------------------------------------------------------------- source order
 def test_explicit_wins_over_the_header():
-    # A developer on a Turkish IDE can compile text in any code page; the flag is the
+    # A developer on any locale's IDE can compile text in any code page; the flag is the
     # only input that comes from the person running the tool.
     assert encoding.resolve_encoding("cp1251", 0x041F) == ("cp1251", "explicit")
 
@@ -105,8 +105,8 @@ def test_listing_text_is_read_in_the_requested_code_page(tmp_path):
     path.write_bytes(line.encode("cp1251"))
     _obj, names = procs.parse_listing(str(path), encoding="cp1251")
     assert names[0x401000] == "_Иван"
-    _obj, as_turkish = procs.parse_listing(str(path))  # default: cp1254
-    assert as_turkish[0x401000] != "_Иван"
+    _obj, as_default = procs.parse_listing(str(path))  # default: cp1254
+    assert as_default[0x401000] != "_Иван"
 
 
 def test_literals_from_a_listing_are_decoded_with_the_requested_code_page(tmp_path):

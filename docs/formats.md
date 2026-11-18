@@ -43,8 +43,8 @@ same four symbols every COM in-proc server does: `DllRegisterServer`,
 ```
 
 * `len` is the **byte** count (2 × characters).
-* The text is `UTF-16LE`. Turkish characters (`ş`, `ğ`, `İ`) are code units above
-  `0x7F`, so a "high byte must be zero" scan silently splits them.
+* The text is `UTF-16LE`. Non-ASCII letters (`ş`, `ğ`, `İ`, `я`, `ä`, …) are code
+  units above `0x7F`, so a "high byte must be zero" scan silently splits them.
 * There is no NUL between strings; two literals can be adjacent, and one odd-length
   neighbour shifts the alignment of everything after it. Decode both byte
   alignments.
@@ -115,7 +115,7 @@ Object record, 0x30 bytes:
 | 0x0C | `lpObjectStatic` |
 | 0x10 | `lpModulePublic` |
 | 0x14 | `lpModuleStatic` |
-| **0x18** | **name VA** (ANSI, NUL-terminated — the build's code page, CP1254 on a Turkish build; see `vb6decompiler/encoding.py`) |
+| **0x18** | **name VA** (ANSI, NUL-terminated — the build's code page, resolved per build by `vb6decompiler/encoding.py`) |
 | **0x1C** | **method count** (u32) |
 | 0x20 | `lpMethodNames` → array of u32 name VAs (forms and classes only) |
 | 0x24 | `o_stat` (u16 + padding) |

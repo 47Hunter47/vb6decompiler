@@ -49,7 +49,7 @@ def test_listing_proc_header_takes_the_trailing_va():
     assert m is not None and int(m.group(2), 16) == 0x36FB300
 
 
-def test_turkish_letters_are_inside_a_literal():
+def test_non_ascii_letters_are_inside_a_literal():
     # A "high byte must be zero" rule would split this literal around 'ş'.
     raw = "Connection failed ş ğ İ".encode("utf-16-le")
     text = raw.decode("utf-16-le")
@@ -211,7 +211,7 @@ def test_non_utf8_bytes_survive_masking_byte_for_byte(tmp_path):
     p.write_bytes(original)
     mask.mask_file(str(p))
     # Everything outside the masked values must be byte-identical: the old
-    # decode-with-replace pass turned each Turkish byte into U+FFFD on write.
+    # decode-with-replace pass turned each high byte into U+FFFD on write.
     expected = original.replace(b"uid=sa", b"uid=[REDACTED]").replace(b"pwd=hunter2", b"pwd=[REDACTED]")
     assert p.read_bytes() == expected
 
