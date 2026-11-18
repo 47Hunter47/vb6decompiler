@@ -8,13 +8,33 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python -m pip install -e ".[dev]"
+      - run: python -m pip install -e ".[dev,asm]"
       - run: python -m compileall -q vb6decompiler tests
       - run: python -m pytest -q
+      - name: the x86 and edges lanes must run, not skip
+        run: |
+          set -o pipefail
+          python -m pytest tests/test_x86.py tests/test_edges.py -q -rs 2>&1 | tee lanes.log
+          grep -q SKIPPED lanes.log && exit 1 || true
+      - run: ruff check
+      - run: mypy vb6decompiler
+      - name: the runtime call table must ship inside the wheel
+        run: |
+          python -m build --wheel
+          python - <<'PY'
+          import glob, sys, zipfile
+          wheel = sorted(glob.glob("dist/*.whl"))[-1]
+          with zipfile.ZipFile(wheel) as z:
+              names = z.namelist()
+          target = "vb6decompiler/data/runtime_calls.json"
+          if target not in names:
+              sys.exit(f"{target} missing from {wheel}: {names}")
+          print(f"ok: {target} is inside {wheel}")
+          PY
       - run: vb6d mask . --dry-run

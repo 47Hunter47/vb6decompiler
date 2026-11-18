@@ -7,6 +7,7 @@ into the package in 0.3.1 so a pip install can run them.
 """
 import csv
 import os
+import re
 import subprocess
 import sys
 
@@ -137,6 +138,13 @@ def test_both_entry_points_print_the_same_usage(name):
                             capture_output=True, text=True)
     assert shim.returncode == 0, shim.stderr
     assert module.returncode == 0, module.stderr
-    # prog= differs by definition (script path vs module); the options must not.
-    assert shim.stdout.replace(os.path.join(SCRIPTS, name + ".py"), "PROG") == \
-        module.stdout.replace("vb6decompiler." + name, "PROG")
+    # prog= differs by definition (script path vs module) and 3.14 wraps the
+    # usage line at different points depending on prog length; the options and
+    # help text must not. Normalize prog spellings to one token and collapse all
+    # whitespace so only content is compared.
+    def _one_prog(text):
+        text = re.sub(
+            rf"python(?:\.exe)? -m {re.escape('vb6decompiler.' + name)}|{re.escape(os.path.join(SCRIPTS, name + '.py'))}|{re.escape(name)}\.py|{re.escape('vb6decompiler.' + name)}",
+            "PROG", text)
+        return re.sub(r"\s+", " ", text).strip()
+    assert _one_prog(shim.stdout) == _one_prog(module.stdout), (shim.stdout, module.stdout)
