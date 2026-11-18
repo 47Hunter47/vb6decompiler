@@ -93,6 +93,8 @@ def plan_files(project: VBProject) -> dict:
     taken: dict[str, int] = {}  # lower filename -> index of the claiming object
     unsupported: list[dict] = []
     for o in project.objects:
+        if o.object_type in RUNTIME_ONLY:
+            continue  # deliberate non-entry: the report's datareport gap explains it
         if o.object_type not in EXT:
             unsupported.append({"object_index": o.index, "name": o.name,
                                 "raw_type": f"{o.raw_type:X}"})

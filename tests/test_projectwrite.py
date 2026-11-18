@@ -91,6 +91,7 @@ def test_write_project_dir_and_report(tmp_path):
                      "recovery-report.json"]  # exactly the placeholder set; rptX gets no file
     on_disk = json.loads((out / "recovery-report.json").read_text(encoding="utf-8"))
     assert on_disk == json.loads(json.dumps(report))  # stdout report and file report agree
+    assert on_disk["unsupported_objects"] == []  # rptX is runtime-only, not an unnamed type
     assert on_disk["gaps"] and on_disk["assumptions"][0]["item"] == "Type=Exe"
     vbp = (out / "Sample.vbp").read_text(encoding="utf-8")
     assert vbp.startswith("; recovered by vb6d project")
@@ -201,6 +202,45 @@ def test_ambiguous_design_names_are_reported_not_assigned(tmp_path, monkeypatch)
     assert "Design record" not in (out / "form1.frm").read_text(encoding="utf-8")
     gap = next(g for g in report["gaps"] if g["item"] == "design records")
     assert "claimed by several blobs" in gap["why"]
+
+
+def test_unknown_object_types_are_reported_not_fatal(tmp_path):
+    """Review item E: procs keeps unknown types as hex on purpose; the writer
+    must keep them too — no guessed extension, no .vbp entry, no KeyError."""
+    objs = [
+        VBObject(0, "modMain", "module", 0x1000000, 1, [Method(0, None, None, False, "Go")]),
+        VBObject(1, "Form1", "form", 0x118000A, 1, [Method(0, None, None, False, "Clicked")]),
+        VBObject(2, "clsX", "class", 0x118003, 1, [Method(0, None, None, False, "Helper")]),
+        VBObject(3, "oddOne", "0x123456", 0x123456, 2, []),
+        VBObject(4, "oddTwo", "0xBEEF00", 0xBEEF00, 0, []),
+    ]
+    project = _mkproj(objs)
+    out = tmp_path / "proj"
+    report = projectwrite.write_project(project, str(out))
+    assert sorted(p.name for p in out.iterdir()) == [
+        "Proj.vbp", "clsX.cls", "form1.frm", "modMain.bas",
+        "recovery-report.json"]  # form files lower-case, like real .vbp projects
+    vbp = (out / "Proj.vbp").read_text(encoding="utf-8")
+    assert "0x123456" not in vbp and "oddOne" not in vbp  # no guessed entries
+    unsupported = report["unsupported_objects"]
+    assert [(u["object_index"], u["name"], u["raw_type"]) for u in unsupported] == [
+        (3, "oddOne", "123456"), (4, "oddTwo", "BEEF00")]  # preserved, raw types intact
+    counts = report["counts"]
+    assert counts["objects"] == 5  # everything found
+    assert counts["vbp_entries"] == 3  # only what was rebuilt
+    assert counts["by_type"].get("0x123456") == 1  # unknown type stays in the census
+    gap = next(g for g in report["gaps"] if g["item"] == "unsupported object types")
+    assert "2 objects" in gap["why"]
+
+
+def test_an_unknown_type_alone_still_produces_a_project(tmp_path):
+    """All-unknown is a result too: report with the whole census, zero entries."""
+    project = _mkproj([VBObject(0, "onlyOdd", "0x123456", 0x123456, 1, [])])
+    out = tmp_path / "proj"
+    report = projectwrite.write_project(project, str(out))
+    assert len(report["unsupported_objects"]) == 1
+    assert report["counts"]["vbp_entries"] == 0
+    assert (out / "recovery-report.json").exists()
 
 
 def test_existing_output_dir_is_refused_unless_forced(tmp_path):
