@@ -262,9 +262,10 @@ the object table's modules/classes/forms, one placeholder file per object, and
   with no parseable record is named in the gaps, never silently skipped.
 * Reference-build measurement: 810 `.vbp` entries, 812 files written
   (802 forms / 7 modules / 1 class, plus `.vbp` + report), 801 of 802 forms
-  designed (`mBGS.frm` is the named gap), 55,814 controls across design
-  blocks, 625 of 626 method names quarantined as provable junk, startup
-  unrecovered, full run on the 111 MB build in about 28 s. The exe is never
+  designed (the one gap is a `.frm` named in the report),
+  55,814 controls across design blocks, 625 of 626 method names
+  quarantined as provable junk, startup unrecovered,
+  full run on the 111 MB build in about 28 s. The exe is never
   touched; output lands in a sibling `<exe-name>_project` directory.
 
 ## 4. Forms

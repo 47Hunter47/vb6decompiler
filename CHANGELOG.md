@@ -3,7 +3,7 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
-## 0.5.0 (unreleased)
+## 0.5.0
 
 Every command now treats a path it cannot use as an error: a missing file or
 directory, or a single file named on the command line that is unreadable or not a
@@ -210,8 +210,8 @@ no longer spend a version.
   page titles, and visibility where the marker was read (silent stays unknown).
   The report carries per-form record evidence; a form with no parseable record
   is named in the gaps. Reference build: 801 of 802 forms designed
-  (`mBGS.frm` is the named gap), 55,814 controls across stubs, full run on the
-  111 MB build in about 28 s.
+  (the one gap is a `.frm` named in the report), 55,814 controls across stubs,
+  full run on the 111 MB build in about 28 s.
 
 ## 0.4.15
 
