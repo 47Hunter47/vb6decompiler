@@ -41,7 +41,7 @@ def test_vbp_lists_every_source_object_in_table_order():
     assert "Module=modGenel; modGenel.bas" in text
     assert "Form=form1.frm" in text  # form file names are lower-case in real .vbp files
     assert "Class=clsTablo; clsTablo.cls" in text
-    assert "rptX" not in text  # runtime-only DataReport is never a project file
+    assert "rptX" not in text  # DataReport: no designer file was reconstructible, so no .vbp entry (item I)
     assert "BasicFiles=1" in text and "FormFiles=1" in text and "ClassFiles=1" in text
     assert text.index("modGenel") < text.index("form1") < text.index("clsTablo")  # table order kept
 
@@ -91,10 +91,21 @@ def test_write_project_dir_and_report(tmp_path):
                      "recovery-report.json"]  # exactly the placeholder set; rptX gets no file
     on_disk = json.loads((out / "recovery-report.json").read_text(encoding="utf-8"))
     assert on_disk == json.loads(json.dumps(report))  # stdout report and file report agree
-    assert on_disk["unsupported_objects"] == []  # rptX is runtime-only, not an unnamed type
+    assert on_disk["unsupported_objects"] == []  # rptX is a known kind with no rebuildable designer file, not an unnamed type
     assert on_disk["gaps"] and on_disk["assumptions"][0]["item"] == "Type=Exe"
     vbp = (out / "Sample.vbp").read_text(encoding="utf-8")
     assert vbp.startswith("; recovered by vb6d project")
+
+
+def test_datareport_gap_names_the_designer_files_it_did_not_rebuild():
+    """Review item I: recovered layout is not the designer file, and "no file for
+    it" must never be phrased as if the evidence proved the object runtime-only."""
+    report = projectwrite.build_report(make_project(), "sample.exe")
+    gap = next(g for g in report["gaps"] if g["item"] == "datareport objects")
+    assert "runtime-only" not in gap["why"]
+    assert ".dsr" in gap["why"] and ".dsx" in gap["why"]  # names exactly what is missing
+    assert report["counts"]["by_type"]["datareport"] == 1  # the object is recorded, not dropped
+    assert "rptX" not in report["files"]  # and no designer file was faked for it
 
 
 def _fake_design():

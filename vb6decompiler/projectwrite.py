@@ -36,9 +36,11 @@ from .procs import VBProject
 VBP_KIND = {"form": "Form", "module": "Module", "class": "Class"}
 EXT = {"form": ".frm", "module": ".bas", "class": ".cls"}
 
-#: DataReport objects live only at runtime (the layout lives in the report DLL);
-#: they are recorded in the report but never written as .vbp entries.
-RUNTIME_ONLY = ("datareport",)
+#: DataReport objects get no file and no .vbp entry: the recovered artefact is
+#: their compiled layout (`vb6d datareport`), and the designer files a real .vbp
+#: would list — .dsr text plus .dsx resources — are not carried in the image.
+#: Silence about them is "not reconstructed", never a runtime-only verdict.
+NO_PROJECT_FILE = ("datareport",)
 
 DEFAULT_REPORT_NAME = "recovery-report.json"
 
@@ -93,7 +95,7 @@ def plan_files(project: VBProject) -> dict:
     taken: dict[str, int] = {}  # lower filename -> index of the claiming object
     unsupported: list[dict] = []
     for o in project.objects:
-        if o.object_type in RUNTIME_ONLY:
+        if o.object_type in NO_PROJECT_FILE:
             continue  # deliberate non-entry: the report's datareport gap explains it
         if o.object_type not in EXT:
             unsupported.append({"object_index": o.index, "name": o.name,
@@ -360,7 +362,12 @@ def build_report(project: VBProject, exe_path: str, design: dict | None = None,
         {"item": "procedure addresses", "why": "native object table carries none; addresses come from decompiler listings (vb6d dossier)"},
     ]
     if counts.get("datareport"):
-        gaps.append({"item": "datareport objects", "why": f"{counts['datareport']} runtime-only DataReport objects are not project files; layouts via vb6d datareport"})
+        gaps.append({"item": "datareport objects", "why": (
+            f"{counts['datareport']} DataReport objects: only their compiled layout is "
+            "recoverable here (vb6d datareport reads it from the blob); the designer "
+            "files a real .vbp would list (.dsr text, .dsx resource) are not carried "
+            "in the image — no entry, no file, nothing claimed about the original "
+            "project's source set")})
     if plan["unsupported"]:
         gaps.append({"item": "unsupported object types",
                      "why": f"{len(plan['unsupported'])} objects carry an object-table type this writer cannot name; "

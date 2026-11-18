@@ -256,8 +256,12 @@ the object table's modules/classes/forms, one placeholder file per object, and
   under gaps.
 * `Type=Exe` is the file's only *assumption*, and it is carried as one in the
   report: the application type is not modelled from the object table.
-* DataReport objects are runtime-only: counted in the report, never `.vbp`
-  entries or files; their layouts are `vb6d datareport`'s job.
+* DataReport objects: what this tool recovers is the compiled layout (`vb6d
+  datareport` reads it from the blob); the designer files a real `.vbp` listed —
+  `.dsr` text plus `.dsx` resources — carry what the object table does not record,
+  so the writer rebuilds no designer source, fakes no file, and assigns no `.vbp`
+  entry. The objects stay counted in the report: an unreconstructed `.dsr` is a
+  gap, never a runtime-only verdict.
 * Design records: form stubs embed the blob-recovered design in comment form —
   record offset and size (the binary stream stays in the exe, fetchable at that
   offset), the form extent, one line per control with type, caption, geometry,
