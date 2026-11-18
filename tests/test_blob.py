@@ -216,6 +216,8 @@ def _minimal_pe(payload: bytes) -> bytes:
     struct.pack_into("<H", coff, 16, 0xE0)    # optional header size
 
     opt = bytearray(0xE0)
+    struct.pack_into("<H", opt, 0, 0x10B)     # magic: PE32 (a real PE always has one;
+                                              # the PE validator rejects header junk)
     struct.pack_into("<I", opt, 28, 0x400000)  # ImageBase
 
     sec = bytearray(40)
