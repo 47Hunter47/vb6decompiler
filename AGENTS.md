@@ -11,9 +11,10 @@ and test results live elsewhere.
 * stdout carries record lines only when you strip comments: footnotes, summaries
   and error messages are `#`-prefixed — on stderr for every stage except `mask`,
   and `procs` writes one `#` count line to stdout. Discard `#` lines when
-  parsing. `--json` exists for `pe`, `procs`, `stitch`, `frm`, `blob` and
-  `datareport`; `literals` is CSV-only by design because its row count is six
-  figures and JSON indentation only bloats it.
+  parsing. `--json` exists for `pe`, `procs`, `project`, `stitch`, `frm`, `blob`,
+  `datareport` and `decode`; `dossier`, `edges` and `outline` are row-file
+  stages (JSONL: one JSON object per line, no flag needed) because their row
+  counts run to tens of thousands; `literals` is CSV-only for the same reason.
 * Exit codes: `0` = the run completed whatever it found (a missing thing is a
   result — report it, do not retry); `1` = mask audit found live values (the
   artefacts are not publishable); `2` = unusable input or a wrong invocation
@@ -38,8 +39,9 @@ and test results live elsewhere.
    instead of emitting plausible records.
 3. **Report denominators.** "24,967 of 24,967 controls matched", not "100 %". A
    count without its total is not evidence.
-4. **Standard library only.** `pefile` and `capstone` are optional dev-time second
-   opinions. No other third-party dependency, no vendored binaries.
+4. **Standard library only.** `pefile` is an optional dev-time second opinion;
+   `capstone` is the optional `[asm]` engine and enters the library only through
+   `x86.py` (RULES.md). No other third-party dependency, no vendored binaries.
 5. **The tool is generic.** It must not know or imply a specific program. Paths come
    from the caller or from the `VB6D_*` variables.
 6. **Public text is written for a stranger.** English, plain, reproducible steps. No
