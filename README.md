@@ -15,10 +15,9 @@ measurement has a command that reproduces it.
 The toolkit is language-agnostic. Text is decoded per build — your explicit
 `--encoding`, else `VB6D_ENCODING`, else the LCID in the build's own header —
 and the locale→code-page map carries 65 locales onto 14 Windows pages today:
-10 single-byte pages decode (Western, Central European, Cyrillic, Greek,
-Baltic, Thai, Vietnamese, Hebrew, Arabic, Turkish), and the 4 double-byte
-pages are refused by name rather than guessed. The UTF-16 passes are
-language-blind by construction.
+the 10 single-byte pages (cp874, cp1250–cp1258) decode whatever language the
+build's text is in, and the 4 double-byte pages are refused by name rather
+than guessed. The UTF-16 passes are language-blind by construction.
 
 The point is not another disassembler. VB6 is not plain x86 at the level that
 matters: strings are length-prefixed `BSTR`s stored inside `.text`, procedures are
