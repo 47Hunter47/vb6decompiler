@@ -36,7 +36,8 @@ def make_project():
 def test_vbp_lists_every_source_object_in_table_order():
     text = projectwrite.vbp_text(make_project())
     assert "Type=Exe" in text
-    assert "Startup=Sub Main" in text  # module 0 has a readable Main
+    assert "Startup=Sub Main" not in text  # module 0's readable "Main" is a name, not evidence
+    assert "; Startup= not recovered" in text
     assert "Module=modGenel; modGenel.bas" in text
     assert "Form=form1.frm" in text  # form file names are lower-case in real .vbp files
     assert "Class=clsTablo; clsTablo.cls" in text
@@ -53,6 +54,18 @@ def test_startup_unrecovered_is_a_comment_not_a_guess():
     assert "Startup=Sub Main" not in text
     report = projectwrite.build_report(project, "sample.exe")
     assert report["vbp"]["startup"] == "unrecovered"
+
+
+def test_a_main_name_alone_never_becomes_startup(tmp_path):
+    """Review item D: the Method record carries no signature, visibility or
+    Sub-vs-Function; a perfect name therefore proves nothing about startup."""
+    project = make_project()  # module 0 method 0 is a readable "Main"
+    text = projectwrite.vbp_text(project)
+    assert "Startup=Sub Main" not in text
+    report = projectwrite.build_report(project, "sample.exe")
+    assert report["vbp"]["startup"] == "unrecovered"
+    gap = next(g for g in report["gaps"] if g["item"] == "startup object")
+    assert "proves neither" in gap["why"]
 
 
 def test_junk_names_are_quarantined_out_of_stubs():

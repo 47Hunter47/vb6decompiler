@@ -185,11 +185,8 @@ def vbp_text(project: VBProject, plan: dict | None = None) -> str:
              f"FormFiles={sum(1 for k in kinds if k == 'form')}",
              f"ClassFiles={sum(1 for k in kinds if k == 'class')}"]
     lines += files
-    startup = _startup(project)
-    if startup:
-        lines.append(f"Startup={startup}")
-    else:
-        lines.append("; Startup= not recovered: no readable Sub Main in any standard module")
+    lines.append("; Startup= not recovered: the object table names methods but does not")
+    lines.append("; record Sub-vs-Function, parameters, visibility, or the startup choice")
     for o in project.objects:
         entry = entries.get(o.index)
         if entry is None:
@@ -200,17 +197,6 @@ def vbp_text(project: VBProject, plan: dict | None = None) -> str:
             name = _identifier(entry, o.index)
             lines.append(f"{VBP_KIND[entry['kind']]}={name}; {entry['file']}")
     return "\r\n".join(lines) + "\r\n"
-
-
-def _startup(project: VBProject) -> str | None:
-    """Sub Main only when a module's readable name passes the identifier check."""
-    for o in project.objects:
-        if o.object_type != "module":
-            continue
-        plausible, _ = _junk_names([m.name for m in o.methods])
-        if any(n.lower() == "main" for n in plausible):
-            return "Sub Main"
-    return None
 
 
 def _txt(value) -> str:
@@ -355,7 +341,6 @@ def build_report(project: VBProject, exe_path: str, design: dict | None = None,
         if amb:
             design_gap["why"] += (f"; {len(amb)} design-record names are claimed by several blobs "
                                   f"({', '.join(amb)}) — attached to no form rather than guessed")
-    startup = _startup(project)
     counts: dict[str, int] = {}
     for o in project.objects:
         counts[o.object_type] = counts.get(o.object_type, 0) + 1
@@ -368,7 +353,7 @@ def build_report(project: VBProject, exe_path: str, design: dict | None = None,
     gaps = [
         {"item": "code bodies", "why": "native procedures are machine code; decompilation is a separate milestone (D)"},
         design_gap,
-        {"item": "startup object", "why": "no readable Sub Main in any standard module" if not startup else "recovered"},
+        {"item": "startup object", "why": "a readable 'Main' method name proves neither Sub-vs-Function, parameters, visibility, nor the startup designation; the object table records none of them"},
         {"item": "references", "why": "reference table not modelled; control usage recoverable separately from vb6d blob per-control types"},
         {"item": "procedure addresses", "why": "native object table carries none; addresses come from decompiler listings (vb6d dossier)"},
     ]
@@ -400,7 +385,7 @@ def build_report(project: VBProject, exe_path: str, design: dict | None = None,
         "vbp": {
             "file": plan["vbp"]["file"],
             "order_basis": "object-table order, kept because VB6 compiles in .vbp listing order (inferred, not proven)",
-            "startup": startup or "unrecovered",
+            "startup": "unrecovered",
         },
         "name_mapping": mapping,
         "files": files,
