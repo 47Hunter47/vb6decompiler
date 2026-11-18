@@ -5,10 +5,19 @@ the workflow published, not drafts.
 
 ## 0.5.1
 
-A forced history update of master left GitHub marking this publish workflow
-"deleted". A `workflow_dispatch` trigger is added so the manual release path
-survives, and raising `version` re-registers the file through a real release.
-Package code is identical to 0.5.0; only the CI wiring changed.
+Public docs and tests now use only stand-ins for target screen, table and column
+names, so the repository reads the same to someone who has never seen the program
+it was developed against. Duplicated tool comments are gone from a dozen lines,
+and a hygiene test keeps them from returning. The dev tools are pinned to the
+release line they were tested on (`ruff` 0.17, `mypy` 2.4), so a newer release
+cannot turn CI red without a code change. `edges` and `outline` report an
+unusable input with the same `error:` prefix as every other command. `dossier`
+refuses a `--listings` directory that holds no listing file, instead of writing
+an empty dossier and exiting 0.
+
+This version also re-registers the publish workflow: a forced history update of
+master left GitHub marking it "deleted", and a `workflow_dispatch` trigger keeps
+the manual release path alive.
 
 ## 0.5.0
 
