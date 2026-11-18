@@ -18,7 +18,10 @@ and test results live elsewhere.
 * Exit codes: `0` = the run completed whatever it found (a missing thing is a
   result — report it, do not retry); `1` = mask audit found live values (the
   artefacts are not publishable); `2` = unusable input or a wrong invocation
-  (one line on stderr, no traceback; `VB6D_DEBUG=1` re-raises for bug reports).
+  (one line on stderr, no traceback; `VB6D_DEBUG=1` re-raises for bug reports);
+  `3` = the toolkit's own failure (a bug, or an output it could not write) -
+  stderr prints `internal error:` naming the exception type; `VB6D_DEBUG=1`
+  re-raises. Report it rather than retrying with different flags.
   An input file named explicitly on the command line that is missing, unreadable,
   or not a PE image is exactly that case (exit 2, one line naming the path as
   typed); a directory scan instead counts its unreadable files and completes at 0,
