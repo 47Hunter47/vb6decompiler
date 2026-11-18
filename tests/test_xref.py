@@ -28,10 +28,10 @@ def _file(tmp_path, lines):
 
 def test_rollup_and_search_and_invert(tmp_path):
     p = _file(tmp_path, [
-        _rec("401000", "fDemo902", ["Command1_Click"], [("410000", "SELECT * FROM tDemoCustomer"),
+        _rec("401000", "fDemo012", ["Command1_Click"], [("410000", "SELECT * FROM tCustomer"),
                                                         ("410050", "Ad Soyad")]),
         _rec("402000", "modGenel", [], [("410050", "Ad Soyad")],
-             sql=[("SELECT * FROM tDemoCustomer", "410000")]),
+             sql=[("SELECT * FROM tCustomer", "410000")]),
         "not json at all",
     ])
     with open(p, encoding="utf-8") as fh:
@@ -43,17 +43,17 @@ def test_rollup_and_search_and_invert(tmp_path):
     assert rolled[0]["hints"] == ["Command1_Click"]
 
     hit = xref.search(procs, "ad soyad", "literals")  # case-insensitive on purpose
-    assert [h["owner"]["object_name"] for h in hit["literals"]] == ["fDemo902", "modGenel"]
+    assert [h["owner"]["object_name"] for h in hit["literals"]] == ["fDemo012", "modGenel"]
 
-    sq = xref.search(procs, "tDemoCustomer", "sql")
-    # fDemo902 mentions the statement only as a raw literal here; its sql list is
+    sq = xref.search(procs, "tCustomer", "sql")
+    # fDemo012 mentions the statement only as a raw literal here; its sql list is
     # empty in this fixture, so only the procedure with a real SQL entry hits.
     assert [h["owner"]["object_name"] for h in sq["sql"]] == ["modGenel"]
 
     full = xref.full(procs)
     owners = {row["literal_va"]: [p["object_name"] for p in row["procedures"]]
               for row in full["literal_to_procedures"]}
-    assert owners["410050"] == ["fDemo902", "modGenel"]  # shared literal found by both
+    assert owners["410050"] == ["fDemo012", "modGenel"]  # shared literal found by both
     assert full["sql_to_procedures"][0]["sql_va"] == "410000"
 
 
@@ -65,7 +65,7 @@ def test_xref_cli_shapes_are_parseable_json(tmp_path, capsys):
         out, err = capsys.readouterr()
         return code, out, err
 
-    p = _file(tmp_path, [_rec("401000", "fDemo902", [], [("410000", "SELECT x")])])
+    p = _file(tmp_path, [_rec("401000", "fDemo012", [], [("410000", "SELECT x")])])
     code, out, err = run(["xref", str(p)])
     assert code == 0
     assert json.loads(out)["tool"] == "vb6d xref"

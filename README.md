@@ -33,14 +33,13 @@ host, no database name, no account, no credential, no absolute install path.
 
 ## Quick start
 
-Install, then the five commands a new target gets first. Each output line shown
-is a shape a run actually prints (measured on the developer's fixture corpus;
-N/M stand for your target's counts):
+Install, then the five commands a new target gets first. Each line shows the shape
+a run prints; names and counts are placeholders:
 
 ```bash
 pip install vb6decompiler                              # add "[asm]" for decode/edges only
 vb6d pe        "<install dir>"                         # stderr: # N images, M import a VB6 runtime, K unreadable
-vb6d procs     "<app.exe>" > app.txt                  # stdout: [ 37] fDemo901  form  methods=44 per object
+vb6d procs     "<app.exe>" > app.txt                  # stdout: [ 37] fDemo011  form  methods=44 per object
 vb6d literals  "<app.exe>" > literals.csv             # CSV on stdout; stderr: # N literals
 vb6d stitch    "<listings dir>"                       # statements + buckets; stderr: # {'candidates': N, 'closed': M, ...}
 vb6d dossier   --listings "<listings dir>"            # dossier.jsonl INSIDE the listings dir; its path on stderr
