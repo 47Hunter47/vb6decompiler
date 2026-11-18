@@ -3,6 +3,13 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.5.4
+
+Closes the sibling of the 0.5.3 rename: the same fixture text still carried four
+more column names from the program this tool was built against, in `pitfalls.md`,
+`tests/test_core.py` and one `sqlstitch.py` docstring. They are now ordinary
+stand-ins; no measured count changed.
+
 ## 0.5.3
 
 Public docs and tests now use only stand-ins for target screen, table and column
