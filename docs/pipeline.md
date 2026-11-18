@@ -118,6 +118,8 @@ stages above proved about **one procedure**, written as one JSON object per line
 apart from every open bucket, the name hints with `"kind": "hint"`, and — when a
 `python -m vb6decompiler.pseudoc_inventory` output directory is supplied — that procedure's
 pseudo-C order, indirect calls, call list and branch conditions, merged by VA.
+Without `--out` the dossier lands as `dossier.jsonl` **inside the listings
+directory**, and the path it wrote is printed on stderr.
 
 *Claim it supports:* "this is the evidence collected for procedure `X`".
 *Not:* "this is procedure `X`'s source". Nothing in the record is compilable VB6,
