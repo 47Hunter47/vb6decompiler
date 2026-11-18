@@ -33,8 +33,8 @@ from __future__ import annotations
 
 import mmap
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator
 
 #: Files smaller than this are not worth a system call pair: the copy is cheaper than
 #: the mapping setup. Measured cross-over on this machine: a 4 MB mapping wins by a

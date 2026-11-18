@@ -231,8 +231,7 @@ def cmd_edges(args) -> int:
     if bad:
         print(f"# warning: {bad} unreadable lines skipped in {args.dossier}", file=sys.stderr)
     with open(out, "w", encoding="utf-8") as fh:
-        for r in rows:
-            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+        fh.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
     ev = f"; events on: {totals['events']} named events, {totals['literal_events']} literal loads" if args.events else ""
     print(f"# {len(rows)} procedures -> {out}; totals: {totals['named']} named via imports, "
           f"{totals['thunk_named']} named via import thunks, "
@@ -621,7 +620,7 @@ def main(argv: list[str] | None = None) -> int:
     # from UTF-16 are not encodable there. Cosmetic only: never changes exit codes.
     for stream in (sys.stdout, sys.stderr):
         try:
-            stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+            stream.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[union-attr]  # AttributeError is caught on the next line for stripped stdouts  # type: ignore[union-attr]  # AttributeError is caught on the next line for stripped stdouts
         except (AttributeError, OSError):
             pass
     try:

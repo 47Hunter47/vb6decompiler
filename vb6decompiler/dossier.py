@@ -36,8 +36,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Iterator, TextIO
+from typing import TextIO
 
 from . import literals as literals_mod
 from . import procs, runtime_table, sqlstitch
@@ -333,9 +334,8 @@ def stream(listing_dir: str, out: TextIO, encoding: str = DEFAULT_CODEPAGE,
     """Write every dossier to ``out`` as JSONL and return what the run accounted for."""
     inventory = load_inventory(inventory_path) if inventory_path else None
     report = DossierReport(encoding=encoding)
-    for dossier in iter_dossiers(listing_dir, encoding=encoding, inventory=inventory,
-                                 report=report):
-        out.write(json.dumps(dossier.as_dict(), ensure_ascii=False) + "\n")
+    out.writelines(json.dumps(dossier.as_dict(), ensure_ascii=False) + "\n" for dossier in iter_dossiers(listing_dir, encoding=encoding, inventory=inventory,
+                                 report=report))
     return report
 
 
@@ -383,15 +383,15 @@ if __name__ == "__main__":  # pragma: no cover
 
 __all__ = [
     "DEFAULT_OUT_NAME",
+    "INVENTORY_KINDS",
     "MAX_LITERAL_CHARS",
     "MAX_SQL_PER_PROC",
-    "INVENTORY_KINDS",
-    "ProcedureDossier",
     "DossierReport",
-    "load_inventory",
-    "runtime_call_rows",
+    "ProcedureDossier",
     "iter_dossiers",
+    "load_inventory",
+    "main",
+    "runtime_call_rows",
     "stream",
     "summary",
-    "main",
 ]

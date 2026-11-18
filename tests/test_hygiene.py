@@ -127,6 +127,6 @@ def test_denylist_from_the_private_project_is_empty_here():
         if text is None:
             continue
         for token in names:
-            if re.search(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % re.escape(token), text, re.I):
+            if re.search(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % re.escape(token), text, re.IGNORECASE):
                 bad.append((name, token))
     assert not bad, f"project-specific names present in the tool repo: {bad[:10]}"

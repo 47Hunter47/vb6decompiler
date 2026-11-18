@@ -190,14 +190,14 @@ def main(argv=None) -> int:
                          "application.properties): %s"
                          % (gerek, (res.stdout + res.stderr).strip()[:300]))
 
-    import pyghidra  # noqa: E402  (needs start() before Ghidra imports)
+    import pyghidra
 
     pyghidra.start(verbose=False, use_modules=True, offscreen=True)
-    from ghidra.app.cmd.disassemble import DisassembleCommand  # noqa: E402
-    from ghidra.app.decompiler import DecompileOptions, DecompInterface  # noqa: E402
-    from ghidra.program.flatapi import FlatProgramAPI  # noqa: E402
-    from ghidra.program.model.address import AddressSet  # noqa: E402
-    from pyghidra import open_program, transaction  # noqa: E402
+    from ghidra.app.cmd.disassemble import DisassembleCommand
+    from ghidra.app.decompiler import DecompileOptions, DecompInterface
+    from ghidra.program.flatapi import FlatProgramAPI
+    from ghidra.program.model.address import AddressSet
+    from pyghidra import open_program, transaction
 
     hedefler = targets_from(args.targets)
     if args.limit:

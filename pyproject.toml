@@ -28,7 +28,7 @@ Homepage = "https://github.com/47Hunter47/vb6decompiler"
 [project.optional-dependencies]
 pe = ["pefile>=2023.2.7"]
 asm = ["capstone>=5"]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "ruff>=0.17", "mypy>=2.4", "build>=1.6"]
 
 [project.scripts]
 vb6d = "vb6decompiler.cli:main"
@@ -43,3 +43,40 @@ vb6decompiler = ["data/*.json"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.ruff.lint.per-file-ignores]
+# Baseline review (v0.4.31): static checks were added without restructuring.
+# Everything ignored here is a style suggestion whose fix IS a refactor.
+# scripts/: developer probes — printf formatting, best-effort GUI polling with
+# hand-checked return codes, and windows that vanish mid-read are the point there.
+"scripts/*.py" = ["UP031", "SIM115", "PLW1510", "BLE001", "S110", "B023"]
+# tests/: expected strings are written printf-style; fixture readers are held
+# open per line on purpose, and subprocess probes check return codes manually.
+"tests/*.py" = ["UP031", "SIM115", "PLW1510", "FLY002"]
+# report writers format with % and write csv rows through one long-lived reader
+"vb6decompiler/pseudoc_inventory.py" = ["UP031", "SIM115"]
+"vb6decompiler/literal_visibility.py" = ["UP031", "SIM115"]
+"vb6decompiler/frx_icon.py" = ["UP031", "SIM115"]
+# multi-line report lines are built by implicit concatenation inside list
+# literals; wrapping each in parentheses would add noise, not clarity
+"vb6decompiler/frm.py" = ["ISC004"]
+"vb6decompiler/blob.py" = ["ISC004"]
+# blind excepts here are named lanes: dossier keeps going around one bad
+# procedure (the denominator must survive), the object-table lane reports the
+# fault on stderr, a form without a locatable blob is reported by the caller
+"vb6decompiler/dossier.py" = ["SIM115", "BLE001"]
+"vb6decompiler/edges.py" = ["BLE001"]
+"vb6decompiler/projectwrite.py" = ["BLE001"]
+# outline opens its reader early for the named-error guard and closes it in the
+# with statement that receives it
+"vb6decompiler/cli.py" = ["SIM115"]
+
+[tool.mypy]
+# non-strict: the review fixed trivial annotations only and refused restructuring
+python_version = "3.11"
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+# capstone ships no type information; the asm extra is optional at runtime
+module = ["capstone.*"]
+ignore_missing_imports = true

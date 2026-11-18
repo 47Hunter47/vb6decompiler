@@ -250,7 +250,7 @@ class VBProject:
         """Unique method entry addresses *if the build exposed any* (often none)."""
         return sorted({a for o in self.objects for a in o.method_addresses})
 
-    def methods_by_address(self) -> list[tuple[VBObject, "Method"]]:
+    def methods_by_address(self) -> list[tuple[VBObject, Method]]:
         """Only the (object, method) pairs whose address a prologue verified."""
         return [(o, m) for o in self.objects for m in o.methods if m.address is not None]
 
@@ -453,7 +453,7 @@ def _prologue_counts(project: VBProject, data, sample: int | None) -> dict:
     }
 
 
-def pcode_hint(project: "VBProject", threshold: int = NO_PROLOGUE_THRESHOLD) -> str | None:
+def pcode_hint(project: VBProject, threshold: int = NO_PROLOGUE_THRESHOLD) -> str | None:
     """One line saying a build may be P-Code, or ``None`` when it has real prologues.
 
     Deliberately worded "may be" / "not verified": no P-Code binary was available to
@@ -471,7 +471,7 @@ def pcode_hint(project: "VBProject", threshold: int = NO_PROLOGUE_THRESHOLD) -> 
     )
 
 
-def body_bounds(addresses: list[int]) -> dict[int, int]:
+def body_bounds(addresses: list[int]) -> dict[int, int | None]:
     """Procedure body end = next procedure start in address order.
 
     This is the honest bound for a *contiguous* method table. It is wrong for any

@@ -69,7 +69,7 @@ def find_icon(data: bytes):
     return hdr, data[hdr:hdr + end]
 
 
-FRM_ICON_RE = re.compile(rb'Icon\s*=\s*"([^"]+\.frx)"\s*:\s*([0-9a-fA-F]+)', re.I)
+FRM_ICON_RE = re.compile(rb'Icon\s*=\s*"([^"]+\.frx)"\s*:\s*([0-9a-fA-F]+)', re.IGNORECASE)
 
 
 def frm_icon_refs(frm_dir: str) -> dict:
@@ -102,7 +102,8 @@ def main(argv=None) -> int:
         return 2
     os.makedirs(args.out, exist_ok=True)
 
-    extracted, no_icon, digests = [], [], {}
+    extracted, no_icon = [], []
+    digests: dict[str, list[str]] = {}
     for path in files:
         data = open(path, "rb").read()
         found = find_icon(data)

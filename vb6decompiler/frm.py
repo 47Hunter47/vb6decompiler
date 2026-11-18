@@ -327,7 +327,7 @@ class Control:
     type: str                     # full type as written, e.g. "TabDlg.SSTab"
     name: str
     props: dict[str, Property] = field(default_factory=dict)
-    children: list["Control"] = field(default_factory=list)
+    children: list[Control] = field(default_factory=list)
     parent: str | None = None
     parent_type: str | None = None
     depth: int = 0
@@ -403,7 +403,7 @@ class Control:
         p = self.prop(name)
         if p is None or p.kind not in (KIND_INT, KIND_FLOAT):
             return None
-        return p.value
+        return p.value  # type: ignore[return-value]  # Property.value is untyped until the grammar is annotated
 
     def twips(self, name: str) -> int | None:
         """A geometry property exactly as written (twips).  ``None`` if absent."""
@@ -415,14 +415,14 @@ class Control:
             # keep the value rather than silently rounding.
             return p.value  # type: ignore[return-value]
         if p.kind == KIND_INT:
-            return int(p.value)  # type: ignore[arg-type]
+            return int(p.value)  # type: ignore[call-overload]  # int() of an untyped token value
         return None
 
     def string(self, name: str) -> str | None:
         p = self.prop(name)
         if p is None:
             return None
-        return p.value if p.kind == KIND_STR else None
+        return p.value if p.kind == KIND_STR else None  # type: ignore[return-value]  # Property.value is untyped until the grammar is annotated
 
     @property
     def caption(self) -> str | None:
@@ -458,7 +458,7 @@ class Control:
         vals = [self.twips(k) for k in ("Left", "Top", "Width", "Height")]
         if any(v is None for v in vals):
             return None
-        return tuple(int(v) for v in vals)  # type: ignore[return-value]
+        return tuple(int(v) for v in vals)  # type: ignore[return-value,arg-type]  # tuple shape from a list, int() of untyped token
 
     @property
     def has_bounds(self) -> bool:
@@ -481,7 +481,7 @@ class Control:
         vals = [self.twips(k) for k in ("X1", "Y1", "X2", "Y2")]
         if any(v is None for v in vals):
             return None
-        return tuple(int(v) for v in vals)  # type: ignore[return-value]
+        return tuple(int(v) for v in vals)  # type: ignore[return-value,arg-type]  # tuple shape from a list, int() of untyped token
 
     @property
     def derived_bounds(self) -> tuple[int, int, int, int] | None:
@@ -555,7 +555,7 @@ class Form:
 
     def string(self, name: str) -> str | None:
         p = self.prop(name)
-        return p.value if p is not None and p.kind == KIND_STR else None
+        return p.value if p is not None and p.kind == KIND_STR else None  # type: ignore[return-value]  # Property.value is untyped
 
     @property
     def caption(self) -> str | None:
@@ -563,7 +563,7 @@ class Form:
 
     def twips(self, name: str) -> int | None:
         p = self.prop(name)
-        return int(p.value) if p is not None and p.kind == KIND_INT else None
+        return int(p.value) if p is not None and p.kind == KIND_INT else None  # type: ignore[call-overload]  # int() of an untyped token value
 
     @property
     def client_size(self) -> tuple[int, int] | None:
@@ -760,7 +760,7 @@ def parse_frm_text(text: str, *, path: str | None = None,
             continue
 
         if RE_END_PROPERTY.match(line):
-            indent = len(RE_END_PROPERTY.match(line).group("indent").expandtabs(4))
+            indent = len(RE_END_PROPERTY.match(line).group("indent").expandtabs(4))  # type: ignore[union-attr]  # re-matched under the guard above; mypy cannot pair the two calls
             if stack and stack[-1].kind == "group":
                 stack.pop()
             else:
@@ -768,14 +768,14 @@ def parse_frm_text(text: str, *, path: str | None = None,
             continue
 
         if RE_BEGIN_PROPERTY.match(line):
-            indent = len(RE_BEGIN_PROPERTY.match(line).group("indent").expandtabs(4))
+            indent = len(RE_BEGIN_PROPERTY.match(line).group("indent").expandtabs(4))  # type: ignore[union-attr]  # re-matched under the guard above
             grp = RE_BEGIN_PROPERTY.match(line)
             stack.append(_Frame(kind="group", indent=indent, line=lineno,
-                                group=grp.group("type")))
+                                group=grp.group("type")))  # type: ignore[union-attr]  # grp was matched by the guard that opens this block
             continue
 
         if RE_END.match(line):
-            indent = len(RE_END.match(line).group("indent").expandtabs(4))
+            indent = len(RE_END.match(line).group("indent").expandtabs(4))  # type: ignore[union-attr]  # re-matched under the guard above
             if not stack:
                 warn(lineno, line, "End without Begin")
                 continue
@@ -1020,8 +1020,8 @@ def summarize(res: ScanResult) -> dict[str, object]:
     # stored as binary, usually a Unicode/exotic caption; the text is not in the
     # design block, so it is counted here instead of being reported as "no caption".
     captions_in_frx = sum(
-        1 for c in controls
-        if c.prop("Caption") is not None and c.prop("Caption").kind == KIND_FRX  # type: ignore[union-attr]
+        1 for c in controls  # type: ignore[misc]  # untyped prop values leak into the generator item type
+        if c.prop("Caption") is not None and c.prop("Caption").kind == KIND_FRX  # type: ignore[union-attr]  # prop() result may be None
     )
 
     client_sizes = sum(1 for f in res.forms if f.client_size is not None)
@@ -1107,10 +1107,10 @@ def format_summary(summary: dict[str, object]) -> str:
         )
     if s["parse_failures"]:
         lines.append("parse failures:")
-        lines.extend(f"  {p}: {msg}" for p, msg in s["parse_failure_details"])  # type: ignore[union-attr]
+        lines.extend(f"  {p}: {msg}" for p, msg in s["parse_failure_details"])  # type: ignore[attr-defined]  # summary() is heterogeneous by design; the consumer unpacks known shapes
     if s["warnings"]:
-        lines.append(f"warnings: {s['warnings']} (first {min(10, s['warnings'])})")
-        lines.extend(f"  {w}" for w in s["warning_examples"])  # type: ignore[union-attr]
+        lines.append(f"warnings: {s['warnings']} (first {min(10, s['warnings'])})")  # type: ignore[call-overload]  # warning count is an int in summary() but typed object here
+        lines.extend(f"  {w}" for w in s["warning_examples"])  # type: ignore[attr-defined]  # summary() is heterogeneous by design
     return "\n".join(lines)
 
 

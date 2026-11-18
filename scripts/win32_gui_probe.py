@@ -36,7 +36,6 @@ Usage:
 import argparse
 import ctypes
 import ctypes.wintypes as wt
-import sys
 
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
@@ -61,7 +60,7 @@ def _gwt():
     """Guarded GetWindowThreadProcessId (lookup differs across ctypes setups)."""
     for mod in (kernel32, user32):
         try:
-            return getattr(mod, "GetWindowThreadProcessId")
+            return mod.GetWindowThreadProcessId
         except AttributeError:
             continue
     return None

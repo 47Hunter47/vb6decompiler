@@ -58,13 +58,13 @@ _ALLOWED = (
     " _.,;:!?'\"()[]{}<>+-*/=%&|\\@#$^~`\t\r\n"
     "çÇğĞıİöÖşŞüÜâÂîÎûÛéÉàÀ°²³€£½¼¾"
 )
-_RUN = re.compile("[" + re.escape(_ALLOWED) + "]{%d,%d}" % (MIN_CHARS, MAX_CHARS))
+_RUN = re.compile("[" + re.escape(_ALLOWED) + f"]{{{MIN_CHARS},{MAX_CHARS}}}")
 
 #: SQL verbs. Used as a flag only; a literal with a verb is a *candidate*.
 SQL_HINT = re.compile(
     r"\b(SELECT\s|INSERT\s+INTO\b|INSERT\b|UPDATE\s+\w+\s+SET\b|UPDATE\b|"
     r"DELETE\s+FROM\b|DELETE\b|EXEC\b|CREATE\s+TABLE\b|ALTER\s+TABLE\b)",
-    re.I,
+    re.IGNORECASE,
 )
 
 #: Any instruction's literal comment: ``0042C3A0h ; "text"``. The instruction is

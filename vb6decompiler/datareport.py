@@ -104,10 +104,10 @@ import re
 import struct
 import sys
 from collections import Counter
-from dataclasses import dataclass, field
+from collections.abc import Iterable, Iterator, Sequence
+from dataclasses import dataclass
 
 from . import fileio, pe
-from typing import Iterable, Iterator, Sequence
 
 #: Exact class name of a DataReport designer object in a compiled VB6 binary.
 #: Measured byte-for-byte; it is the only reliable anchor for a design record.
@@ -384,7 +384,7 @@ def _int_run(buf: bytes, start: int, end: int) -> tuple[int, ...]:
 # ---------------------------------------------------------------------------
 
 
-def _class_offsets(buf: bytes) -> list[int]:
+def _class_offsets(buf: bytes | mmap.mmap) -> list[int]:
     """Offsets of every occurrence of the DataReport class name."""
     needle = DATAREPORT_CLASS.encode("ascii") + b"\x00"
     out = []
@@ -395,7 +395,7 @@ def _class_offsets(buf: bytes) -> list[int]:
     return out
 
 
-def _head_at(buf: bytes, cls_pos: int) -> DesignHead | None:
+def _head_at(buf: bytes | mmap.mmap, cls_pos: int) -> DesignHead | None:
     """Validate the record header that must precede a class-name occurrence.
 
     ``... <size:int32> <idx:uint8> <namelen:uint16> <name> 0x00 0xFF <len16><class>``
@@ -571,7 +571,7 @@ def _make_record(
     end: int,
     detail_top: int | None,
 ) -> Record:
-    common = dict(
+    common = dict(  # noqa: C408  # keyword form names the field defaults; quotes would add noise  # noqa: C408  # keyword form names the field defaults; quotes would add noise
         index=index,
         kind=kind,
         name=text,
@@ -585,12 +585,12 @@ def _make_record(
     if kind == "control":
         left, top, width, height, note, inferred = _classify_geometry(ints, section, detail_top)
         return Record(left=left, top=top, width=width, height=height,
-                      geometry=note, top_inferred=inferred, **common)
+                      geometry=note, top_inferred=inferred, **common)  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields
     if kind == "section":
         # Section record: the first int32 is the section height in twips.
         height = ints[0] if ints else None
-        return Record(height=height, geometry="section", **common)
-    return Record(geometry="none", **common)
+        return Record(height=height, geometry="section", **common)  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields
+    return Record(geometry="none", **common)  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields  # type: ignore[arg-type]  # the kwargs dict mirrors Record's fields
 
 
 def parse_design(head: DesignHead, buf: bytes, path: str) -> Design:
@@ -753,7 +753,7 @@ def validate(targets: Iterable[str], out=sys.stdout, per_file: bool = True) -> d
     """
     files = iter_files(targets)
     all_designs: list[Design] = []
-    rows = []
+    rows: list[tuple[str, object]] = []
     for path in files:
         try:
             designs = read_designs(path)
@@ -770,7 +770,7 @@ def validate(targets: Iterable[str], out=sys.stdout, per_file: bool = True) -> d
             if isinstance(value, str):
                 print(f"{os.path.basename(path):<32}  {value}", file=out)
                 continue
-            s = summary(value)
+            s = summary(value)  # type: ignore[arg-type]  # the non-str branch of rows holds Design lists
             print(
                 f"{os.path.basename(path):<32} {s['designs']:>7} {s['records']:>8} "
                 f"{s['sections']:>9} {s['controls']:>9} {s['top_unknown']:>11} {s['width_unknown']:>9}",

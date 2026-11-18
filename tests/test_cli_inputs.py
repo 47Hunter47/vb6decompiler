@@ -88,7 +88,7 @@ def test_missing_path_is_reported_with_the_path_as_typed(missing, capsys):
             continue          # on stderr; the parametrized test above pins its contract
         capsys.readouterr()  # drain what the previous command printed
         code = cli.main(_argv(command, missing))
-        out, err = capsys.readouterr()
+        _out, err = capsys.readouterr()
         prefix = "# " if command in ("edges", "outline") else ""
         assert code == 2, (command, err)
         assert err == prefix + expected, (command, err)

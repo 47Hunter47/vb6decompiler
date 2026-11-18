@@ -6,8 +6,7 @@ from vb6decompiler import runtime_table
 
 def write_edges(path, rows, extra_line=""):
     with open(path, "w", encoding="utf-8") as fh:
-        for r in rows:
-            fh.write(json.dumps(r) + "\n")
+        fh.writelines(json.dumps(r) + "\n" for r in rows)
         if extra_line:
             fh.write(extra_line + "\n")
 

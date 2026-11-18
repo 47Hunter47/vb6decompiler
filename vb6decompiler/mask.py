@@ -40,7 +40,7 @@ IP = "[IP]"
 
 #: Every pattern is line-bounded: ``[ \t]`` and ``[^;\s"']``-style ranges that can
 #: never cross a newline, and the value stops at the next separator.
-def _keep_key(match: "re.Match[str]") -> str:
+def _keep_key(match: re.Match[str]) -> str:
     """Keep the key and separator as written, replace only the value.
 
     A replacement *string* cannot carry a literal backslash: ``re`` reads ``\\``
@@ -50,11 +50,11 @@ def _keep_key(match: "re.Match[str]") -> str:
     return match.group(1) + match.group(2) + REDACTED
 
 
-def _keep_host_key(match: "re.Match[str]") -> str:
+def _keep_host_key(match: re.Match[str]) -> str:
     return match.group(1) + match.group(2) + HOST
 
 
-def _unc(match: "re.Match[str]") -> str:
+def _unc(match: re.Match[str]) -> str:
     return "\\\\" + HOST + "\\"
 
 
@@ -84,7 +84,7 @@ def mask_text(text: str) -> str:
         pass
     out = text
     for pattern, repl in _PATTERNS:
-        out = pattern.sub(repl, out)
+        out = pattern.sub(repl, out)  # type: ignore[call-overload]  # replacement is a string or Match->str; the list keeps them as object  # type: ignore[call-overload]  # replacement is a string or Match->str; the list keeps them as object
     return out
 
 

@@ -44,9 +44,9 @@ MAX_MORE = 6
 
 _SQL_HINT = re.compile(
     r"\b(select|from|where|and|or|order|group|values|set|insert|update|delete|union|like|in)\b",
-    re.I,
+    re.IGNORECASE,
 )
-_TARGET = re.compile(r"\b(from|into|update)[ \t]+([A-Za-z_][A-Za-z0-9_$]*)", re.I)
+_TARGET = re.compile(r"\b(from|into|update)[ \t]+([A-Za-z_][A-Za-z0-9_$]*)", re.IGNORECASE)
 
 #: Words that follow `from`/`into`/`update` in real text without being a table. The
 #: reference corpus produced 217 "tables" named ``where`` before this list existed.
@@ -63,7 +63,7 @@ ESCAPE = re.compile(r"''[^\s'()=,<>+\-*0-9]|\)[0-9]{2}\.[0-9]{2}|[!?]")
 #: A statement ending on an operator or connector is a fragment, not a statement.
 #: A trailing quote is deliberately NOT in this set: a balanced statement legitimately
 #: ends with one (``... = 'E1'``), and :func:`balanced` already catches the open case.
-_DANGLING = re.compile(r"(and|or|,|<|>|=|\+|-|\blike\b|\bin\b|\()\s*$", re.I)
+_DANGLING = re.compile(r"(and|or|,|<|>|=|\+|-|\blike\b|\bin\b|\()\s*$", re.IGNORECASE)
 
 
 def normalise(text: str) -> str:
@@ -93,7 +93,7 @@ def statements(text: str) -> int:
             buf.append(ch)
     flat = "".join(buf)
     return len(
-        re.findall(r"(?:^|[^A-Za-z_])(select|insert|update|delete)\b", flat, re.I)
+        re.findall(r"(?:^|[^A-Za-z_])(select|insert|update|delete)\b", flat, re.IGNORECASE)
     )
 
 
@@ -104,7 +104,7 @@ def starts_statement(text: str) -> bool:
     perfectly well — measured output included ``AltStockCode' AND AltStockType = '…'``
     reported as CLOSED. A fragment before the verb belongs to the previous statement.
     """
-    return bool(re.match(r"\s*(select|insert|update|delete)\b", text, re.I))
+    return bool(re.match(r"\s*(select|insert|update|delete)\b", text, re.IGNORECASE))
 
 
 def balanced(text: str) -> bool:
@@ -219,7 +219,7 @@ def _classify(text: str, parts: list[Literal]) -> Candidate:
 def stitch_all(literals: list[Literal], max_more: int = MAX_MORE) -> list[Candidate]:
     """Best closed candidate per procedure, plus the count of open fragments."""
     out: list[Candidate] = []
-    for _proc, chain in chains(literals).items():
+    for chain in chains(literals).values():
         best: Candidate | None = None
         for i in range(len(chain)):
             for cand in stitch(chain, i, max_more=max_more):

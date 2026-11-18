@@ -72,7 +72,8 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
     try:
         proj = _procs.read(exe)
         for o, m in proj.methods_by_address():
-            objfunc.setdefault(m.address, o.name)
+            if m.address is not None:  # native builds keep None (documented in procs.py); a None key never matches a VA lookup
+                objfunc.setdefault(m.address, o.name)
     except _procs.VBError:
         objfunc = {}
     except Exception as exc:
@@ -92,7 +93,7 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
                 return data[sec.raw_pointer + delta: sec.raw_pointer + delta + take]
         return b""
 
-    thunk_cache: dict[int, "str | None"] = {}
+    thunk_cache: dict[int, str | None] = {}
 
     def thunk_name(t: int):
         # two-hop: many call targets below the listed population are `jmp
@@ -170,9 +171,9 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
             elif events and row["mnemonic"] in ("push", "mov", "lea"):
                 # only immediates that ARE dossier literals become events:
                 # an event without text says nothing a count does not
-                m = _IMM_RE.search(row["operands"].rsplit(",", 1)[-1])
-                if m:
-                    text = litmap.get(int(m.group(1), 16))
+                imm = _IMM_RE.search(row["operands"].rsplit(",", 1)[-1])
+                if imm:
+                    text = litmap.get(int(imm.group(1), 16))
                     if text is not None:
                         evts.append({"va": row["va"], "text": text})
                         totals["literal_events"] += 1
