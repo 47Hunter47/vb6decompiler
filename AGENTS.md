@@ -22,7 +22,10 @@ and test results live elsewhere.
   An input file named explicitly on the command line that is missing, unreadable,
   or not a PE image is exactly that case (exit 2, one line naming the path as
   typed); a directory scan instead counts its unreadable files and completes at 0,
-  because finding them is the point of the stage there.
+  because finding them is the point of the stage there. `dossier` is the one
+  directory input refused rather than counted: a `--listings` directory holding no
+  listing file (`.frm`, `.bas`, `.cls`) exits 2 and writes nothing, because an
+  empty dossier beside a mistyped path reads as a successful run.
 * Both streams are reconfigured to UTF-8; a character the console cannot encode
   becomes a visible escape, never a silent drop.
 * Trust semantics before repeating a number: unknown constructs are reported as

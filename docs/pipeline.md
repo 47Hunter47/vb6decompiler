@@ -119,7 +119,10 @@ apart from every open bucket, the name hints with `"kind": "hint"`, and — when
 `python -m vb6decompiler.pseudoc_inventory` output directory is supplied — that procedure's
 pseudo-C order, indirect calls, call list and branch conditions, merged by VA.
 Without `--out` the dossier lands as `dossier.jsonl` **inside the listings
-directory**, and the path it wrote is printed on stderr.
+directory**, and the path it wrote is printed on stderr. A `--listings` directory
+that holds no listing file (`.frm`, `.bas`, `.cls`) is refused before anything is
+written: `error: <dir>: no listing files found`, exit 2. Listing files that yield
+no procedure are a result, not an error (exit 0 and the counts).
 
 *Claim it supports:* "this is the evidence collected for procedure `X`".
 *Not:* "this is procedure `X`'s source". Nothing in the record is compilable VB6,

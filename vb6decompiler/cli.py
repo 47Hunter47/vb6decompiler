@@ -411,11 +411,15 @@ def cmd_datareport(args) -> int:
 
 
 def cmd_dossier(args) -> int:
-    from . import dossier, encoding, fileio
+    from . import dossier, encoding, fileio, literals
 
     # A typo'd listing directory would produce an empty, perfectly valid JSONL file;
     # fileio.require turns that into the exit-2 contract instead of a silent no-op.
     fileio.require(args.listings)
+    # The same mistake one level down: a directory that exists but holds no listing
+    # file cannot produce a dossier, and an empty output file would read as success.
+    if next(literals.listing_files(args.listings), None) is None:
+        raise fileio.InputError(f"{args.listings}: no listing files found")
     codec, source = encoding.choice(args.encoding, None)
     _announce(codec, source)
     out_path = args.out or os.path.join(args.listings, dossier.DEFAULT_OUT_NAME)

@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from . import fileio
@@ -206,6 +207,18 @@ def _scan_ascii(data: bytes, start: int, end: int, image, section):
 # 2. decompiler listings
 # ---------------------------------------------------------------------------
 
+#: The decompiler output the listing readers understand. One tuple, so the dossier
+#: stage's "is there anything to read here" check cannot drift from the reader.
+LISTING_SUFFIXES = (".frm", ".bas", ".cls")
+
+
+def listing_files(directory: str) -> Iterator[str]:
+    """Every listing file under ``directory``, in the order the readers walk them."""
+    for root, _dirs, files in os.walk(directory):
+        for name in sorted(files):
+            if name.lower().endswith(LISTING_SUFFIXES):
+                yield os.path.join(root, name)
+
 
 def scan_listings(directory: str, encoding: str = DEFAULT_CODEPAGE) -> list[Literal]:
     """Literals from ``.frm/.bas/.cls`` decompiler output, with procedure VAs.
@@ -214,33 +227,30 @@ def scan_listings(directory: str, encoding: str = DEFAULT_CODEPAGE) -> list[Lite
     it comes from ``--encoding``/``VB6D_ENCODING`` and defaults to CP1254.
     """
     out: list[Literal] = []
-    for root, _dirs, files in os.walk(directory):
-        for name in sorted(files):
-            if not name.lower().endswith((".frm", ".bas", ".cls")):
-                continue
-            current: int | None = None
-            with open(os.path.join(root, name), encoding=encoding, errors="replace") as fh:
-                for line in fh:
-                    # The procedure header is matched FIRST: it carries no ';', so a
-                    # "skip lines without a literal comment" filter placed above it
-                    # throws every header away and leaves proc_va None on every
-                    # literal (measured: 441,607 literals, 0 procedures).
-                    head = LISTING_PROC.match(line)
-                    if head:
-                        current = int(head.group(2), 16)
-                        continue
-                    if ";" not in line or '"' not in line:
-                        continue
-                    for m in LISTING_LITERAL.finditer(line):
-                        out.append(
-                            Literal(
-                                va=int(m.group(1), 16),
-                                text=m.group(2),
-                                encoding="listing",
-                                proc_va=current,
-                                source="listing",
-                            )
+    for path in listing_files(directory):
+        current: int | None = None
+        with open(path, encoding=encoding, errors="replace") as fh:
+            for line in fh:
+                # The procedure header is matched FIRST: it carries no ';', so a
+                # "skip lines without a literal comment" filter placed above it
+                # throws every header away and leaves proc_va None on every
+                # literal (measured: 441,607 literals, 0 procedures).
+                head = LISTING_PROC.match(line)
+                if head:
+                    current = int(head.group(2), 16)
+                    continue
+                if ";" not in line or '"' not in line:
+                    continue
+                for m in LISTING_LITERAL.finditer(line):
+                    out.append(
+                        Literal(
+                            va=int(m.group(1), 16),
+                            text=m.group(2),
+                            encoding="listing",
+                            proc_va=current,
+                            source="listing",
                         )
+                    )
     return out
 
 

@@ -158,3 +158,27 @@ def test_directory_scan_still_counts_unreadable_files(tmp_path, capsys):
     assert code == 0, err
     assert "1 unreadable" in err
     assert "broken.exe" in out  # the bad file is named in the rows, not swallowed
+
+
+# --------------------------------------------------------------------------- dossier listings
+def test_dossier_refuses_a_directory_with_no_listing_files(tmp_path, capsys):
+    """A mistyped --listings path used to write an empty dossier and exit 0, which
+    reads exactly like a run that found nothing."""
+    out = tmp_path / "dossier.jsonl"
+    code = cli.main(["dossier", "--listings", str(tmp_path), "--out", str(out)])
+    _out, err = capsys.readouterr()
+    assert code == 2, err
+    assert err == f"error: {tmp_path}: no listing files found\n", err
+    assert not out.exists(), "an error run must not leave an output file behind"
+
+
+def test_dossier_with_a_listing_and_no_procedures_stays_a_result(tmp_path, capsys):
+    """Listing files exist, so the run is a survey: zero procedures is the answer,
+    and the file it wrote says so."""
+    (tmp_path / "modDemo.bas").write_text('Attribute VB_Name = "modDemo"\n', encoding="utf-8")
+    out = tmp_path / "dossier.jsonl"
+    code = cli.main(["dossier", "--listings", str(tmp_path), "--out", str(out)])
+    _out, err = capsys.readouterr()
+    assert code == 0, err
+    assert out.exists() and out.stat().st_size == 0
+    assert "# 0 procedures" in err
