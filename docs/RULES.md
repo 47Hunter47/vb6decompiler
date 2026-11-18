@@ -84,12 +84,14 @@ project that uses these tools.
 
 ## Releasing
 
-Every push to `master` ships a release: CI bumps the patch version, commits and
-tags it, and publishes to PyPI through trusted publishing (no token in the
-repository). A push that raises `version` in `pyproject.toml` itself ships that
-exact version — that is the manual path for a minor or major release. Do not
-upload by hand: the runner owns the version sequence, and re-uploading a
-version the runner already burned just fails.
+A push to `master` that touches release-relevant files (`vb6decompiler/**`,
+`pyproject.toml`, `third_party/**`) ships a release: CI bumps the patch version,
+commits and tags it, and publishes to PyPI through trusted publishing (no token
+in the repository). Docs-only pushes do not publish — the README on the PyPI
+page updates with the next code release. A push that raises `version` in
+`pyproject.toml` itself ships that exact version — that is the manual path for a
+minor or major release. Do not upload by hand: the runner owns the version
+sequence, and re-uploading a version the runner already burned just fails.
 
 GitHub skips every workflow for a commit whose message contains a literal skip
 marker (`[skip ci]` and friends) — quoting the marker inside a sentence, e.g.

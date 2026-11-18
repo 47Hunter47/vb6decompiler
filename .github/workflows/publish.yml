@@ -1,4 +1,7 @@
-# Release pipeline: every push to master ships a version to PyPI.
+# Release pipeline: a push to master that changes release-relevant files
+# (vb6decompiler/**, pyproject.toml, third_party/**) ships a version to PyPI.
+# Docs-only pushes do not release; the README on the PyPI page updates with
+# the next code release.
 #  - a push that leaves `version` in pyproject.toml unchanged ships the NEXT
 #    patch version (bumped, committed back and tagged by this workflow);
 #  - a push that raises `version` itself ships exactly that version - the
@@ -12,6 +15,10 @@ name: publish
 on:
   push:
     branches: [master]
+    paths:
+      - "vb6decompiler/**"
+      - "pyproject.toml"
+      - "third_party/**"
 concurrency:
   group: publish
   cancel-in-progress: false
@@ -30,7 +37,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: python -m pip install --upgrade build twine
-      - run: python -m pip install -e ".[dev]"
+      - run: python -m pip install -e ".[dev,asm]"
       - run: python -m compileall -q vb6decompiler tests
       - run: python -m pytest -q
       - run: vb6d mask . --dry-run
