@@ -19,6 +19,10 @@ and test results live elsewhere.
   result — report it, do not retry); `1` = mask audit found live values (the
   artefacts are not publishable); `2` = unusable input or a wrong invocation
   (one line on stderr, no traceback; `VB6D_DEBUG=1` re-raises for bug reports).
+  An input file named explicitly on the command line that is missing, unreadable,
+  or not a PE image is exactly that case (exit 2, one line naming the path as
+  typed); a directory scan instead counts its unreadable files and completes at 0,
+  because finding them is the point of the stage there.
 * Both streams are reconfigured to UTF-8; a character the console cannot encode
   becomes a visible escape, never a silent drop.
 * Trust semantics before repeating a number: unknown constructs are reported as

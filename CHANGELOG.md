@@ -3,6 +3,30 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.5.0 (unreleased)
+
+Every command now treats a path it cannot use as an error: a missing file or
+directory, or a single file named on the command line that is unreadable or not a
+PE image, exits 2 with one line on stderr naming the path exactly as typed. A
+mistyped name no longer reads as "0 images, exit 0", and raw parser text like
+"unpack_from requires a buffer" no longer reaches a stranger without a file name.
+Reading a whole directory keeps counting unreadable files, because finding them is
+that survey's job. The object-table lane in `vb6d edges` reports unexpected faults
+on stderr instead of staying silent about everything (`vb6d dossier` already named
+where it writes, and the docs now say so too). `vb6d blob` validates headers
+through the same PE parser as every other stage, so a PE-shaped stub fails
+explicitly instead of reporting zero forms. `ruff` and `mypy` joined the dev extra
+and the tests workflow as a review baseline, configured to the state the code is
+in with every ignore individually justified; the package therefore does not yet
+ship a `py.typed` marker. The README was restructured for honesty: two claims now
+name exactly the tiers measured in `docs/tool-matrix.md` (free/Lite editions and
+generic engines - paid editions were never measured), the long evidence cells
+moved verbatim to `docs/commands.md`, and a quick start joined the intro. CI runs
+the suite on 3.11 through 3.14 with the engine extra, fails when the x86 or edges
+lanes skip, and checks that the wheel carries the runtime call table; publishing
+is now limited to pushes that touch release-relevant files, so docs-only pushes
+no longer spend a version.
+
 ## 0.4.26
 
 * **`edges --events` — the ordered event stream (milestone D's eighth
