@@ -28,7 +28,10 @@ Homepage = "https://github.com/47Hunter47/vb6decompiler"
 [project.optional-dependencies]
 pe = ["pefile>=2023.2.7"]
 asm = ["capstone>=5"]
-dev = ["pytest>=8", "ruff>=0.17", "mypy>=2.4", "build>=1.6"]
+# The lint tools are pinned to a range on purpose: ruff's default rule set and
+# mypy's checks change between releases, so a newer one can turn CI red without a
+# code change. Raise the upper bound deliberately and re-run `ruff check` and `mypy`.
+dev = ["pytest>=8", "ruff>=0.17,<0.18", "mypy>=2.4,<3", "build>=1.6"]
 
 [project.scripts]
 vb6d = "vb6decompiler.cli:main"

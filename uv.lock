@@ -432,9 +432,9 @@ pe = [
 requires-dist = [
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.6" },
     { name = "capstone", marker = "extra == 'asm'", specifier = ">=5" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.4" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.4,<3" },
     { name = "pefile", marker = "extra == 'pe'", specifier = ">=2023.2.7" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.17" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.17,<0.18" },
 ]
 provides-extras = ["pe", "asm", "dev"]
