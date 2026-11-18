@@ -111,7 +111,7 @@ def cmd_project(args) -> int:
     source = "env" if (not args.encoding and encoding.env_codepage()) else project.encoding_source
     _announce(project.encoding, source)
     out_dir = args.out or projectwrite.default_out_dir(args.exe)
-    report = projectwrite.write_project(project, out_dir)
+    report = projectwrite.write_project(project, out_dir, force=args.force)
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     counts = report["counts"]
@@ -223,10 +223,13 @@ def cmd_edges(args) -> int:
     # a typo'd dossier is unusable input, not an empty edge set: name it
     # with the path as typed before collect() opens anything
     fileio.require(args.dossier)
+    # writing onto either input file would destroy it after a five-minute pass:
+    # refuse before collect() opens the image
+    fileio.refuse_overwrite_inputs(out, [args.dossier, args.exe])
     rows, bad, totals = edges.collect(args.exe, args.dossier, events=args.events)
     if bad:
         print(f"# warning: {bad} unreadable lines skipped in {args.dossier}", file=sys.stderr)
-    with open(out, "w", encoding="utf-8") as fh:
+    with fileio.atomic_out(out) as fh:
         fh.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
     ev = f"; events on: {totals['events']} named events, {totals['literal_events']} literal loads" if args.events else ""
     print(f"# {len(rows)} procedures -> {out}; totals: {totals['named']} named via imports, "
@@ -242,9 +245,10 @@ def cmd_outline(args) -> int:
 
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.edges)), "outline.jsonl")
     fileio.require(args.edges)  # same contract: the path as typed, one line, exit 2
+    fileio.refuse_overwrite_inputs(out, [args.edges])  # truncating the input would empty it mid-read
     fh = open(args.edges, encoding="utf-8")
     rows = categorized = unlisted = api = bad = 0
-    with fh, open(out, "w", encoding="utf-8") as sink:
+    with fh, fileio.atomic_out(out) as sink:
         for line in fh:
             try:
                 edge = json.loads(line)
@@ -423,7 +427,10 @@ def cmd_dossier(args) -> int:
     codec, source = encoding.choice(args.encoding, None)
     _announce(codec, source)
     out_path = args.out or os.path.join(args.listings, dossier.DEFAULT_OUT_NAME)
-    with open(out_path, "w", encoding="utf-8", newline="") as fh:
+    # an --out set to one of the listing files being consumed would eat the
+    # listing: compare against the files actually read, not just the directory
+    fileio.refuse_overwrite_inputs(out_path, list(literals.listing_files(args.listings)))
+    with fileio.atomic_out(out_path, newline="") as fh:
         report = dossier.stream(args.listings, fh, encoding=codec,
                                 inventory_path=args.inventory)
     for line in report.lines():
@@ -515,6 +522,8 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("exe")
     q.add_argument("--out", metavar="DIR", default=None,
                    help="output directory (default: <exe-name>_project beside the exe; never the exe itself)")
+    q.add_argument("--force", action="store_true",
+                   help="write even when the output directory exists and is not empty")
     q.add_argument("--json", action="store_true",
                    help="print the recovery report as JSON on stdout (files are written either way)")
     q.add_argument("--encoding", metavar="CODEPAGE", default=None,

@@ -108,3 +108,48 @@ def test_a_mapped_file_parses_to_the_same_design_as_a_read_one(tmp_path):
 
     assert _design(str(small)) == _design(str(large))
     assert _design(str(small))[0] == "rptZzz009"
+
+
+# --------------------------------------------------------------------------- output safety
+# Review 0.5.x items A2/A3: refuse to open an output that names a consumed
+# input, and never let a failed write replace a good file with a partial one.
+def test_same_path_spots_the_same_file_under_each_spelling(tmp_path):
+    target = tmp_path / "Dir" / "App.exe"
+    target.parent.mkdir()
+    target.write_bytes(b"MZ")
+    same = [
+        str(target.parent.parent / "Dir" / "App.exe"),  # relative detour
+        str(target).upper(),                            # Windows is case-insensitive
+        str(target.parent) + os.sep + ".." + os.sep + "Dir" + os.sep + "App.exe",
+    ]
+    for other in same:
+        assert fileio.same_path(str(target), other), other
+    assert not fileio.same_path(str(target), str(target.parent / "other.exe"))
+    assert not fileio.same_path(str(target.parent), str(target))  # a dir is not its file
+
+
+def test_refuse_overwrite_inputs_names_the_input_before_anything_opens(tmp_path):
+    listing = tmp_path / "fDemo.bas"
+    listing.write_text("'x\n", encoding="utf-8")
+    with pytest.raises(fileio.InputError, match="input files"):
+        fileio.refuse_overwrite_inputs(str(tmp_path / "fDEMO.bas"), [str(listing)])
+    assert not list(tmp_path.glob("*.vb6d-tmp"))  # the guard ran before the writer
+
+
+def test_atomic_out_replaces_the_target_and_leaves_no_temp(tmp_path):
+    out = tmp_path / "out.jsonl"
+    out.write_text("OLD\n", encoding="utf-8")
+    with fileio.atomic_out(str(out)) as fh:
+        fh.write("NEW\n")
+    assert out.read_text(encoding="utf-8") == "NEW\n"
+    assert list(tmp_path.glob("*.vb6d-tmp")) == []
+
+
+def test_atomic_out_keeps_the_previous_file_when_the_block_fails(tmp_path):
+    out = tmp_path / "out.jsonl"
+    out.write_bytes(b"PRE-EXISTING\n")
+    with pytest.raises(RuntimeError, match="planted"), fileio.atomic_out(str(out)) as fh:
+        fh.write("half a new file\n")
+        raise RuntimeError("planted")
+    assert out.read_bytes() == b"PRE-EXISTING\n"
+    assert list(tmp_path.glob("*.vb6d-tmp")) == [], "a failed run must clean up its temp"

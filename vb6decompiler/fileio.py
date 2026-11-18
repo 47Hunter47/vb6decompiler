@@ -33,8 +33,9 @@ from __future__ import annotations
 
 import mmap
 import os
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
+from typing import TextIO
 
 #: Files smaller than this are not worth a system call pair: the copy is cheaper than
 #: the mapping setup. Measured cross-over on this machine: a 4 MB mapping wins by a
@@ -89,3 +90,55 @@ def image(path: str) -> Iterator[bytes | mmap.mmap]:
             yield handle
         finally:
             handle.close()
+
+
+# --------------------------------------------------------------------------- output safety
+def same_path(a: str, b: str) -> bool:
+    """True when two paths name the same file.
+
+    abspath + normcase (Windows filenames are case-insensitive) is the whole
+    policy: a realpath comparison costs syscalls per pair and does not catch
+    any mistake this guard is aimed at (a typo'd ``--out``, an output named
+    after its own input).
+    """
+    return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
+
+
+def refuse_overwrite_inputs(out: str, inputs: Iterable[str]) -> None:
+    """An output may not be one of the files the run consumes: say so BEFORE opening.
+
+    For a directory scan the caller passes the files actually consumed — checking
+    only the directory name would miss an ``--out`` set to one of the very listing
+    files being read (or to the executable the pass is decoding).
+    """
+    for path in inputs:
+        if same_path(out, path):
+            raise InputError(
+                f"{out}: output path is one of the input files ({path}); refusing to overwrite")
+
+
+#: Suffix of the temporary file :func:`atomic_out` writes; distinct enough that it
+#: cannot collide with a stage's own output name.
+TMP_SUFFIX = ".vb6d-tmp"
+
+
+@contextmanager
+def atomic_out(path: str, newline: str | None = None) -> Iterator[TextIO]:
+    """A UTF-8 text writer on a sibling temp file, moved onto ``path`` only on a clean exit.
+
+    Opening the destination directly truncates it immediately, so a failure in the
+    middle of writing used to replace a usable file with half of a new one (and a
+    refused run left an empty file behind). The temp file sits in the destination's
+    own directory so ``os.replace`` stays on one volume, where it is atomic; on any
+    failure the temp is removed and the previous output is untouched.
+    """
+    tmp = path + TMP_SUFFIX
+    moved = False
+    try:
+        with open(tmp, "w", encoding="utf-8", newline=newline) as fh:
+            yield fh
+        os.replace(tmp, path)
+        moved = True
+    finally:
+        if not moved and os.path.exists(tmp):
+            os.remove(tmp)

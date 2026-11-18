@@ -6,8 +6,11 @@ lands on disk — including the junk-name quarantine that keeps ``MZ\\x90``-styl
 native decodes out of the stubs.
 """
 import json
+import os
 
-from vb6decompiler import projectwrite
+import pytest
+
+from vb6decompiler import fileio, projectwrite
 from vb6decompiler.procs import Method, VBObject, VBProject
 
 
@@ -87,9 +90,9 @@ def _fake_design():
         Control("CmdSave", "CommandButton", None, 0, 0, 960, 360,
                 index=0, visible=False, tab_page=2),
     ]
-    return {"form1": (FormBlob(name="Form1", offset=0x500, size=0x1234, data=b""),
-                      Form("Form1", controls, width=5000, height=4000,
-                          client_left=0, client_top=0))}
+    return {"form1": [(FormBlob(name="Form1", offset=0x500, size=0x1234, data=b""),
+                       Form("Form1", controls, width=5000, height=4000,
+                           client_left=0, client_top=0))]}
 
 
 def test_design_blocks_land_in_form_stubs(tmp_path, monkeypatch):
@@ -128,3 +131,73 @@ def test_failed_design_scan_is_reported_not_hidden(tmp_path, monkeypatch):
     report = projectwrite.write_project(make_project(), str(out))
     gap = next(g for g in report["gaps"] if g["item"] == "design records")
     assert "scan of the image failed" in gap["why"]
+
+
+# --------------------------------------------------------------------------- name safety
+# The object table's names come from an executable. Untrusted: a name can carry
+# path separators, a drive prefix, a reserved device name, or a duplicate that
+# only the Windows case-insensitive filesystem makes visible.
+def _mkproj(objects, name="Proj"):
+    return VBProject(path="sample.exe", image_base=0x400000, project_name=name,
+                     project_description=None, runtime_build=6, runtime_rev=0,
+                     form_count=1, object_count=len(objects), compiled_count=len(objects),
+                     identifier="ABCD0001", objects=objects)
+
+
+UNSAFE = [
+    VBObject(0, "mod..\\evil", "module", 0x18001, 0),   # traversal-shaped name
+    VBObject(1, "C:\\x", "module", 0x18001, 0),         # drive prefix
+    VBObject(2, "CON", "module", 0x18001, 0),           # reserved device name
+    VBObject(3, "...", "module", 0x18001, 0),           # dots only
+    VBObject(4, "a", "module", 0x18001, 0),
+    VBObject(5, "A", "module", 0x18001, 0),             # case-only duplicate
+    VBObject(6, "Form1", "form", 0x18083, 0),
+]
+
+
+def test_unsafe_names_never_escape_or_collide(tmp_path):
+    out = tmp_path / "o" / "proj"
+    report = projectwrite.write_project(_mkproj(UNSAFE), str(out))
+    assert sorted(os.listdir(tmp_path)) == ["o"]            # nothing landed beside the out dir
+    assert sorted(os.listdir(tmp_path / "o")) == ["proj"]   # nothing escaped into the parent
+    names = sorted(p.name for p in out.iterdir())
+    # a mangled stem carries the object index: the name is safe, not original
+    assert names == ["A_5.bas", "CON_2.bas", "C__x_1.bas", "Proj.vbp", "a.bas",
+                     "form1.frm", "mod.._evil_0.bas", "object_0003.bas",
+                     "recovery-report.json"]
+    assert len({n.lower() for n in names}) == len(names)  # no case-insensitive collision
+    mapping = {m["original"]: m["generated"] for m in report["name_mapping"]}
+    assert mapping["mod..\\evil"] == "mod.._evil_0.bas"  # originals survive in the report
+    assert mapping["CON"] == "CON_2.bas"
+    placeholder = next(f for f in report["files"] if f["file"] == "object_0003.bas")
+    assert placeholder["placeholder_name"] is True
+    assert placeholder["evidence"]["name"] == "..."  # the placeholder names its source
+    vbp = (out / "Proj.vbp").read_text(encoding="utf-8")
+    for entry in report["files"]:  # every .vbp line points at a file that exists
+        assert entry["file"] in vbp
+        assert (out / entry["file"]).exists()
+    assert "Module=object_0000; mod.._evil_0.bas" in vbp  # dots are no VB6 identifiers
+
+
+def test_ambiguous_design_names_are_reported_not_assigned(tmp_path, monkeypatch):
+    fake = _fake_design()["form1"]
+    monkeypatch.setattr(projectwrite, "_design_map",
+                        lambda exe, encoding: {"form1": fake + fake})
+    out = tmp_path / "Sample_project"
+    report = projectwrite.write_project(make_project(), str(out))
+    assert "Design record" not in (out / "form1.frm").read_text(encoding="utf-8")
+    gap = next(g for g in report["gaps"] if g["item"] == "design records")
+    assert "claimed by several blobs" in gap["why"]
+
+
+def test_existing_output_dir_is_refused_unless_forced(tmp_path):
+    out = tmp_path / "Sample_project"
+    out.mkdir()
+    keeper = out / "hand-edited.bas"
+    keeper.write_text("' edited by hand\n", encoding="utf-8")
+    with pytest.raises(fileio.InputError, match="--force"):
+        projectwrite.write_project(make_project(), str(out))
+    assert keeper.read_text(encoding="utf-8") == "' edited by hand\n"  # refused, not clobbered
+    assert list(out.glob("*.vb6d-tmp")) == []
+    projectwrite.write_project(make_project(), str(out), force=True)
+    assert (out / "Sample.vbp").exists()

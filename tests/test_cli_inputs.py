@@ -6,6 +6,10 @@ no traceback, and no ``unpack_from``/``struct`` internals in the text (the
 AGENTS.md exit-code contract). A *directory* scan is different and stays as
 it was: counting unreadable files is the point of a survey.
 
+The output-side contract lives here too: an output that names a consumed
+input is refused before anything opens, and a failed write leaves the
+previous output byte-intact (review 0.5.x, items A2/A3).
+
 The malformed files are built inside ``tmp_path`` so the test states the
 input instead of storing binaries. ``rand.bin`` is random every run; the
 assertions never pin which line a random 300-byte stub produces, only that
@@ -18,7 +22,7 @@ import struct
 
 import pytest
 
-from vb6decompiler import cli
+from vb6decompiler import cli, dossier
 
 #: Every subcommand `vb6d --help` lists, in help order. test_cli.py pins the
 #: same set against argparse; keep the two in step when a stage is added.
@@ -182,3 +186,86 @@ def test_dossier_with_a_listing_and_no_procedures_stays_a_result(tmp_path, capsy
     assert code == 0, err
     assert out.exists() and out.stat().st_size == 0
     assert "# 0 procedures" in err
+
+
+# --------------------------------------------------------------------------- output/input collisions
+# An output path that names a file the run consumes must be refused BEFORE it is
+# opened: today open(path, "w") truncates the input and a five-minute pass ends
+# by destroying its own dossier, listing or image (review 0.5.x, item A2).
+def _listing_with_procedure(dir_path):
+    (dir_path / "fDemo.bas").write_text(
+        "Private Sub Form_Load() '401000\n"
+        '  00401000h ; "SELECT * FROM tItem"\n', encoding="cp1254")
+    return dir_path / "fDemo.bas"
+
+
+def test_dossier_refuses_an_out_that_is_a_listing_file(tmp_path, capsys):
+    listing = _listing_with_procedure(tmp_path)
+    before = listing.read_bytes()
+    code = cli.main(["dossier", "--listings", str(tmp_path), "--out", str(listing)])
+    _out, err = capsys.readouterr()
+    assert code == 2, err
+    assert "output path is one of the input files" in err
+    assert listing.read_bytes() == before, "the refused run must leave the listing byte-identical"
+    assert list(tmp_path.glob("*.vb6d-tmp")) == []
+
+
+def test_edges_refuses_an_out_that_is_the_exe_or_the_dossier(tmp_path, capsys):
+    from _mini_pe import mini_pe
+
+    exe = tmp_path / "app.exe"
+    exe.write_bytes(mini_pe())
+    dos = tmp_path / "dossier.jsonl"
+    dos.write_text('{"va": "401000"}\n', encoding="utf-8")
+    exe_bytes, dos_bytes = exe.read_bytes(), dos.read_bytes()
+    for out in (str(exe), str(dos)):
+        capsys.readouterr()
+        code = cli.main(["edges", str(exe), "--dossier", str(dos), "--out", out])
+        _o, err = capsys.readouterr()
+        assert code == 2, err
+        assert "output path is one of the input files" in err
+    assert exe.read_bytes() == exe_bytes and dos.read_bytes() == dos_bytes
+    assert list(tmp_path.glob("*.vb6d-tmp")) == []
+
+
+def test_outline_refuses_an_out_that_is_its_edges_file(tmp_path, capsys):
+    edges = tmp_path / "edges.jsonl"
+    edges.write_text('{"va": "1", "calls_imported": {}}\n', encoding="utf-8")
+    before = edges.read_bytes()
+    code = cli.main(["outline", str(edges), "--out", str(edges)])
+    _o, err = capsys.readouterr()
+    assert code == 2, err
+    assert "output path is one of the input files" in err
+    assert edges.read_bytes() == before  # the old run read nothing and wrote nothing back
+    assert list(tmp_path.glob("*.vb6d-tmp")) == []
+
+
+def test_dossier_failure_keeps_the_previous_output_intact(tmp_path, capsys, monkeypatch):
+    """A mid-write failure must not trade a usable file for half of a new one."""
+    _listing_with_procedure(tmp_path)
+    out = tmp_path / "dossier.jsonl"
+    out.write_text("PRE-EXISTING OUTPUT\n", encoding="utf-8")
+    real = dossier.iter_dossiers
+
+    def flaky(listing_dir, **kw):
+        yield next(real(listing_dir, **kw))
+        raise OSError("planted write failure")
+
+    monkeypatch.setattr(dossier, "iter_dossiers", flaky)
+    code = cli.main(["dossier", "--listings", str(tmp_path), "--out", str(out)])
+    _o, err = capsys.readouterr()
+    assert code != 0, err
+    assert out.read_text(encoding="utf-8") == "PRE-EXISTING OUTPUT\n"
+    assert list(tmp_path.glob("*.vb6d-tmp")) == [], "a failed run leaves no temp file"
+
+
+def test_dossier_rerun_replaces_its_own_previous_output(tmp_path, capsys):
+    """Atomic replacement still overwrites the tool's own prior file on a clean run."""
+    _listing_with_procedure(tmp_path)
+    for _ in range(2):
+        code = cli.main(["dossier", "--listings", str(tmp_path)])
+    _o, err = capsys.readouterr()
+    assert code == 0, err
+    produced = tmp_path / "dossier.jsonl"
+    assert len(produced.read_text(encoding="utf-8").splitlines()) == 1
+    assert list(tmp_path.glob("*.vb6d-tmp")) == []
