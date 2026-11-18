@@ -102,17 +102,18 @@ $env:VB6D_FRM_DIR    = "D:/work/decompile"
 $env:VB6D_REPORT_DIR = "D:/App"
 ```
 
-## Non-Turkish builds
+## Text encoding
 
-VB6 stores its text in the ANSI code page of the machine that **compiled** the
-project, so a German build has `ä` where a Turkish build has `ş`. The toolkit used to
-decode everything as CP1254; it now picks the code page itself:
+There is no single encoding for a VB6 program: text is stored in the ANSI code
+page of the machine that **compiled** the project, so different builds of the
+same generation carry different pages. The toolkit picks the code page itself:
 
 1. `--encoding CODEPAGE` on the stage you are running (wins over everything),
 2. else `VB6D_ENCODING` from the environment,
 3. else the LCID in the build's `VB5!` header — a hint about the developer's Windows,
    which is usually but not always the compile machine's code page,
-4. else CP1254, the historical default.
+4. else CP1254, the historical default every parser in this package used before
+   the auto-detection chain existed.
 
 ```
 vb6d frm  <listing dir> --encoding cp1252
