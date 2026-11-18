@@ -2,8 +2,10 @@
 
 Every subcommand prints what it measured and what it could not do. Exit code is 0
 when the run completed, whatever it found — a missing thing is a result, not a
-failure. An unusable input (not a PE, no ``VB5!`` header, missing file) exits 2
-with one line on stderr; ``VB6D_DEBUG=1`` keeps the traceback for bug reports.
+failure. An unusable input or a wrong invocation (not a PE, no ``VB5!`` header,
+missing file) exits 2 with one line on stderr; a failure the toolkit cannot blame
+on the caller's input exits 3 with the exception type, so an agent can tell a bug
+report from its own typo. ``VB6D_DEBUG=1`` keeps the traceback for bug reports.
 """
 
 from __future__ import annotations
@@ -13,6 +15,8 @@ import csv
 import json
 import os
 import sys
+
+from .errors import ExpectedInput
 
 
 def _emit(rows, as_json: bool, fields: list[str] | None = None) -> None:
@@ -543,7 +547,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     q = sub.add_parser("procs", help="VB6 object table: objects, method counts, addresses")
     q.add_argument("exe")
-    q.add_argument("--names", metavar="LISTING_DIR", help="count unique procedure VAs found in a decompiler listing (per-procedure names: vb6d dossier)")
+    q.add_argument("--names", metavar="LISTING_DIR",
+                   help="count unique procedure VAs found in a decompiler listing "
+                        "(a coverage count: no name is attached to a procedure; "
+                        "per-procedure hints: vb6d dossier)")
     q.add_argument("--validate", action="store_true", help="check that entries are real prologues")
     q.add_argument("--limit", type=int, default=40)
     q.add_argument("--json", action="store_true")
@@ -663,14 +670,24 @@ def main(argv: list[str] | None = None) -> int:
             pass
     try:
         return args.func(args)
-    except Exception as exc:
-        # Named errors (VBError, PEError, FrmError) already carry their path and
+    except ExpectedInput as exc:
+        # The caller's own problem — bad path, bad file, bad flag value. The named
+        # errors (VBError, PEError, FrmError, InputError) already carry the path and
         # cause; one line keeps a stranger's first crash readable, not a wall of
         # traceback. VB6D_DEBUG restores the full traceback for bug reports.
         if os.environ.get("VB6D_DEBUG"):
             raise
         print(f"error: {exc}", file=sys.stderr)
         return 2
+    except Exception as exc:
+        # Not the caller's file or flag to fix: a toolkit bug or an operational
+        # failure (unwritable output, a mask that refuses to write). A script
+        # wrapping this CLI must tell that apart from its own bad input, so it
+        # gets its own exit code with the exception type that names the bug.
+        if os.environ.get("VB6D_DEBUG"):
+            raise
+        print(f"internal error: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 3
 
 
 if __name__ == "__main__":

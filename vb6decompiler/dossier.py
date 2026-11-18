@@ -43,6 +43,7 @@ from typing import TextIO
 from . import literals as literals_mod
 from . import procs, runtime_table, sqlstitch
 from .encoding import DEFAULT_CODEPAGE
+from .errors import ExpectedValueError
 
 #: Default output name when ``--out`` is not given and the caller wants a file.
 DEFAULT_OUT_NAME = "dossier.jsonl"
@@ -186,7 +187,7 @@ def load_inventory(path: str) -> dict[int, dict[str, list[dict]]]:
         kind = path.rsplit(".", 1)[0].rsplit("_", 1)[-1]
         files.append((path, kind if kind in INVENTORY_KINDS else "order"))
     else:
-        raise ValueError(f"{os.path.basename(path)}: not a directory of inventory CSVs or a CSV")
+        raise ExpectedValueError(f"{os.path.basename(path)}: not a directory of inventory CSVs or a CSV")
 
     out: dict[int, dict[str, list[dict]]] = {}
     for file_path, kind in files:

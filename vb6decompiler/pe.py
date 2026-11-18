@@ -31,6 +31,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from . import fileio
+from .errors import ExpectedInput
 
 #: Imports that identify a VB6-built binary. ``MSVBVM60`` = VB6, ``MSVBVM50`` = VB5.
 VB6_RUNTIMES = {"MSVBVM60.DLL", "MSVBVM50.DLL"}
@@ -49,7 +50,7 @@ _DIR_IMPORT = 1
 _DIR_RESOURCE = 2
 
 
-class PEError(ValueError):
+class PEError(ExpectedInput, ValueError):
     """The file is not a PE image this module can read.
 
     ValueError base, the same lineage as ``FrmError``: callers that already

@@ -37,6 +37,8 @@ from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from typing import TextIO
 
+from .errors import ExpectedInput
+
 #: Files smaller than this are not worth a system call pair: the copy is cheaper than
 #: the mapping setup. Measured cross-over on this machine: a 4 MB mapping wins by a
 #: hair, below it the sizes are inside the noise, so the constant is a floor and not a
@@ -44,12 +46,12 @@ from typing import TextIO
 MMAP_MIN_BYTES = 4 * 1024 * 1024
 
 
-class InputError(OSError):
-    """The path the caller handed us is not there.
+class InputError(ExpectedInput, OSError):
+    """The path the caller handed us is not there, usable, or safe to write onto.
 
     An OSError subclass so the ``except OSError`` handlers built along the way
-    (edges, outline) keep catching it; the CLI's named-error contract turns it
-    into exit 2 with one line.
+    (edges, outline) keep catching it; the ``ExpectedInput`` marker says the CLI
+    contract's caller-side bucket (exit 2, one line) is its home.
     """
 
 

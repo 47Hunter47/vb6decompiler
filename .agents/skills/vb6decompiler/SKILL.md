@@ -67,8 +67,9 @@ the engine they exit `2` with an install hint, never a traceback. `outline` read
 `edges.jsonl` with no engine. `edges --events` is opt-in and large; event text is raw, so
 an events file goes through `mask` before it leaves the machine.
 
-`procs` alone carries no addresses or names; they appear only after
-`--names <listing dir>` merges a decompiler listing.
+`procs` alone carries no addresses or names. `--names <listing dir>` counts the
+unique procedure VAs a decompiler listing shows — a coverage number; no name is
+attached to a procedure record. Per-procedure name hints come from `vb6d dossier`.
 
 `dossier` is the stage for *re-specifying* a lost application rather than reading
 one screen: per procedure VA it collects what the other stages proved. It is
@@ -101,7 +102,9 @@ facts: the answer is a trace, not a longer decompiler run.
 - Exit codes: `0` = completed, whatever it found — a missing thing is a result,
   report it, do not retry; `1` = mask audit says not publishable; `2` = unusable
   input (one line on stderr, no traceback; `VB6D_DEBUG=1` re-raises for a bug
-  report).
+  report); `3` = the toolkit's own failure, a bug or an unwritable output —
+  stderr prints `internal error:` with the exception type; report it rather than
+  retrying with different flags.
 - Report every count with its denominator. Closed SQL is a lower bound:
   `OPEN_QUOTE` means a run-time value is missing and no smarter regex closes it.
 - Procedure names do not exist in a native build: treat names as hints and

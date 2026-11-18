@@ -251,8 +251,11 @@ Every stage that decodes text prints the code page it used once, on stderr:
 flag), `env` (`VB6D_ENCODING`), `lcid` (the build's header) or `default`.
 
 Exit codes: 0 = completed, whatever it found; 1 = mask audit not clean; 2 =
-unusable input (one line on stderr, no traceback — set `VB6D_DEBUG=1` for the
-traceback when reporting a bug).
+unusable input or a wrong invocation (one line on stderr, no traceback — set
+`VB6D_DEBUG=1` for the traceback when reporting a bug); 3 = the toolkit's own
+failure, a bug or an unwritable output — stderr says `internal error:` and names
+the exception type, which is worth a bug report in a way a 2 from your own path
+is not.
 
 What the reference build (111 MB, 802 forms) produced while this toolkit was
 developed, so you can tell at a glance whether your own numbers look sane:

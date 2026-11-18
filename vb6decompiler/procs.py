@@ -63,6 +63,7 @@ from dataclasses import dataclass, field
 
 from . import fileio
 from .encoding import DEFAULT_CODEPAGE, resolve_encoding
+from .errors import ExpectedInput
 
 #: fObjectType values measured in one real native build (834 objects). The value is
 #: not a small enum: the same build reported 0x18001 for modules, 0x18083 for forms,
@@ -121,8 +122,8 @@ class VBObject:
         return [m.address for m in self.methods if m.address is not None]
 
 
-class VBError(Exception):
-    """The file has no readable VB6 header."""
+class VBError(ExpectedInput):
+    """The file has no readable VB6 header — input the caller can point elsewhere."""
 
 
 class _Resolver:

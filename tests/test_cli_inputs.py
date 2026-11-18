@@ -269,3 +269,69 @@ def test_dossier_rerun_replaces_its_own_previous_output(tmp_path, capsys):
     produced = tmp_path / "dossier.jsonl"
     assert len(produced.read_text(encoding="utf-8").splitlines()) == 1
     assert list(tmp_path.glob("*.vb6d-tmp")) == []
+
+
+# --------------------------------------------------------------------------- exit 3: the toolkit's own failures
+# Review item H1: a crash used to leave the same exit 2 that says "your input was
+# unusable", so a script could not tell its own bad path from a bug in here.
+# The marker vb6decompiler/errors.py::ExpectedInput separates the buckets:
+# exit 2 = fix the file or the flag; exit 3 = the toolkit failed, file a bug.
+
+def _plant(monkeypatch, name, exc):
+    """Make main's dispatch raise `exc`: build_parser binds func on every main() call."""
+    def boom(_args):
+        raise exc
+
+    monkeypatch.setattr(cli, name, boom)
+
+
+def test_an_internal_fault_exits_3_and_names_its_type(monkeypatch, capsys):
+    _plant(monkeypatch, "cmd_procs", RuntimeError("planted internal fault"))
+    code = cli.main(["procs", "anything.exe"])
+    out, err = capsys.readouterr()
+    assert code == 3, err
+    assert err == "internal error: RuntimeError: planted internal fault\n", err
+    assert out == "" and "Traceback" not in err
+
+
+def test_an_unwritable_output_exits_3_not_two(monkeypatch, capsys):
+    """A write failure (a read-only destination) is not bad input: review H1 gave
+    operational failures their own exit code so agents stop retrying with new flags."""
+    _plant(monkeypatch, "cmd_dossier", PermissionError("read-only file system"))
+    code = cli.main(["dossier", "--listings", "whatever"])
+    out, err = capsys.readouterr()
+    assert code == 3, err
+    assert err == "internal error: PermissionError: read-only file system\n", err
+    assert out == ""
+
+
+def test_named_input_errors_stay_exit_two_with_one_line(monkeypatch, capsys):
+    """The marker routes, it does not renumber: InputError and its siblings still get
+    one `error:` line and exit 2."""
+    from vb6decompiler import fileio
+
+    _plant(monkeypatch, "cmd_procs", fileio.InputError("anything.exe: unreadable"))
+    code = cli.main(["procs", "anything.exe"])
+    out, err = capsys.readouterr()
+    assert code == 2, err
+    assert err == "error: anything.exe: unreadable\n", err
+    assert out == ""
+
+
+def test_vb6d_debug_reraises_the_internal_fault(monkeypatch):
+    monkeypatch.setenv("VB6D_DEBUG", "1")
+    _plant(monkeypatch, "cmd_procs", RuntimeError("planted internal fault"))
+    with pytest.raises(RuntimeError, match="planted internal fault"):
+        cli.main(["procs", "anything.exe"])
+
+
+# --------------------------------------------------------------------------- procs --names wording (H2)
+def test_procs_names_help_promises_a_coverage_count(capsys):
+    """Review item H2: `procs --names` counts listing VAs; no name is attached to a
+    native procedure record. The help line is the contract an agent reads first."""
+    with pytest.raises(SystemExit) as exit_:
+        cli.build_parser().parse_args(["procs", "--help"])
+    assert exit_.value.code == 0
+    out, _err = capsys.readouterr()
+    flat = " ".join(out.split())  # argparse wraps help at the terminal width
+    assert "coverage count" in flat and "no name is attached" in flat, out

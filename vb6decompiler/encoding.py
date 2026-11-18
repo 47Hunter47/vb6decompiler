@@ -47,6 +47,8 @@ from __future__ import annotations
 import codecs
 import os
 
+from .errors import ExpectedValueError
+
 #: Code page used when nothing else is known. CP1254 keeps every pre-existing
 #: behaviour and output byte for byte, which is what the historical callers assume.
 DEFAULT_CODEPAGE = "cp1254"
@@ -154,7 +156,7 @@ def canonical_codec(name: str) -> str:
     try:
         return codecs.lookup(name).name
     except LookupError:
-        raise ValueError(
+        raise ExpectedValueError(
             f"unknown code page {name!r} (use a Python codec name, e.g. 'cp1251', 'cp1254')"
         ) from None
 
@@ -162,19 +164,19 @@ def canonical_codec(name: str) -> str:
 def validate_single_byte(codec: str) -> None:
     """Refuse anything where a byte is not a character; a no-op for ANSI pages.
 
-    Raised as ``ValueError`` with one line, because the CLI turns it into exit 2
-    without a traceback.
+    Raised as ``ExpectedValueError`` — still a ``ValueError`` for callers —
+    because the CLI exit-2 contract names it and prints it without a traceback.
     """
     name = canonical_codec(codec)
     if name in _MULTIBYTE_BY_CANONICAL:
         documented = _MULTIBYTE_BY_CANONICAL[name]
         label = documented if documented == name else f"{documented}/{name}"
-        raise ValueError(
+        raise ExpectedValueError(
             f"{label} is a multi-byte code page; this toolkit maps character offsets "
             "back onto bytes and needs a single-byte ANSI page"
         )
     if name not in SINGLE_BYTE_CODEPAGES:
-        raise ValueError(
+        raise ExpectedValueError(
             f"{name} is not a single-byte ANSI code page; supported: "
             + ", ".join(sorted(SINGLE_BYTE_CODEPAGES))
         )

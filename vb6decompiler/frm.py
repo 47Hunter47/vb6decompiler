@@ -73,6 +73,7 @@ from dataclasses import dataclass, field
 
 from . import fileio
 from .encoding import DEFAULT_CODEPAGE
+from .errors import ExpectedInput
 
 __all__ = [
     "ABSENT",
@@ -166,8 +167,12 @@ KIND_FRX = "frx"
 KIND_UNKNOWN = "unknown"
 
 
-class FrmError(ValueError):
-    """Base class for design-block problems that stop parsing."""
+class FrmError(ExpectedInput, ValueError):
+    """Base class for design-block problems that stop parsing.
+
+    The ``ValueError`` lineage stays (callers catch it as such); ``ExpectedInput``
+    is the CLI contract's marker: this is design text the caller can fix.
+    """
 
 
 class NoDesignBlock(FrmError):
