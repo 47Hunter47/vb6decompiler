@@ -3,6 +3,30 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.5.5
+
+The second external review series. Operational failures now exit 3 —
+`internal error: <type>: <msg>` on stderr — so a toolkit bug or an unwritable
+output is told apart from unusable input (exit 2), and `VB6D_DEBUG=1` still
+re-raises for bug reports. `procs --names` is labelled for what it is: a
+coverage count that attaches no name to a procedure record; per-procedure name
+hints come from `vb6d dossier`. The DataReport gap now names what the writer
+did not rebuild — the designer files a real `.vbp` would list (`.dsr` text,
+`.dsx` resource) — instead of asserting a runtime-only verdict the object
+table never gave. No stage opens an output that names a consumed input, and
+outputs are written atomically, so an interrupted run leaves neither a
+half-written file nor a `.vb6d-tmp` behind. Unusable JSONL input lines
+identify themselves by line number, kind and reason. Call targets are
+attributed by range containment, not by the nearest start below a target; a
+method named `Main` is no longer evidence for `Startup=`; unknown object types
+land in the recovery report instead of a KeyError; `frm --json` carries the
+parsed form, not only its census; `dossier` keeps a SQL candidate's text
+address so `xref --full` indexes real statements. `--force` for the project
+writer is documented, and the pipeline's stale startup claim was corrected.
+The 0/1/2/3 contract is written into AGENTS.md, README and the agent skill.
+Suite: 331 tests, green on 3.11–3.14; two path-spelling tests that quietly
+assumed a Windows filesystem were made platform-aware.
+
 ## 0.5.4
 
 Closes the sibling of the 0.5.3 rename: the same fixture text still carried four
