@@ -49,6 +49,11 @@ project that uses these tools.
 ## Style
 
 * English in code, docs and commit messages (the repo is public-facing).
+* Text speaks in code pages, not nationalities: "a build compiled on a CP1254
+  machine", never "a Turkish build". This is a universal toolkit; a nationality
+  word reads as "built for that people". Exceptions where the page itself is the
+  measurement: LCID table comments, CHANGELOG history, and fixture data (captions
+  are evidence — re-derive before replacing them).
 * Text inside a target's own data is preserved byte-for-byte; ANSI text is decoded with
   the code page the run resolved (`vb6decompiler/encoding.py`), UTF-16LE as such, never
   with a lossy guess.
