@@ -3,6 +3,12 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.5.7
+
+Documentation only. `stitch_all` promised "the count of open fragments" in its
+docstring and never returned one; it now says what it returns and points at
+`stitch`/`summarise` for a closure census — with the denominator beside it.
+
 ## 0.5.6
 
 `sqlstitch` promised a `RUNTIME_GAP` status in its docstring and never produced
