@@ -36,6 +36,17 @@ def test_limit_is_reported_not_silent():
     assert r["instructions"] == 5 and r["ended"] == "limit"
 
 
+def test_a_supplied_engine_decodes_identically():
+    """Review 0.5.7 item I: reuse must not change a single field."""
+    pytest.importorskip("capstone")
+    md = x86.engine()
+    assert x86.decode(PROLOGUE, 0x401000, engine=md) == x86.decode(PROLOGUE, 0x401000)
+    # the engine is stateless between calls: a second range on the same engine
+    # gives the same answer a fresh one would
+    other = bytes.fromhex("B801000000C3")
+    assert x86.decode(other, 0x402000, engine=md) == x86.decode(other, 0x402000)
+
+
 def test_garbage_names_where_it_stopped():
     pytest.importorskip("capstone")
     # 0F 26 is not an encoding this 32-bit engine can express (measured: it

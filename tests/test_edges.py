@@ -295,6 +295,30 @@ def test_decode_procs_uses_the_same_gate(fixture, capsys):
     out, err = capsys.readouterr()
     assert code == 0, err
     assert f"# warning: {DECODE_REJECTS} unreadable lines skipped" in err
-    import json as _json
+    assert json.loads(out)["rows"]
 
-    assert _json.loads(out)["rows"]
+
+def test_collect_reuses_one_engine_and_changes_nothing(fixture, monkeypatch):
+    """Review 0.5.7 item I: ~98 us of engine construction against a ~177 us decode."""
+    from vb6decompiler import blob, edges, x86
+
+    exe, procs = fixture
+    calls = {"n": 0}
+    real = x86.engine
+
+    def counted():
+        calls["n"] += 1
+        return real()
+
+    monkeypatch.setattr(x86, "engine", counted)
+    rows, _bad, _totals = edges.collect(str(exe), str(procs), events=True)
+    assert calls["n"] == 1, "one engine per pass, not one per body and thunk"
+    # and the rows are what a fresh engine per body produces
+    data, sections = blob.load_sections(str(exe))
+    for row, va, end in zip(rows, [0x401010, 0x40102B],
+                            [0x40102B, 0x40102B + edges.LAST_RANGE_CAP]):
+        sec = next(s for s in sections if s.virtual_address <= va < s.virtual_address + s.span)
+        delta = va - sec.virtual_address
+        window = data[sec.raw_pointer + delta: sec.raw_pointer + delta + min(sec.raw_size - delta, end - va)]
+        alone = x86.decode(window, va, limit=10**9)
+        assert (row["instructions"], row["ended"]) == (alone["instructions"], alone["ended"])

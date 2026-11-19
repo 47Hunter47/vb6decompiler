@@ -128,6 +128,9 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
         return b""
 
     thunk_cache: dict[int, str | None] = {}
+    # one engine for the whole pass: construction costs more than a short body's
+    # decode (measured in x86.decode's docstring)
+    md = x86.engine()
 
     def thunk_name(t: int):
         # two-hop: many call targets below the listed population are `jmp
@@ -135,7 +138,7 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
         # resolve the slot and the thunk gets the import's name
         if t not in thunk_cache:
             nm = None
-            probe = x86.decode(window_for(t, t + 12), t, limit=1)
+            probe = x86.decode(window_for(t, t + 12), t, limit=1, engine=md)
             if probe["rows"] and probe["rows"][0]["mnemonic"] == "jmp":
                 t2 = x86.call_target(probe["rows"][0]["operands"])
                 if t2 is not None:
@@ -152,7 +155,7 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
             end_va = vas[i + 1]
         else:
             end_va, capped = va + LAST_RANGE_CAP, True
-        result = x86.decode(window_for(va, end_va), va, limit=10**9)
+        result = x86.decode(window_for(va, end_va), va, limit=10**9, engine=md)
         imported: dict[str, int] = {}
         edges: dict[str, int] = {}
         thunks: dict[str, int] = {}
