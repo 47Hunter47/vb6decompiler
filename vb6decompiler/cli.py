@@ -160,8 +160,10 @@ def cmd_decode(args) -> int:
     iat = pe.import_names(pe.read(args.exe))
     vas, owners = [], []
     if args.procs:
+        from . import fileio, records
         from .edges import owner_index
 
+        fileio.require(args.procs)  # a missing explicit input is exit 2, not a crash
         bad = 0
         with open(args.procs, encoding="utf-8") as fh:
             for n, line in enumerate(fh, 1):
@@ -171,17 +173,15 @@ def cmd_decode(args) -> int:
                     bad += 1  # builder policy from dossier: count, skip, keep going
                     print(f"# line {n}: not JSON", file=sys.stderr)
                     continue
-                if not isinstance(d, dict):
+                reason = records.reject_reason(d)
+                if reason is not None:
                     bad += 1
-                    print(f"# line {n}: record is not a JSON object", file=sys.stderr)
+                    print(f"# line {n}: {reason}", file=sys.stderr)
                     continue
-                try:
-                    v = int(d["va"], 16)
-                except (ValueError, KeyError, TypeError):
-                    bad += 1
-                    print(f"# line {n}: record has no usable va", file=sys.stderr)
+                proc_va = records.hex_va(d["va"])
+                if proc_va is None:  # unreachable: reject_reason turned that shape away
                     continue
-                vas.append(v)
+                vas.append(proc_va)
                 owners.append(d)
         order = sorted(range(len(vas)), key=vas.__getitem__)
         vas = [vas[i] for i in order]
@@ -210,7 +210,7 @@ def cmd_decode(args) -> int:
                 o = owners[i]
                 row["target_proc"] = {"va": f"{vas[i]:X}",
                                       "object_name": o.get("object_name"),
-                                      "names": (o.get("name_hint") or {}).get("names", [])}
+                                      "names": (o.get("name_hint") or {}).get("names") or []}
                 landed += 1
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

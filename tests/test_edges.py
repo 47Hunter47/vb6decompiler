@@ -242,4 +242,59 @@ def test_dossier_rejections_name_their_line(fixture, capsys):
     _o, err = capsys.readouterr()
     assert "line 3: not JSON" in err
     assert "line 4: record is not a JSON object" in err
-    assert "line 5: record has no usable va" in err
+    assert "line 5: va 'nothex' is not a hex address" in err
+
+
+# --------------------------------------------------------------------------- nested record shapes
+# Review 0.5.7 item F: top-level validation passed records whose nested fields the
+# consumer then choked on. edges and decode --procs now share one gate
+# (vb6decompiler/records.py); a malformed record is counted and the batch goes on.
+NESTED_BAD = [
+    "not json",                                              # 3
+    "[1, 2]",                                                # 4
+    '"a bare scalar"',                                       # 5
+    '{"object_name": "x"}',                                  # 6 no va
+    '{"va": "zzz"}',                                         # 7 not hex
+    '{"va": "0x401000"}',                                    # 8 int() would have accepted it
+    '{"va": "401A00", "name_hint": "invalid"}',              # 9
+    '{"va": "401A01", "name_hint": {"names": 42}}',          # 10
+    '{"va": "401A02", "literals": 42}',                      # 11
+    '{"va": "401A03", "literals": [7]}',                     # 12
+    '{"va": "401A04", "literals": [{"va": "zz", "text": "t"}]}',   # 13
+    '{"va": "401A05", "literals": [{"va": "401090", "text": 5}]}',  # 14
+]
+# decode reads only the procedure identity, so the four literal-shaped rejections
+# above are usable for it — the gate is per consumer, not per file.
+DECODE_REJECTS = 8
+
+
+def test_edges_rejects_bad_nested_records_and_keeps_going(fixture, capsys):
+    from vb6decompiler import edges
+
+    exe, procs = fixture
+    good_after = '{"va": "401040", "object_name": "modLate", "name_hint": {"names": ["ProcLate"]}}\n'
+    procs.write_text(procs.read_text(encoding="utf-8") + "\n".join(NESTED_BAD) + "\n" + good_after,
+                     encoding="utf-8")
+    rows, bad, _totals = edges.collect(str(exe), str(procs))
+    assert bad == len(NESTED_BAD)
+    assert [r["va"] for r in rows] == ["401010", "40102B", "401040"]  # valid before and after
+    _o, err = capsys.readouterr()
+    assert "line 8: va '0x401000' is not a hex address" in err
+    assert "line 11: literals is not a list" in err
+    assert "line 13: literals entry va 'zz' is not a hex address" in err
+    assert "line 14: literals entry text is not a string" in err
+
+
+def test_decode_procs_uses_the_same_gate(fixture, capsys):
+    from vb6decompiler import cli
+
+    exe, procs = fixture
+    procs.write_text(procs.read_text(encoding="utf-8") + "\n".join(NESTED_BAD) + "\n",
+                     encoding="utf-8")
+    code = cli.main(["decode", str(exe), "--va", "401010", "--procs", str(procs), "--json"])
+    out, err = capsys.readouterr()
+    assert code == 0, err
+    assert f"# warning: {DECODE_REJECTS} unreadable lines skipped" in err
+    import json as _json
+
+    assert _json.loads(out)["rows"]
