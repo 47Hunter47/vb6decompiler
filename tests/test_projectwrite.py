@@ -97,6 +97,19 @@ def test_write_project_dir_and_report(tmp_path):
     assert vbp.startswith("; recovered by vb6d project")
 
 
+def test_referencecount_zero_is_an_assumption_not_evidence():
+    """Review 0.5.7 item J: ReferenceCount=0 must not read as a measured value."""
+    project = make_project()
+    text = projectwrite.vbp_text(project)
+    assert "ReferenceCount=0" in text  # the .vbp stays loadable
+    assert "reconstruction placeholder" in text
+    report = projectwrite.build_report(project, "sample.exe")
+    assumption = next(a for a in report["assumptions"] if a["item"] == "ReferenceCount=0")
+    assert "not modelled" in assumption["why"] and "placeholder" in assumption["why"]
+    assert "GUID" in assumption["why"]  # nothing invented to fill the table
+    assert report["assumptions"][0]["item"] == "Type=Exe"  # existing assumption kept
+
+
 def test_datareport_gap_names_the_designer_files_it_did_not_rebuild():
     """Review item I: recovered layout is not the designer file, and "no file for
     it" must never be phrased as if the evidence proved the object runtime-only."""
