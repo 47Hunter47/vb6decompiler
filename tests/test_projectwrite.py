@@ -262,6 +262,6 @@ def test_existing_output_dir_is_refused_unless_forced(tmp_path):
     with pytest.raises(fileio.InputError, match="--force"):
         projectwrite.write_project(make_project(), str(out))
     assert keeper.read_text(encoding="utf-8") == "' edited by hand\n"  # refused, not clobbered
-    assert list(out.glob("*.vb6d-tmp")) == []
+    assert list(out.glob(".vb6d-*.tmp")) == []
     projectwrite.write_project(make_project(), str(out), force=True)
     assert (out / "Sample.vbp").exists()
