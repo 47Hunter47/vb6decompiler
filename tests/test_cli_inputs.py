@@ -276,7 +276,7 @@ def test_dossier_rerun_replaces_its_own_previous_output(tmp_path, capsys):
 # looked at the listings, so an --out naming an inventory CSV truncated it.
 def _inventory_csv(tmp_path):
     inv = tmp_path / "inventory"
-    inv.mkdir()
+    inv.mkdir(exist_ok=True)
     path = inv / "pseudoc_order.csv"
     path.write_text("va,label,sira,addr,text,is_sql,source\n"
                     "401000,Proc_1,0,401000,SELECT 1,1,text\n", encoding="utf-8")
@@ -304,7 +304,7 @@ def test_dossier_refuses_an_out_that_is_an_inventory_input(tmp_path, capsys):
 
 
 def test_dossier_refuses_a_symlink_alias_of_an_inventory_input(tmp_path, capsys):
-    inv = tmp_path / "inventory" / "pseudoc_order.csv"
+    inv = _inventory_csv(tmp_path)
     alias = tmp_path / "alias.csv"
     try:
         os.symlink(inv, alias)
@@ -318,7 +318,7 @@ def test_dossier_refuses_a_symlink_alias_of_an_inventory_input(tmp_path, capsys)
 
 
 def test_dossier_refuses_a_hard_link_alias_of_an_inventory_input(tmp_path, capsys):
-    inv = tmp_path / "inventory" / "pseudoc_order.csv"
+    inv = _inventory_csv(tmp_path)
     alias = tmp_path / "alias.csv"
     try:
         os.link(inv, alias)
