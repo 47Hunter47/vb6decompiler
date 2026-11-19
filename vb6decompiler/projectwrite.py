@@ -207,6 +207,8 @@ def vbp_text(project: VBProject, plan: dict | None = None) -> str:
         f"; source executable: {_txt(project.path)}",
         f"; project identifier: {_txt(project.identifier)}  runtime: {project.runtime_build} revision {project.runtime_rev}",
         "Type=Exe",
+        "; ReferenceCount=0 is a reconstruction placeholder, not a measurement: the",
+        "; original reference table was not recovered (see recovery-report.json).",
         "ReferenceCount=0",
     ]
     entries = plan["files"]
@@ -457,6 +459,7 @@ def build_report(project: VBProject, exe_path: str, design: dict | None = None,
         "gaps": gaps,
         "assumptions": [
             {"item": "Type=Exe", "why": "input is a PE application image; ActiveX DLL/Control projects would need Type=Dll — application type is not modelled from the object table"},
+            {"item": "ReferenceCount=0", "why": "the original reference table is not modelled, so the .vbp carries a reconstruction placeholder; zero does not mean the project had no references, and no GUID, library name or version is invented"},
         ],
     }
 
