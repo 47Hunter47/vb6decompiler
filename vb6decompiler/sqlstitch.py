@@ -20,7 +20,12 @@ closed. Measured on 1,273 write-candidate procedures:
 
 This module reproduces that classification. It never fills a gap with a guess: a
 fragment that needs a run-time value is reported as ``RUNTIME_GAP``, which is the
-honest answer and tells you a live trace is required.
+honest answer and tells you a live trace is required. Before that status existed the
+gate list had no way to say it, so a boundary such as ``ItemCode = '`` + ``'`` (a value
+concatenated at run time) or ``= '`` + ``FieldName`` + ``'`` (a field name quoted later)
+closed as balanced text and the candidate was reported CLOSED — a claim the text could
+not support. Any string that only *looks* closed because a value was dropped belongs in
+``RUNTIME_GAP``, never in ``CLOSED``.
 
 Two measured traps are encoded in the gates:
 
@@ -64,6 +69,51 @@ ESCAPE = re.compile(r"''[^\s'()=,<>+\-*0-9]|\)[0-9]{2}\.[0-9]{2}|[!?]")
 #: A trailing quote is deliberately NOT in this set: a balanced statement legitimately
 #: ends with one (``... = 'E1'``), and :func:`balanced` already catches the open case.
 _DANGLING = re.compile(r"(and|or|,|<|>|=|\+|-|\blike\b|\bin\b|\()\s*$", re.IGNORECASE)
+
+#: A run-time value sitting between two fragments. VB6 concatenates it with ``&``,
+#: so the stitcher sees ``… ItemCode = '`` followed by ``' AND …``: the empty pair is
+#: not an empty string, it is a missing value. The listing can also hand a field name
+#: its own literal (``= '`` + ``FieldName`` + ``'``), which every other gate passes:
+#: balanced, one verb, no dangling operator. Both were reported CLOSED before this
+#: gate, so the "closed" claim was false — the text could not run.
+#: The right-hand side of a boundary may legitimately start with a SQL word
+#: (``'E1' AND …``), an operator or a bracket; only anything else means a value
+#: was glued in.
+_AFTER_VALUE_OK = re.compile(
+    r"^\s*(and|or|order|group|where|having|union|on|as|in|is|not|like|between|"
+    r"end|asc|desc|when|then|else|col|collate|top|distinct|\)|,|;|\+|-|\*|/|=|<|>)",
+    re.IGNORECASE,
+)
+#: Inside an open quote, a *field name* is not a value. The listing hands
+#: ``= '`` + ``FieldName`` + ``'`` its own literal, which closes cleanly and would
+#: otherwise pass as content. A stored value can also be split (``= '`` + ``1'``),
+#: so only a bare quote or a lone identifier followed by the closing quote counts.
+_IDENT_THEN_QUOTE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*'\s*$")
+
+
+def _runtime_gap(left: str, right: str) -> bool:
+    """Is a run-time value missing between these two adjacent fragments?
+
+    Two signatures, both read off the fragment boundary rather than guessed from
+    the joined text: an *open* quote closed by nothing but a quote (the empty pair
+    is a value, not an empty string) or by a lone identifier (a field name, never a
+    value the compiler stores), and a *closed* quote followed by anything that is
+    not SQL punctuation or a SQL word.
+    """
+    l, r = left.rstrip(), right.lstrip()
+    if not l or not r:
+        return False
+    if l.count("'") % 2 == 1:
+        # left stopped inside a quote: whatever follows is either the tail of a value
+        # the listing split (`1'`) or text that will be quoted later (a field name).
+        # Only a fragment that CLOSES the quote can be a value tail.
+        rs = r.strip()
+        if not rs.endswith("'"):
+            return True
+        return rs in ("'", "''") or bool(_IDENT_THEN_QUOTE.match(rs))
+    if l.endswith("'"):
+        return not _AFTER_VALUE_OK.match(r)
+    return False
 
 
 def normalise(text: str) -> str:
@@ -200,12 +250,15 @@ def _classify(text: str, parts: list[Literal]) -> Candidate:
         return cand("NOT_START", "begins mid-statement")
     if ESCAPE.search(text):
         return cand("ESCAPE", "human text glued onto SQL")
+    if stmts > 1:
+        return cand("MULTI", f"{stmts} statements glued together")
+    for i in range(len(parts) - 1):
+        if _runtime_gap(parts[i].text, parts[i + 1].text):
+            return cand("RUNTIME_GAP", "run-time value between fragments")
     if not balanced(text):
         open_q = text.count("'") % 2 == 1
         return cand("OPEN_QUOTE" if open_q else "OPEN_PAREN",
                     "run-time value or missing tail" if open_q else "unbalanced parentheses")
-    if stmts > 1:
-        return cand("MULTI", f"{stmts} statements glued together")
     if _DANGLING.search(text.strip()):
         return cand("DANGLING", "ends on a connector")
     # A one-part candidate has no continuation to test: asking whether it is SQL made

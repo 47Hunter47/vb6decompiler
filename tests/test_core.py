@@ -126,6 +126,44 @@ def test_human_text_glued_onto_sql_is_flagged():
     assert cand.status == "ESCAPE"
 
 
+def test_runtime_value_between_fragments_is_not_closed():
+    """Measured failure: the gates before this one read a run-time value as content.
+
+    A chain of ``… = '`` + ``' AND …`` closes as an empty string, and a field name
+    that the listing gave its own literal (``'`` + ``FieldName`` + ``'``) passes every
+    other gate. Both were reported CLOSED; the text could not run.
+    """
+    chain = [
+        _lit("SELECT ISNULL(SUM(Qty),0) AS Qty FROM tMove WHERE Item = '"),
+        _lit("'"),
+        _lit("ItemCode AND LEFT(MoveCode,1) = "),
+        _lit("'"),
+        _lit("' AND MoveDate <> 0 "),
+    ]
+    cands = sqlstitch.stitch(chain, 0)
+    assert cands and all(c.status != "CLOSED" for c in cands)
+    assert any(c.status == "RUNTIME_GAP" for c in cands)
+    assert not any(c.closed for c in cands)
+
+
+def test_closed_quote_followed_by_a_identifier_is_a_runtime_gap():
+    chain = [
+        _lit("SELECT * FROM tMove WHERE Item = "),
+        _lit("'"),
+        _lit("FieldName"),
+        _lit("' AND Qty > 0"),
+    ]
+    # every prefix is considered; none of them may claim CLOSED
+    for cand in sqlstitch.stitch(chain, 0):
+        assert cand.status != "CLOSED", cand.text
+
+
+def test_sql_word_after_a_closed_quote_is_still_closed():
+    """The gate must not eat legitimate chains: ``'E1' AND …`` has no missing value."""
+    chain = [_lit("SELECT * FROM tOrder WHERE Dep = 'E1' "), _lit("AND Kind = 'A'")]
+    assert any(c.status == "CLOSED" for c in sqlstitch.stitch(chain, 0))
+
+
 def test_dangling_connector_is_reported():
     cand = sqlstitch._classify(
         "SELECT * FROM tItem WHERE ItemKey = 'A' AND", [_lit("x")]
