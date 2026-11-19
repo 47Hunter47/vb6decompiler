@@ -3,6 +3,23 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.5.6
+
+`sqlstitch` promised a `RUNTIME_GAP` status in its docstring and never produced
+one, so a value the program concatenated at run time could close as a statement.
+Two boundaries did it: an unterminated quote followed by a bare quote (a value
+rendered as an empty string) and an unterminated quote followed by a field name
+that is quoted later. Both passed every existing gate — balanced, one verb, no
+dangling connector — and were reported CLOSED, which the text could not support.
+The new gate reads the fragment boundary instead of the joined text, and keeps the
+case that must stay closed: a long stored literal the listing split across
+fragments still ends with its closing quote and is not a gap. Re-measured on the
+same corpus, candidate census unchanged: CLOSED 20,693 → 5,122, RUNTIME_GAP
+0 → 26,067, OPEN_QUOTE 22,836 → 12,785; best-closed-per-procedure 4,423 → 1,842,
+and the 755 texts that appear only afterwards were verified to have been CLOSED
+candidates in the previous run as well — a longer bogus join had been hiding them.
+Suite: 319 passed, 15 skipped of 334 collected.
+
 ## 0.5.5
 
 The second external review series. Operational failures now exit 3 —
