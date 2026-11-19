@@ -207,7 +207,7 @@ def test_dossier_refuses_an_out_that_is_a_listing_file(tmp_path, capsys):
     assert code == 2, err
     assert "output path is one of the input files" in err
     assert listing.read_bytes() == before, "the refused run must leave the listing byte-identical"
-    assert list(tmp_path.glob("*.vb6d-tmp")) == []
+    assert list(tmp_path.glob(".vb6d-*.tmp")) == []
 
 
 def test_edges_refuses_an_out_that_is_the_exe_or_the_dossier(tmp_path, capsys):
@@ -225,7 +225,7 @@ def test_edges_refuses_an_out_that_is_the_exe_or_the_dossier(tmp_path, capsys):
         assert code == 2, err
         assert "output path is one of the input files" in err
     assert exe.read_bytes() == exe_bytes and dos.read_bytes() == dos_bytes
-    assert list(tmp_path.glob("*.vb6d-tmp")) == []
+    assert list(tmp_path.glob(".vb6d-*.tmp")) == []
 
 
 def test_outline_refuses_an_out_that_is_its_edges_file(tmp_path, capsys):
@@ -237,7 +237,7 @@ def test_outline_refuses_an_out_that_is_its_edges_file(tmp_path, capsys):
     assert code == 2, err
     assert "output path is one of the input files" in err
     assert edges.read_bytes() == before  # the old run read nothing and wrote nothing back
-    assert list(tmp_path.glob("*.vb6d-tmp")) == []
+    assert list(tmp_path.glob(".vb6d-*.tmp")) == []
 
 
 def test_dossier_failure_keeps_the_previous_output_intact(tmp_path, capsys, monkeypatch):
@@ -256,7 +256,7 @@ def test_dossier_failure_keeps_the_previous_output_intact(tmp_path, capsys, monk
     _o, err = capsys.readouterr()
     assert code != 0, err
     assert out.read_text(encoding="utf-8") == "PRE-EXISTING OUTPUT\n"
-    assert list(tmp_path.glob("*.vb6d-tmp")) == [], "a failed run leaves no temp file"
+    assert list(tmp_path.glob(".vb6d-*.tmp")) == [], "a failed run leaves no temp file"
 
 
 def test_dossier_rerun_replaces_its_own_previous_output(tmp_path, capsys):
@@ -268,7 +268,7 @@ def test_dossier_rerun_replaces_its_own_previous_output(tmp_path, capsys):
     assert code == 0, err
     produced = tmp_path / "dossier.jsonl"
     assert len(produced.read_text(encoding="utf-8").splitlines()) == 1
-    assert list(tmp_path.glob("*.vb6d-tmp")) == []
+    assert list(tmp_path.glob(".vb6d-*.tmp")) == []
 
 
 # --------------------------------------------------------------------------- exit 3: the toolkit's own failures

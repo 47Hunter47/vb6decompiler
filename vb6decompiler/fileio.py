@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import mmap
 import os
+import tempfile
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from typing import TextIO
@@ -119,28 +120,45 @@ def refuse_overwrite_inputs(out: str, inputs: Iterable[str]) -> None:
                 f"{out}: output path is one of the input files ({path}); refusing to overwrite")
 
 
-#: Suffix of the temporary file :func:`atomic_out` writes; distinct enough that it
-#: cannot collide with a stage's own output name.
-TMP_SUFFIX = ".vb6d-tmp"
+#: Prefix/suffix of the unique temporary file :func:`atomic_out` creates in the
+#: destination's directory. The name is random (``tempfile.mkstemp``): two writers
+#: never share it, and no pre-existing path is opened or truncated.
+TMP_PREFIX = ".vb6d-"
+TMP_SUFFIX = ".tmp"
 
 
 @contextmanager
 def atomic_out(path: str, newline: str | None = None) -> Iterator[TextIO]:
-    """A UTF-8 text writer on a sibling temp file, moved onto ``path`` only on a clean exit.
+    """A UTF-8 text writer on a unique sibling temp file, moved onto ``path`` only on a clean exit.
 
     Opening the destination directly truncates it immediately, so a failure in the
     middle of writing used to replace a usable file with half of a new one (and a
     refused run left an empty file behind). The temp file sits in the destination's
     own directory so ``os.replace`` stays on one volume, where it is atomic; on any
     failure the temp is removed and the previous output is untouched.
+
+    The temp name comes from ``mkstemp`` (exclusive create, unpredictable): a fixed
+    ``<path>.vb6d-tmp`` let two concurrent runs truncate each other's buffer and let a
+    planted symlink redirect the write. Each invocation removes only the file it
+    created itself, and closes it before ``os.replace`` — Windows refuses to replace
+    a file that still has an open handle.
     """
-    tmp = path + TMP_SUFFIX
+    directory = os.path.dirname(os.path.abspath(path))
+    fd, tmp = tempfile.mkstemp(prefix=TMP_PREFIX, suffix=TMP_SUFFIX, dir=directory)
+    try:
+        fh = os.fdopen(fd, "w", encoding="utf-8", newline=newline)
+    except BaseException:
+        os.close(fd)  # fdopen did not take ownership; Windows would refuse the cleanup below
+        raise
     moved = False
     try:
-        with open(tmp, "w", encoding="utf-8", newline=newline) as fh:
+        with fh:
             yield fh
         os.replace(tmp, path)
         moved = True
     finally:
-        if not moved and os.path.exists(tmp):
-            os.remove(tmp)
+        if not moved:
+            try:
+                os.remove(tmp)
+            except FileNotFoundError:  # a caller moved it itself; nothing to clean
+                pass

@@ -140,7 +140,7 @@ def test_refuse_overwrite_inputs_names_the_input_before_anything_opens(tmp_path)
     out = str(tmp_path / "sub" / os.sep.join(["..", "fDemo.bas"]))
     with pytest.raises(fileio.InputError, match="input files"):
         fileio.refuse_overwrite_inputs(out, [str(listing)])
-    assert not list(tmp_path.glob("*.vb6d-tmp"))  # the guard ran before the writer
+    assert not list(tmp_path.glob(".vb6d-*.tmp"))  # the guard ran before the writer
 
 
 def test_atomic_out_replaces_the_target_and_leaves_no_temp(tmp_path):
@@ -149,7 +149,7 @@ def test_atomic_out_replaces_the_target_and_leaves_no_temp(tmp_path):
     with fileio.atomic_out(str(out)) as fh:
         fh.write("NEW\n")
     assert out.read_text(encoding="utf-8") == "NEW\n"
-    assert list(tmp_path.glob("*.vb6d-tmp")) == []
+    assert list(tmp_path.glob(".vb6d-*.tmp")) == []
 
 
 def test_atomic_out_keeps_the_previous_file_when_the_block_fails(tmp_path):
@@ -159,4 +159,81 @@ def test_atomic_out_keeps_the_previous_file_when_the_block_fails(tmp_path):
         fh.write("half a new file\n")
         raise RuntimeError("planted")
     assert out.read_bytes() == b"PRE-EXISTING\n"
-    assert list(tmp_path.glob("*.vb6d-tmp")) == [], "a failed run must clean up its temp"
+    assert list(tmp_path.glob(".vb6d-*.tmp")) == [], "a failed run must clean up its temp"
+
+
+# --------------------------------------------------------------------------- unique temp names
+# Review 0.5.7 item A: the temp path was deterministic (`<out>.vb6d-tmp`), so two
+# writers shared a buffer, a pre-existing file with that name was truncated, and a
+# symlink there redirected the write outside the destination.
+def test_a_legacy_tmp_file_is_never_touched(tmp_path):
+    out = tmp_path / "out.jsonl"
+    legacy = tmp_path / (out.name + ".vb6d-tmp")
+    legacy.write_bytes(b"someone else's buffer\n")
+    with fileio.atomic_out(str(out)) as fh:
+        fh.write("NEW\n")
+    assert legacy.read_bytes() == b"someone else's buffer\n"
+    assert out.read_text(encoding="utf-8") == "NEW\n"
+
+
+def test_a_symlink_at_the_legacy_tmp_path_is_never_followed(tmp_path):
+    victim = tmp_path / "victim.txt"
+    victim.write_bytes(b"must not change\n")
+    legacy = tmp_path / "out.jsonl.vb6d-tmp"
+    try:
+        os.symlink(victim, legacy)
+    except (OSError, NotImplementedError):
+        pytest.skip("this filesystem/user cannot create symlinks")
+    out = tmp_path / "out.jsonl"
+    with fileio.atomic_out(str(out)) as fh:
+        fh.write("NEW\n")
+    assert victim.read_bytes() == b"must not change\n"
+    assert os.path.islink(legacy)  # untouched, not replaced or removed
+
+
+def test_two_concurrent_writers_use_different_temp_files(tmp_path, monkeypatch):
+    import threading
+
+    barrier = threading.Barrier(2)
+    replaced: list[str] = []
+    lock = threading.Lock()
+    real_replace = fileio.os.replace
+
+    def record(src, dst):
+        with lock:
+            replaced.append(os.path.basename(src))
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(fileio.os, "replace", record)
+    body = "".join(f"line {i}\n" for i in range(2000))
+    errors: list[BaseException] = []
+
+    def write(name: str) -> None:
+        try:
+            barrier.wait(timeout=10)
+            with fileio.atomic_out(str(tmp_path / name)) as fh:
+                fh.write(body)
+        except (OSError, RuntimeError) as exc:  # surfaced by the assertion below
+            errors.append(exc)
+
+    threads = [threading.Thread(target=write, args=(n,)) for n in ("a.jsonl", "b.jsonl")]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=30)
+    assert not errors, errors
+    assert len(replaced) == 2 and len(set(replaced)) == 2, replaced
+    for name in ("a.jsonl", "b.jsonl"):
+        assert (tmp_path / name).read_text(encoding="utf-8") == body
+    assert list(tmp_path.glob(".vb6d-*.tmp")) == []
+
+
+def test_a_failed_writer_removes_only_its_own_temp(tmp_path):
+    foreign = tmp_path / ".vb6d-foreign.tmp"
+    foreign.write_bytes(b"another process\n")
+    out = tmp_path / "out.jsonl"
+    with pytest.raises(RuntimeError, match="planted"), fileio.atomic_out(str(out)) as fh:
+        fh.write("half\n")
+        raise RuntimeError("planted")
+    assert foreign.read_bytes() == b"another process\n"
+    assert not out.exists()
