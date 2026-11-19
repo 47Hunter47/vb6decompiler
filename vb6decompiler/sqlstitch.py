@@ -270,7 +270,12 @@ def _classify(text: str, parts: list[Literal]) -> Candidate:
 
 
 def stitch_all(literals: list[Literal], max_more: int = MAX_MORE) -> list[Candidate]:
-    """Best closed candidate per procedure, plus the count of open fragments."""
+    """Best closed candidate per procedure — open fragments are not returned.
+
+    Asking this function how much stayed open answers nothing: it never had that
+    information. Count every status by walking :func:`stitch` per chain (or reuse
+    :func:`summarise`), and report the denominator with it.
+    """
     out: list[Candidate] = []
     for chain in chains(literals).values():
         best: Candidate | None = None
