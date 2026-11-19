@@ -29,6 +29,7 @@ import json
 import os
 import re
 import shutil
+import struct
 import tempfile
 import unicodedata
 
@@ -254,27 +255,34 @@ def _txt(value) -> str:
     return "".join(out)
 
 
-def _design_map(exe_path: str, encoding: str) -> dict[str, list] | None:
-    """``name.lower() -> [(FormBlob, Form), ...]`` from the exe's form-data blobs.
+def _design_map(exe_path: str, encoding: str) -> tuple[dict[str, list] | None, str | None]:
+    """``(name.lower() -> [(FormBlob, Form), ...], failure reason)`` from the exe's form-data blobs.
 
-    None means the scan itself failed (the writer then says so in the report
-    instead of pretending the forms had no design). A name claimed by more than
-    one record is deliberately left a list: the writer refuses to pick one and
-    reports the ambiguity. The binary record stream is NOT copied out: it lives
-    in the exe, and the report records its offset so anything needing verbatim
-    bytes can fetch them from the input.
+    ``None`` means the scan itself failed (the writer then says so in the report
+    instead of pretending the forms had no design) and the second element names
+    why. Only the failures the image can cause are caught — a missing or
+    malformed PE, a truncated record: those are reported as an incomplete design
+    recovery. A programming error (AttributeError, KeyError, RuntimeError) is NOT
+    a parsing gap and must reach the CLI as exit 3.
+    A name claimed by more than one record is deliberately left a list: the
+    writer refuses to pick one and reports the ambiguity. The binary record
+    stream is NOT copied out: it lives in the exe, and the report records its
+    offset so anything needing verbatim bytes can fetch them from the input.
     """
     from . import blob
     try:
         data, _sections = blob.load_sections(exe_path)
-    except Exception:
-        return None
-    out: dict[str, list] = {}
-    for form_blob in blob.blobs_from(data):
-        form = blob.extract_form(form_blob, encoding=encoding)
-        if form is not None:
-            out.setdefault(form.name.lower(), []).append((form_blob, form))
-    return out
+        blobs = blob.blobs_from(data)
+        out: dict[str, list] = {}
+        for form_blob in blobs:
+            form = blob.extract_form(form_blob, encoding=encoding)
+            if form is not None:
+                out.setdefault(form.name.lower(), []).append((form_blob, form))
+    except (OSError, ValueError, struct.error) as exc:
+        # InputError/PEError are ValueErrors or OSErrors; struct.error is a record
+        # that runs past the data. All three are the image's fault, not ours.
+        return None, f"{type(exc).__name__}: {exc}"
+    return out, None
 
 
 def _design_for(design: dict | None, name: str) -> tuple | None:
@@ -340,7 +348,7 @@ def _stub(project: VBProject, o, plausible: list[str], design: tuple | None = No
 
 
 def build_report(project: VBProject, exe_path: str, design: dict | None = None,
-                 plan: dict | None = None) -> dict:
+                 plan: dict | None = None, design_error: str | None = None) -> dict:
     """The machine-readable companion: provenance, confidence, gaps, assumptions."""
     plan = plan or plan_files(project)
     entries = plan["files"]
@@ -381,7 +389,8 @@ def build_report(project: VBProject, exe_path: str, design: dict | None = None,
         files.append(rec)
     if design is None:
         design_gap = {"item": "design records",
-                      "why": "form-blob scan of the image failed; stubs carry no design and the count of parseable records is unknown"}
+                      "why": f"form-blob scan of the image failed ({design_error or 'reason not recorded'}); "
+                             "stubs carry no design and the count of parseable records is unknown"}
     else:
         missing = sorted(f["file"] for f in files
                          if f["kind"] == "form" and f["design"] is None)
@@ -582,8 +591,9 @@ def write_project(project: VBProject, out_dir: str, force: bool = False) -> dict
     staging = tempfile.mkdtemp(prefix=STAGE_PREFIX, dir=parent)
     try:
         has_forms = any(e["kind"] == "form" for e in plan["files"].values())
-        design = _design_map(project.path, project.encoding) if has_forms else {}
-        report = build_report(project, project.path, design=design, plan=plan)
+        design, design_error = _design_map(project.path, project.encoding) if has_forms else ({}, None)
+        report = build_report(project, project.path, design=design, plan=plan,
+                              design_error=design_error)
         _write_tree(staging, project, plan, report, design)
         _verify_tree(staging, plan, report)
         _promote(staging, out_dir, force)

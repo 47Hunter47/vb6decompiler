@@ -121,7 +121,7 @@ def _fake_design():
 
 
 def test_design_blocks_land_in_form_stubs(tmp_path, monkeypatch):
-    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: _fake_design())
+    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: (_fake_design(), None))
     out = tmp_path / "Sample_project"
     report = projectwrite.write_project(make_project(), str(out))
     stub = (out / "form1.frm").read_text(encoding="utf-8")
@@ -140,7 +140,7 @@ def test_design_blocks_land_in_form_stubs(tmp_path, monkeypatch):
 
 
 def test_forms_without_a_record_say_so(tmp_path, monkeypatch):
-    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: {})
+    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: ({}, None))
     out = tmp_path / "Sample_project"
     report = projectwrite.write_project(make_project(), str(out))
     assert "Design record" not in (out / "form1.frm").read_text(encoding="utf-8")
@@ -151,11 +151,45 @@ def test_forms_without_a_record_say_so(tmp_path, monkeypatch):
 
 
 def test_failed_design_scan_is_reported_not_hidden(tmp_path, monkeypatch):
-    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: None)
+    monkeypatch.setattr(projectwrite, "_design_map",
+                        lambda exe, encoding: (None, "PEError: truncated or malformed PE header"))
     out = tmp_path / "Sample_project"
     report = projectwrite.write_project(make_project(), str(out))
     gap = next(g for g in report["gaps"] if g["item"] == "design records")
     assert "scan of the image failed" in gap["why"]
+    assert "PEError: truncated or malformed PE header" in gap["why"]  # the reason is named
+
+
+# --------------------------------------------------------------------------- design-scan failures
+# Review 0.5.7 item H: _design_map caught Exception, so a KeyError/AttributeError
+# (a bug) was silently reported as "the image had no design". Only the failures
+# the image can cause are a gap now; anything else is the toolkit's fault (exit 3).
+def test_a_malformed_image_is_a_reported_design_gap(tmp_path):
+    exe = tmp_path / "not-a-pe.exe"
+    exe.write_bytes(b"definitely not a PE image")
+    project = make_project()
+    project.path = str(exe)
+    out = tmp_path / "Sample_project"
+    report = projectwrite.write_project(project, str(out))
+    gap = next(g for g in report["gaps"] if g["item"] == "design records")
+    assert "scan of the image failed" in gap["why"]
+    assert "Error" in gap["why"]  # names the exception type it hit
+    assert (out / "recovery-report.json").exists()  # a partial project is still useful
+
+
+def test_an_unexpected_design_scan_fault_is_not_hidden(tmp_path, monkeypatch):
+    from vb6decompiler import blob
+
+    def boom(_path):
+        raise RuntimeError("planted programming error")
+
+    monkeypatch.setattr(blob, "load_sections", boom)
+    project = make_project()
+    out = tmp_path / "Sample_project"
+    with pytest.raises(RuntimeError, match="planted programming error"):
+        projectwrite.write_project(project, str(out))
+    assert not out.exists()  # nothing was promoted, not even a partial tree
+    assert [p for p in tmp_path.iterdir() if p.name.startswith(projectwrite.STAGE_PREFIX)] == []
 
 
 # --------------------------------------------------------------------------- name safety
@@ -207,7 +241,7 @@ def test_unsafe_names_never_escape_or_collide(tmp_path):
 def test_ambiguous_design_names_are_reported_not_assigned(tmp_path, monkeypatch):
     fake = _fake_design()["form1"]
     monkeypatch.setattr(projectwrite, "_design_map",
-                        lambda exe, encoding: {"form1": fake + fake})
+                        lambda exe, encoding: ({"form1": fake + fake}, None))
     out = tmp_path / "Sample_project"
     report = projectwrite.write_project(make_project(), str(out))
     assert "Design record" not in (out / "form1.frm").read_text(encoding="utf-8")
@@ -476,11 +510,11 @@ def test_hostile_object_text_stays_on_its_comment_line(tmp_path, monkeypatch):
     project = _mkproj(objs)
     project.path = "weird\nexe.exe"  # the caller's path is interpolated too
     project.identifier = "AB\nCD"
-    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: {
+    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: ({
         "form1": [(FormBlob(name="Form1", offset=0x10, size=0x20, data=b""),
-                                   Form("Form1", [Control("Txt\r\nX", "TextBox\x00", HOSTILE,
-                                                          1, 2, 3, 4, pages=["Sə\u2028x"])],
-                                        width=10, height=10))]})
+                   Form("Form1", [Control("Txt\r\nX", "TextBox\x00", HOSTILE,
+                                          1, 2, 3, 4, pages=["Sə\u2028x"])],
+                        width=10, height=10))]}, None))
     out = tmp_path / "proj"
     report = projectwrite.write_project(project, str(out))
     files = [p for p in out.iterdir() if p.suffix in (".bas", ".frm")]
