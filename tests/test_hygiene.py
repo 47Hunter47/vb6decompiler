@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 
 import pytest
@@ -48,17 +49,54 @@ def _tracked_files() -> list[str]:
     return out.stdout.split()
 
 
-def _text(path: str) -> str | None:
-    with open(os.path.join(REPO, path), "rb") as fh:
-        raw = fh.read()
-    if b"\x00" in raw[:4096]:
-        return None  # binary fixture: nothing textual to leak
+def _decode(raw: bytes) -> str:
+    """Repo text is UTF-8 except for a few cp1254 fixtures; git prints commit
+    metadata in whatever bytes the commit carries, so both are tried."""
     for enc in ("utf-8", "cp1254"):
         try:
             return raw.decode(enc)
         except UnicodeDecodeError:
             continue
     return raw.decode("utf-8", "replace")
+
+
+def _has_name(token: str, text: str) -> bool:
+    """Case-insensitive literal match, whole-word only."""
+    return re.search(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % re.escape(token), text, re.IGNORECASE) is not None
+
+
+def _git_metadata() -> str | None:
+    """Author, committer and message fields of every reachable commit, plus the
+    tagger and message of each annotated tag.
+
+    The file tree is only half of what a public remote publishes: the identity
+    fields of the history and of the release tags outlive a scrub of the files.
+    Returns None when there is nothing to scan — an unpacked sdist has no .git,
+    a machine without git cannot ask, and a repository with no commits yet has
+    no history to leak.
+    """
+    if shutil.which("git") is None or not os.path.isdir(os.path.join(REPO, ".git")):
+        return None
+    probe = subprocess.run(["git", "rev-list", "--max-count=1", "--all"], cwd=REPO, capture_output=True)
+    if probe.returncode != 0 or not probe.stdout.strip():
+        return None
+    parts = []
+    for args in (
+        ("log", "--all", "--format=%an%n%ae%n%cn%n%ce%n%B"),
+        ("for-each-ref", "refs/tags", "--format=%(taggername)%0a%(taggeremail)%0a%(contents)"),
+    ):
+        out = subprocess.run(("git", *args), cwd=REPO, capture_output=True)
+        assert out.returncode == 0, _decode(out.stderr)
+        parts.append(_decode(out.stdout))
+    return "\n".join(parts)
+
+
+def _text(path: str) -> str | None:
+    with open(os.path.join(REPO, path), "rb") as fh:
+        raw = fh.read()
+    if b"\x00" in raw[:4096]:
+        return None  # binary fixture: nothing textual to leak
+    return _decode(raw)
 
 
 def _denylist() -> list[str]:
@@ -117,18 +155,25 @@ def test_no_email_or_home_path():
 
 
 def test_denylist_from_the_private_project_is_empty_here():
-    """When a project uses these tools, its own names must not appear in them."""
+    """When a project uses these tools, its own names must not appear in them:
+    not in the tracked files and not in the identity fields of the history."""
     names = _denylist()
     if not names:
         pytest.skip("VB6D_SCRUB_DENYLIST not set")
+    metadata = _git_metadata()
+    if metadata is None:
+        pytest.skip("no .git directory here (an unpacked sdist) or no git: no history to scan")
     bad = []
     for name in _tracked_files():
         text = _text(name)
         if text is None:
             continue
         for token in names:
-            if re.search(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % re.escape(token), text, re.IGNORECASE):
+            if _has_name(token, text):
                 bad.append((name, token))
+    for token in names:
+        if _has_name(token, metadata):
+            bad.append(("git metadata", token))
     assert not bad, f"project-specific names present in the tool repo: {bad[:10]}"
 
 
