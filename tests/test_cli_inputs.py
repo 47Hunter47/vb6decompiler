@@ -271,6 +271,81 @@ def test_dossier_rerun_replaces_its_own_previous_output(tmp_path, capsys):
     assert list(tmp_path.glob(".vb6d-*.tmp")) == []
 
 
+# --------------------------------------------------------------------------- inventory inputs
+# Review 0.5.7 item E: --inventory files are inputs too. The collision guard only
+# looked at the listings, so an --out naming an inventory CSV truncated it.
+def _inventory_csv(tmp_path):
+    inv = tmp_path / "inventory"
+    inv.mkdir()
+    path = inv / "pseudoc_order.csv"
+    path.write_text("va,label,sira,addr,text,is_sql,source\n"
+                    "401000,Proc_1,0,401000,SELECT 1,1,text\n", encoding="utf-8")
+    (inv / "stray.csv").write_text("va\n401000\n", encoding="utf-8")
+    return path
+
+
+def _refused_out(tmp_path, out_path):
+    listing = _listing_with_procedure(tmp_path)
+    inv = _inventory_csv(tmp_path)
+    before = (listing.read_bytes(), *[p.read_bytes() for p in (inv, inv.parent / "stray.csv")])
+    code = cli.main(["dossier", "--listings", str(tmp_path), "--inventory", str(inv.parent),
+                     "--out", str(out_path)])
+    return code, before, (listing, inv, inv.parent / "stray.csv")
+
+
+def test_dossier_refuses_an_out_that_is_an_inventory_input(tmp_path, capsys):
+    inv = tmp_path / "inventory" / "pseudoc_order.csv"
+    code, before, files = _refused_out(tmp_path, inv)
+    _o, err = capsys.readouterr()
+    assert code == 2, err
+    assert "output path is one of the input files" in err
+    assert tuple(p.read_bytes() for p in files) == before
+    assert list(tmp_path.rglob(".vb6d-*.tmp")) == []
+
+
+def test_dossier_refuses_a_symlink_alias_of_an_inventory_input(tmp_path, capsys):
+    inv = tmp_path / "inventory" / "pseudoc_order.csv"
+    alias = tmp_path / "alias.csv"
+    try:
+        os.symlink(inv, alias)
+    except (OSError, NotImplementedError):
+        pytest.skip("this filesystem/user cannot create symlinks")
+    code, before, files = _refused_out(tmp_path, alias)
+    _o, err = capsys.readouterr()
+    assert code == 2, err
+    assert "output path is one of the input files" in err
+    assert tuple(p.read_bytes() for p in files) == before
+
+
+def test_dossier_refuses_a_hard_link_alias_of_an_inventory_input(tmp_path, capsys):
+    inv = tmp_path / "inventory" / "pseudoc_order.csv"
+    alias = tmp_path / "alias.csv"
+    try:
+        os.link(inv, alias)
+    except (OSError, NotImplementedError):
+        pytest.skip("this filesystem/user cannot create hard links")
+    code, before, files = _refused_out(tmp_path, alias)
+    _o, err = capsys.readouterr()
+    assert code == 2, err
+    assert "output path is one of the input files" in err
+    assert tuple(p.read_bytes() for p in files) == before
+
+
+def test_inventory_files_names_exactly_what_is_consumed(tmp_path):
+    inv = _inventory_csv(tmp_path).parent
+    assert dossier.inventory_files(str(inv)) == [str(inv / "pseudoc_order.csv")]
+
+
+def test_a_missing_inventory_path_is_unusable_input(tmp_path, capsys):
+    _listing_with_procedure(tmp_path)
+    code = cli.main(["dossier", "--listings", str(tmp_path), "--out", str(tmp_path / "d.jsonl"),
+                     "--inventory", str(tmp_path / "gone")])
+    _o, err = capsys.readouterr()
+    assert code == 2, err
+    assert "not a directory" in err
+    assert not (tmp_path / "d.jsonl").exists()
+
+
 # --------------------------------------------------------------------------- exit 3: the toolkit's own failures
 # Review item H1: a crash used to leave the same exit 2 that says "your input was
 # unusable", so a script could not tell its own bad path from a bug in here.

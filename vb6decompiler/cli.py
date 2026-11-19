@@ -465,8 +465,12 @@ def cmd_dossier(args) -> int:
     _announce(codec, source)
     out_path = args.out or os.path.join(args.listings, dossier.DEFAULT_OUT_NAME)
     # an --out set to one of the listing files being consumed would eat the
-    # listing: compare against the files actually read, not just the directory
-    fileio.refuse_overwrite_inputs(out_path, list(literals.listing_files(args.listings)))
+    # listing, and one set to an --inventory CSV would eat an input the same way:
+    # compare against the files actually read, not just the directory names
+    consumed = list(literals.listing_files(args.listings))
+    if args.inventory:
+        consumed += dossier.inventory_files(args.inventory)
+    fileio.refuse_overwrite_inputs(out_path, consumed)
     with fileio.atomic_out(out_path, newline="") as fh:
         report = dossier.stream(args.listings, fh, encoding=codec,
                                 inventory_path=args.inventory)
