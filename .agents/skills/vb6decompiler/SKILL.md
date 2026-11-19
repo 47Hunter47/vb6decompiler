@@ -60,7 +60,9 @@ vb6d outline     <edges.jsonl>        operations outline via the runtime table:
 vb6d project     <app.exe> [--out DIR] [--force]
                                       project skeleton: .vbp + design-record placeholder
                                       files + recovery-report.json (structure, not source);
-                                      a non-empty --out dir is refused unless --force
+                                      a non-empty --out dir is refused unless --force,
+                                      which replaces the WHOLE directory (stale and
+                                      unrelated files included) from a staged copy
 vb6d mask        <out dir> --dry-run  credential audit before publishing anything
 ```
 
@@ -99,14 +101,24 @@ facts: the answer is a trace, not a longer decompiler run.
 ## The contract, so you parse it right
 
 - Discard `#`-prefixed lines before parsing stdout: footnotes, summaries and
-  counts are comments. `--json` exists for `pe`, `procs`, `stitch`, `frm`, `blob`
-  and `datareport`; `dossier` writes JSONL; `literals` is CSV by design.
+  counts are comments (on stderr everywhere except `mask`, and `procs` writes one
+  `#` count line to stdout). Output per command:
+  `pe` rows, `procs` key/value rows, `literals` CSV, `stitch` rows, `frm` rows,
+  `blob` summary, `datareport` rows, `xref` one JSON document — all on stdout, all
+  switched to JSON by `--json`. `dossier`, `edges` and `outline` write JSONL files
+  (one object per line) to `--out` or their default (`DIR/dossier.jsonl` beside
+  the listings, `edges.jsonl` / `outline.jsonl` beside their input);
+  `project` writes the directory and, with `--json`, prints the report on stdout;
+  `decode` prints rows (or the full result with `--json`); `mask` prints the audit
+  and sets the exit code.
 - Exit codes: `0` = completed, whatever it found — a missing thing is a result,
   report it, do not retry; `1` = mask audit says not publishable; `2` = unusable
-  input (one line on stderr, no traceback; `VB6D_DEBUG=1` re-raises for a bug
-  report); `3` = the toolkit's own failure, a bug or an unwritable output —
-  stderr prints `internal error:` with the exception type; report it rather than
-  retrying with different flags.
+  input, a wrong invocation, or an unavailable documented capability (a missing
+  `[asm]` engine, printed as one line with the install hint; `VB6D_DEBUG=1`
+  re-raises for a bug report); `3` = the toolkit's own failure, a bug or an
+  unwritable output — stderr prints `internal error:` with the exception type;
+  report it rather than retrying with different flags. A refused run writes no
+  output file and leaves every input byte-identical.
 - Report every count with its denominator. Closed SQL is a lower bound:
   `OPEN_QUOTE` means a run-time value is missing and no smarter regex closes it.
 - Procedure names do not exist in a native build: treat names as hints and
@@ -115,6 +127,10 @@ facts: the answer is a trace, not a longer decompiler run.
 - A runtime call *description* in a dossier is a third party's note marked
   `unverified`. Only the name and ordinal were read from an export table, and an
   ordinal belongs to one runtime build.
+- `project` writes placeholders and a `.vbp`, never recovered source: no code
+  bodies, `Startup=` and `ReferenceCount=0` are assumptions named in
+  `recovery-report.json`, and a form stub's design lines are comments. Read the
+  report's `gaps`/`assumptions` before treating the directory as the program.
 
 ## Text and code pages
 

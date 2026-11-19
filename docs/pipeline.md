@@ -245,8 +245,14 @@ to void the file — the builder's policy carried through.
 the object table's modules/classes/forms, one placeholder file per object, and
 `recovery-report.json`. Structure is what this proves; text is not. An existing
 non-empty `--out` directory is refused (exit 2, one line naming it and counting
-its files) unless `--force` says the caller really wants those files replaced —
-a re-run must not silently overwrite a directory someone may have edited.
+its files) unless `--force`, which replaces the **entire directory** — stale
+generated files and unrelated user files alike — because generation happens in a
+unique staging directory beside the destination and is promoted only after the
+`.vbp` references and the report are verified against what was written. The old
+directory is renamed aside first and restored if the rename fails, so an
+ordinary failure never destroys the previous project. An output path that is a
+symlink, a regular file, or a directory holding the source executable is refused
+before anything is created (canonical path comparison).
 
 * `.vbp` listing order: VB6 compiles in `.vbp` order, so the object-table order
   is the closest evidence of the original sequence — labelled *inferred* in the
@@ -258,8 +264,11 @@ a re-run must not silently overwrite a directory someone may have edited.
   neither Sub-vs-Function, parameters, visibility, nor the startup designation, so
   even a readable `Main` proves none of them — the line is a comment and the
   report carries it under gaps.
-* `Type=Exe` is the file's only *assumption*, and it is carried as one in the
+* `Type=Exe` is one *assumption*, and it is carried as one in the
   report: the application type is not modelled from the object table.
+  `ReferenceCount=0` is the second: the reference table is not modelled, the zero
+  is a reconstruction placeholder, and no GUID, library name or version is
+  invented to fill it.
 * DataReport objects: what this tool recovers is the compiled layout (`vb6d
   datareport` reads it from the blob); the designer files a real `.vbp` listed —
   `.dsr` text plus `.dsx` resources — carry what the object table does not record,
