@@ -28,6 +28,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
+import tempfile
 
 from . import fileio
 from .procs import VBProject
@@ -411,31 +413,41 @@ def default_out_dir(exe_path: str) -> str:
     return base + "_project"
 
 
-def write_project(project: VBProject, out_dir: str, force: bool = False) -> dict:
-    """Write the skeleton directory and return the report.
+#: Staging and backup directories are siblings of the destination, so promotion is
+#: a rename on one volume; the dot prefix keeps them out of a plain listing.
+STAGE_PREFIX = ".vb6d-stage-"
+BACKUP_PREFIX = ".vb6d-backup-"
 
-    The executable itself is never touched (repo rule: copy, do not patch), and
-    an existing non-empty output directory is refused unless ``force`` says the
-    caller really wants those files replaced — a re-run must not silently
-    overwrite a directory the user may have edited.
-    shortcut: with --force, files are written in place one by one, so a crash
-    mid-write can leave a half-written directory; upgrade to a staging dir if
-    that ever matters (the refusal above is what prevents data loss).
+
+def _canonical(path: str) -> str:
+    """Real path with Windows case folding: what a rename would actually resolve to."""
+    return os.path.normcase(os.path.realpath(os.path.abspath(path)))
+
+
+def _check_out_dir(out_dir: str, exe_path: str) -> None:
+    """Refuse an output the writer may not replace. Checked before anything is created.
+
+    Replacing the whole directory means the executable must not live inside it
+    (a default ``<exe>_project`` never does), and a symlinked output would make
+    the rename land somewhere the caller did not name. Canonical comparison so a
+    ``..`` detour or a case spelling cannot fool the guard.
     """
+    is_junction = getattr(os.path, "isjunction", lambda _p: False)
+    if os.path.islink(out_dir) or is_junction(out_dir):
+        raise fileio.InputError(f"{out_dir}: output path is a symlink; refusing to replace it")
     if os.path.isfile(out_dir):
         raise fileio.InputError(f"{out_dir}: output path is a file, not a project directory")
-    plan = plan_files(project)
-    if os.path.isdir(out_dir) and not force:
-        existing = os.listdir(out_dir)
-        if existing:
-            raise fileio.InputError(
-                f"{out_dir}: output directory is not empty ({len(existing)} files); "
-                "pass --force to write into it")
-    os.makedirs(out_dir, exist_ok=True)
-    has_forms = any(e["kind"] == "form" for e in plan["files"].values())
-    design = _design_map(project.path, project.encoding) if has_forms else {}
-    report = build_report(project, project.path, design=design, plan=plan)
-    with open(os.path.join(out_dir, plan["vbp"]["file"]), "w", encoding="utf-8", newline="") as fh:
+    real_out, real_exe = _canonical(out_dir), _canonical(exe_path)
+    if real_exe == real_out or real_exe.startswith(real_out + os.sep):
+        raise fileio.InputError(
+            f"{out_dir}: output directory contains the source executable ({exe_path}); "
+            "replacing it would delete the input")
+
+
+def _write_tree(directory: str, project: VBProject, plan: dict, report: dict,
+                design: dict | None) -> None:
+    """Write the complete project into ``directory`` (a staging dir, never the destination)."""
+    with open(os.path.join(directory, plan["vbp"]["file"]), "w", encoding="utf-8", newline="") as fh:
         fh.write(vbp_text(project, plan))
     for o in project.objects:
         entry = plan["files"].get(o.index)
@@ -443,10 +455,94 @@ def write_project(project: VBProject, out_dir: str, force: bool = False) -> dict
             continue
         plausible, _ = _junk_names([m.name for m in o.methods])
         design_for_o = _design_for(design, o.name) if entry["kind"] == "form" else None
-        with open(os.path.join(out_dir, entry["file"]), "w", encoding="utf-8", newline="") as fh:
+        with open(os.path.join(directory, entry["file"]), "w", encoding="utf-8", newline="") as fh:
             fh.write(_stub(project, o, plausible, design=design_for_o))
-    report_path = os.path.join(out_dir, DEFAULT_REPORT_NAME)
-    with open(report_path, "w", encoding="utf-8", newline="") as fh:
+    with open(os.path.join(directory, DEFAULT_REPORT_NAME), "w", encoding="utf-8", newline="") as fh:
         json.dump(report, fh, ensure_ascii=False, indent=2)
         fh.write("\n")
+
+
+def _verify_tree(directory: str, plan: dict, report: dict) -> None:
+    """Every .vbp reference and report entry names a file that exists, and nothing else.
+
+    A generator bug (a name that escapes the directory, a file the report forgot)
+    must surface here, while the previous destination is still intact — not as a
+    half-described project on disk.
+    """
+    expected = {plan["vbp"]["file"], DEFAULT_REPORT_NAME} | {e["file"] for e in plan["files"].values()}
+    for name in expected:
+        if os.path.basename(name) != name:
+            raise RuntimeError(f"generated filename escapes the output directory: {name!r}")
+    on_disk = set(os.listdir(directory))
+    if on_disk != expected:
+        raise RuntimeError(f"generated tree does not match its report: "
+                           f"missing {sorted(expected - on_disk)}, unexpected {sorted(on_disk - expected)}")
+    reported = {f["file"] for f in report["files"]}
+    if reported != {e["file"] for e in plan["files"].values()}:
+        raise RuntimeError("recovery report and .vbp plan disagree on the generated files")
+
+
+def _promote(staging: str, out_dir: str, force: bool) -> None:
+    """Move the finished staging tree onto ``out_dir``, keeping a rollback copy.
+
+    A directory swap is not atomic across platforms: the previous tree is renamed
+    aside first, and restored if the new rename fails. Only ordinary failures are
+    covered; a crash between the two renames leaves the backup beside the
+    destination (never deleted before the new tree is in place).
+    """
+    parent = os.path.dirname(os.path.abspath(out_dir))
+    backup = None
+    if os.path.isdir(out_dir):
+        if os.listdir(out_dir):
+            if not force:
+                raise fileio.InputError(
+                    f"{out_dir}: output directory is not empty; "
+                    "pass --force to replace its entire contents")
+            # mkstemp-shaped unique name, released so the rename can take it
+            backup = tempfile.mkdtemp(prefix=BACKUP_PREFIX, dir=parent)
+            os.rmdir(backup)
+            os.replace(out_dir, backup)
+        else:
+            os.rmdir(out_dir)  # Windows cannot rename onto an existing directory
+    try:
+        os.replace(staging, out_dir)
+    except BaseException:
+        if backup is not None:
+            os.replace(backup, out_dir)  # restore; if this fails the backup still holds the tree
+        raise
+    if backup is not None:
+        shutil.rmtree(backup, ignore_errors=True)
+
+
+def write_project(project: VBProject, out_dir: str, force: bool = False) -> dict:
+    """Write the skeleton directory and return the report.
+
+    The executable itself is never touched (repo rule: copy, do not patch). The
+    project is generated in a staging directory beside the destination and only
+    promoted when it is complete and verified, so an exception mid-generation
+    leaves the previous project exactly as it was. Without ``force`` a non-empty
+    destination is refused; with ``force`` the whole directory is replaced —
+    including unrelated files the user left there — so stale generated files
+    cannot survive into the new project.
+    """
+    _check_out_dir(out_dir, project.path)
+    plan = plan_files(project)
+    if os.path.isdir(out_dir) and not force:
+        existing = os.listdir(out_dir)
+        if existing:
+            raise fileio.InputError(
+                f"{out_dir}: output directory is not empty ({len(existing)} files); "
+                "pass --force to replace its entire contents")
+    parent = os.path.dirname(os.path.abspath(out_dir))
+    os.makedirs(parent, exist_ok=True)
+    staging = tempfile.mkdtemp(prefix=STAGE_PREFIX, dir=parent)
+    try:
+        has_forms = any(e["kind"] == "form" for e in plan["files"].values())
+        design = _design_map(project.path, project.encoding) if has_forms else {}
+        report = build_report(project, project.path, design=design, plan=plan)
+        _write_tree(staging, project, plan, report, design)
+        _verify_tree(staging, plan, report)
+        _promote(staging, out_dir, force)
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
     return report
