@@ -55,15 +55,29 @@ _UNSAFE_RE = re.compile(r'[<>:"/\\|?*\x00-\x1f\x7f]')
 #: Device names Windows resolves regardless of extension (CON.bas is CON).
 _RESERVED = {"con", "prn", "aux", "nul"} | {f"com{i}" for i in range(1, 10)} | {f"lpt{i}" for i in range(1, 10)}
 
+#: Longest generated stem. Windows allows 255 characters per component but the
+#: whole path is capped at 260, and the destination directory is the caller's;
+#: 100 leaves room for one and keeps the file name readable when truncated.
+MAX_STEM = 100
+
+
+def _reserved_name(stem: str) -> bool:
+    """True when Windows would read the first dot-segment as a device name.
+
+    ``CON.bas`` and ``CON.backup.vbp`` are both the console device: the
+    reservation survives every extension the writer appends.
+    """
+    return stem.split(".")[0].strip().lower() in _RESERVED
+
 
 def _safe_stem(name: str | None) -> tuple[str | None, str | None]:
     """A single-path-component stem for an untrusted name: ``(stem, why)``.
 
     ``why`` says what had to be repaired (illegal characters, stripped dots,
-    a reserved device name, nothing usable left); ``None`` means the stem is
-    usable as written. Transform, never invent: the original name is preserved
-    in the recovery report, and the caller decides whether the repair needs a
-    suffix or a placeholder.
+    a reserved device name, an over-long name, nothing usable left); ``None``
+    means the stem is usable as written. Transform, never invent: the original
+    name is preserved in the recovery report, and the caller decides whether
+    the repair needs a suffix or a placeholder.
     """
     s = _UNSAFE_RE.sub("_", str(name if name is not None else ""))
     if s != str(name if name is not None else ""):
@@ -75,10 +89,14 @@ def _safe_stem(name: str | None) -> tuple[str | None, str | None]:
         why = (why + "; leading/trailing dots and spaces stripped") if why else \
               "leading/trailing dots and spaces stripped"
     s = trimmed
+    if len(s) > MAX_STEM:
+        s = s[:MAX_STEM].strip(". ")
+        why = f"name longer than {MAX_STEM} characters truncated" + (f"; {why}" if why else "")
     if not s:
         return None, "no usable characters"
-    if s.lower() in _RESERVED:
-        return s, f"reserved Windows device name {s.upper()}"
+    if _reserved_name(s):
+        base = s.split(".")[0]
+        why = f"reserved Windows device name {base.upper()}" + (f"; {why}" if why else "")
     return s, why
 
 
@@ -113,7 +131,7 @@ def plan_files(project: VBProject) -> dict:
         chosen, i = None, 0
         while chosen is None:
             cand = cands[i] if i < len(cands) else f"object_{o.index:04d}_{i}"
-            if cand.lower() not in taken and cand.lower() not in _RESERVED:
+            if cand.lower() not in taken and not _reserved_name(cand):
                 chosen = cand
             i += 1
         reasons = [why] if why else []
@@ -137,6 +155,10 @@ def plan_files(project: VBProject) -> dict:
     vbp_stem, vbp_why = _safe_stem(project.project_name)
     if vbp_stem is None:
         vbp_stem, vbp_why = "project", f"project name unusable ({vbp_why})"
+    elif _reserved_name(vbp_stem):
+        # CON.vbp is the console device on Windows; the reservation does not care
+        # about the extension, so the readable stem can never be used as a file.
+        vbp_stem, vbp_why = "project", f"{vbp_why}; generated file named project.vbp"
     return {"vbp": {"file": vbp_stem + ".vbp", "why": vbp_why},
             "files": files, "unsupported": unsupported}
 

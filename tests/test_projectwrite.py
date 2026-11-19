@@ -375,6 +375,78 @@ def test_the_output_directory_may_not_hold_the_source_executable(tmp_path):
     assert not (tmp_path / "recovery-report.json").exists()
 
 
+# --------------------------------------------------------------------------- Windows filenames
+# Review 0.5.7 item D: the object-name policy checked only the exact stem, so
+# CON.backup.bas (still the console device) and CON.vbp could be "generated".
+RESERVED_CASES = ["CON", "CON.backup", "NUL", "COM1", "LPT9",
+                  "CON.", "CON  ", "PRN...x"]
+
+
+def _windows_valid(name: str) -> bool:
+    return (not projectwrite._reserved_name(name)
+            and not set(name) & set('<>:"/\\|?*')
+            and name == name.strip(". ")
+            and len(name) <= 255)
+
+
+def test_reserved_project_names_get_a_windows_safe_file(tmp_path):
+    for name in RESERVED_CASES:
+        project = _mkproj([VBObject(0, "modA", "module", 0x18001, 0)], name=name)
+        plan = projectwrite.plan_files(project)
+        assert plan["vbp"]["file"] == "project.vbp", name
+        assert plan["vbp"]["why"], name  # the rename is explained, not silent
+        report = projectwrite.build_report(project, "sample.exe", plan=plan)
+        assert report["input"]["project_name"] == name  # original preserved
+        assert all(_windows_valid(e["file"]) for e in plan["files"].values())
+
+
+def test_a_multi_dot_project_name_is_kept_when_it_is_not_a_device():
+    project = _mkproj([VBObject(0, "modA", "module", 0x18001, 0)], name="a.b.c.d")
+    plan = projectwrite.plan_files(project)
+    assert plan["vbp"]["file"] == "a.b.c.d.vbp" and plan["vbp"]["why"] is None
+
+
+def test_reserved_object_basenames_never_reach_a_windows_path(tmp_path):
+    objs = [VBObject(i, name, "module", 0x18001, 0)
+            for i, name in enumerate(["CON", "CON.backup", "NUL", "COM1", "LPT9",
+                                      "plain.name.with.dots", "trail. . "])]
+    project = _mkproj(objs)
+    out = tmp_path / "proj"
+    report = projectwrite.write_project(project, str(out))
+    names = sorted(p.name for p in out.iterdir())
+    assert all(_windows_valid(n) for n in names), names
+    assert len({n.lower() for n in names}) == len(names)  # case-insensitive unique
+    mapping = {m["original"]: m["generated"] for m in report["name_mapping"]}
+    assert mapping["CON"] == "CON_0.bas"  # a suffixed stem leaves the device namespace
+    assert mapping["CON.backup"].startswith("object_")  # suffixing cannot save it
+    assert mapping["trail. . "]  # trailing dots/spaces repaired, original kept
+
+
+def test_over_long_names_are_truncated_deterministically(tmp_path):
+    long_name = "m" * 300
+    project = _mkproj([VBObject(0, long_name, "module", 0x18001, 0)], name=long_name)
+    plan = projectwrite.plan_files(project)
+    entry = plan["files"][0]
+    assert entry["stem"].startswith("m" * projectwrite.MAX_STEM)
+    assert len(entry["stem"]) <= projectwrite.MAX_STEM + 10  # only the index suffix is extra
+    assert len(entry["file"]) < 120
+    assert plan["vbp"]["file"] == "m" * projectwrite.MAX_STEM + ".vbp"
+    assert "truncated" in entry["why"] and "truncated" in plan["vbp"]["why"]
+    assert projectwrite.plan_files(project) == plan  # deterministic
+
+
+def test_case_insensitive_collisions_stay_unique(tmp_path):
+    objs = [VBObject(0, "Proj", "module", 0x18001, 0),
+            VBObject(1, "proj", "module", 0x18001, 0),
+            VBObject(2, "PROJ", "module", 0x18001, 0)]
+    project = _mkproj(objs, name="proj")
+    plan = projectwrite.plan_files(project)
+    files = [e["file"] for e in plan["files"].values()]
+    assert len({f.lower() for f in files}) == 3
+    assert "Proj.bas" in files and files.count("proj.bas") <= 1
+    assert plan["vbp"]["file"].lower() not in {f.lower() for f in files}
+
+
 # --------------------------------------------------------------------------- untrusted text
 # Review 0.5.7 item C: object names, control names/types/captions and page titles come
 # out of the executable. A CR/LF (or U+2028) in one of them used to start a new line
