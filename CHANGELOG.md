@@ -3,6 +3,40 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.5.8
+
+Reliability and data-safety pass. Every writer now creates its buffer with
+`tempfile.mkstemp`, so two runs cannot share a temporary file and a planted
+symlink at the old fixed `<out>.vb6d-tmp` path is neither followed nor
+truncated. `project` generates into a staging directory beside the destination,
+verifies the `.vbp` references and the report against what it wrote, and only
+then promotes it — the previous directory is renamed aside and restored if
+promotion fails; `--force` now replaces the whole directory (stale generated
+files cannot survive), and an output that is a symlink, a regular file or a
+directory holding the source executable is refused. Executable-derived text in
+generated comments (object, procedure, control and page names, captions, the
+exe path) goes through one escaper: CR/LF, TAB, NUL and the Unicode line
+separators become visible escapes, printable text stays readable. Windows
+device names are detected by their first dot-segment, so `CON.backup` and a
+project named `CON` no longer become `CON.bak`-shaped paths, and over-long
+names are truncated deterministically with the reason recorded.
+
+`dossier --out` is now checked against the inventory CSVs it consumes as well
+as the listings, with symlink and hard-link aliases resolved through
+`samefile`. `edges` and `decode --procs` share one record gate
+(`records.py`): a malformed nested field is counted with its line number
+instead of crashing the batch, and addresses must be bare hex rather than
+whatever `int(x, 16)` accepts. `decode` reports a bad `--va`/`--end-va` or a
+non-positive `--limit`/`--window` as exit 2, a missing `--procs` file as exit
+2, and `edges` maps a missing `[asm]` engine to exit 2 with the install hint
+and no output file. `project`'s design scan catches only the image's own
+errors; a programming fault is no longer reported as an empty design.
+Capstone engines are built once per `edges` run: measured on 20,000 short
+bodies, 3.74 s → 1.23 s (engine construction was 98 µs against a 38 µs
+decode), with identical rows. `ReferenceCount=0` is named as a reconstruction
+assumption in the `.vbp` comment and the recovery report, since the reference
+table is not modelled. Suite: 376 collected, 15 skipped.
+
 ## 0.5.7
 
 Documentation only. `stitch_all` promised "the count of open fragments" in its
