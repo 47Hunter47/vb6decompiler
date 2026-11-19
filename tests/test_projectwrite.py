@@ -374,3 +374,55 @@ def test_the_output_directory_may_not_hold_the_source_executable(tmp_path):
     assert exe.read_bytes() == b"MZ"
     assert not (tmp_path / "recovery-report.json").exists()
 
+
+# --------------------------------------------------------------------------- untrusted text
+# Review 0.5.7 item C: object names, control names/types/captions and page titles come
+# out of the executable. A CR/LF (or U+2028) in one of them used to start a new line
+# in the generated .frm/.bas, i.e. executable bytes became source text.
+HOSTILE = "Ad\r\nInjected\ttab\x00nul\u2028sep\\quote\" Müşteri"
+
+
+def test_txt_escapes_every_line_break_and_control_character():
+    esc = projectwrite._txt
+    assert esc("a\rb\nc\r\nd") == "a\\rb\\nc\\r\\nd"
+    assert esc("\t") == "\\t"
+    assert esc("\x00") == "\\u0000" and esc("\x9f") == "\\u009f"
+    assert esc("\u2028") == "\\u2028" and esc("\u2029") == "\\u2029"
+    assert esc("a\\b") == "a\\\\b"
+    assert esc("Müşteri Şişli") == "Müşteri Şişli"  # printable Unicode stays readable
+
+
+def test_hostile_object_text_stays_on_its_comment_line(tmp_path, monkeypatch):
+    from vb6decompiler.blob import Control, Form, FormBlob
+
+    objs = [
+        VBObject(0, HOSTILE, "module", 0x18001, 2,
+                 [Method(0, None, None, False, "Şişli_Çağrı")]),
+        VBObject(1, "Form1", "form", 0x18083, 1,
+                 [Method(0, None, None, False, "Clicked")]),
+    ]
+    project = _mkproj(objs)
+    project.path = "weird\nexe.exe"  # the caller's path is interpolated too
+    project.identifier = "AB\nCD"
+    monkeypatch.setattr(projectwrite, "_design_map", lambda exe, encoding: {
+        "form1": [(FormBlob(name="Form1", offset=0x10, size=0x20, data=b""),
+                                   Form("Form1", [Control("Txt\r\nX", "TextBox\x00", HOSTILE,
+                                                          1, 2, 3, 4, pages=["Sə\u2028x"])],
+                                        width=10, height=10))]})
+    out = tmp_path / "proj"
+    report = projectwrite.write_project(project, str(out))
+    files = [p for p in out.iterdir() if p.suffix in (".bas", ".frm")]
+    assert len(files) == 2
+    for path in files:
+        text = path.read_text(encoding="utf-8")
+        assert all(line.startswith("'") for line in text.splitlines()), path.name
+        assert "\x00" not in text and "\u2028" not in text and "\t" not in text
+    vbp = (out / "Proj.vbp").read_text(encoding="utf-8")
+    assert "source executable: weird\\nexe.exe" in vbp
+    assert "project identifier: AB\\nCD" in vbp
+    # the report keeps the original, unescaped values
+    module = next(f for f in report["files"] if f["kind"] == "module")
+    assert module["evidence"]["name"] == HOSTILE
+    stub = next(p for p in files if p.suffix == ".bas").read_text(encoding="utf-8")
+    assert "Müşteri" in stub and "Şişli_Çağrı" in stub
+
