@@ -165,6 +165,39 @@ def _objects_by_va(listing_dir: str, encoding: str) -> dict[int, str]:
     return out
 
 
+def _declared_kind(path: str) -> str:
+    """The token a file name puts after its last underscore (``x_calls.csv`` -> calls)."""
+    return path.rsplit(".", 1)[0].rsplit("_", 1)[-1]
+
+
+def _inventory_kind(path: str) -> str:
+    """The CSV kind a file name declares, with the single-file fallback to ``order``.
+
+    An unrecognised single CSV is read as the order table, the same fallback
+    :func:`load_inventory` always had; a directory scan only picks the four
+    known kinds, so a stray CSV beside an inventory output is not consumed.
+    """
+    kind = _declared_kind(path)
+    return kind if kind in INVENTORY_KINDS else "order"
+
+
+def inventory_files(path: str) -> list[str]:
+    """The files :func:`load_inventory` will actually read. Checked before writing.
+
+    An ``--out`` that names one of these would destroy an input mid-pass; the
+    caller refuses it before opening anything, and this is the list to compare
+    against (a directory name alone says nothing about which files are consumed).
+    """
+    if os.path.isdir(path):
+        return [os.path.join(path, name) for name in sorted(os.listdir(path))
+                if name.lower().endswith(".csv") and _declared_kind(name) in INVENTORY_KINDS]
+    if path.lower().endswith(".csv"):
+        if not os.path.exists(path):
+            raise ExpectedValueError(f"{path}: no such file or directory")
+        return [path]
+    raise ExpectedValueError(f"{os.path.basename(path)}: not a directory of inventory CSVs or a CSV")
+
+
 def load_inventory(path: str) -> dict[int, dict[str, list[dict]]]:
     """``{va: {kind: [row, ...]}}`` from a ``pseudoc_inventory.py`` output directory.
 
@@ -175,19 +208,7 @@ def load_inventory(path: str) -> dict[int, dict[str, list[dict]]]:
     """
     import csv
 
-    files: list[tuple[str, str]] = []
-    if os.path.isdir(path):
-        for name in sorted(os.listdir(path)):
-            if not name.lower().endswith(".csv"):
-                continue
-            kind = name.rsplit(".", 1)[0].rsplit("_", 1)[-1]
-            if kind in INVENTORY_KINDS:
-                files.append((os.path.join(path, name), kind))
-    elif path.lower().endswith(".csv"):
-        kind = path.rsplit(".", 1)[0].rsplit("_", 1)[-1]
-        files.append((path, kind if kind in INVENTORY_KINDS else "order"))
-    else:
-        raise ExpectedValueError(f"{os.path.basename(path)}: not a directory of inventory CSVs or a CSV")
+    files = [(file_path, _inventory_kind(file_path)) for file_path in inventory_files(path)]
 
     out: dict[int, dict[str, list[dict]]] = {}
     for file_path, kind in files:
@@ -394,6 +415,7 @@ __all__ = [
     "MAX_SQL_PER_PROC",
     "DossierReport",
     "ProcedureDossier",
+    "inventory_files",
     "iter_dossiers",
     "load_inventory",
     "main",

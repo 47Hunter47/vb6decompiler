@@ -99,12 +99,21 @@ def image(path: str) -> Iterator[bytes | mmap.mmap]:
 def same_path(a: str, b: str) -> bool:
     """True when two paths name the same file.
 
-    abspath + normcase (Windows filenames are case-insensitive) is the whole
-    policy: a realpath comparison costs syscalls per pair and does not catch
-    any mistake this guard is aimed at (a typo'd ``--out``, an output named
-    after its own input).
+    Spelling first (abspath + normcase, Windows case folding) because it answers
+    for a destination that does not exist yet. Existing paths are then compared by
+    filesystem identity — ``samefile`` catches a symlink or hard-link alias, and
+    ``realpath`` catches a symlinked parent directory. An identity lookup that
+    fails (a path we may read but not stat) is not an error: the spelling answer
+    stands, so an optional check never turns a valid output into a crash.
     """
-    return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
+    if os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b)):
+        return True
+    try:
+        if os.path.exists(a) and os.path.exists(b):
+            return os.path.samefile(a, b)
+    except OSError:
+        pass
+    return os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))
 
 
 def refuse_overwrite_inputs(out: str, inputs: Iterable[str]) -> None:

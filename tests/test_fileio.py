@@ -143,6 +143,26 @@ def test_refuse_overwrite_inputs_names_the_input_before_anything_opens(tmp_path)
     assert not list(tmp_path.glob(".vb6d-*.tmp"))  # the guard ran before the writer
 
 
+def test_same_path_sees_through_symlink_and_hard_link_aliases(tmp_path):
+    target = tmp_path / "real.csv"
+    target.write_text("va\n", encoding="utf-8")
+    link = tmp_path / "link.csv"
+    hard = tmp_path / "hard.csv"
+    try:
+        os.symlink(target, link)
+    except (OSError, NotImplementedError):
+        link = None
+    try:
+        os.link(target, hard)
+    except (OSError, NotImplementedError):
+        hard = None
+    for alias in (link, hard):
+        if alias is not None:
+            assert fileio.same_path(str(alias), str(target))
+            assert fileio.same_path(str(target), str(alias))
+    assert not fileio.same_path(str(target), str(tmp_path / "other.csv"))
+
+
 def test_atomic_out_replaces_the_target_and_leaves_no_temp(tmp_path):
     out = tmp_path / "out.jsonl"
     out.write_text("OLD\n", encoding="utf-8")
