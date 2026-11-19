@@ -563,7 +563,8 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--out", metavar="DIR", default=None,
                    help="output directory (default: <exe-name>_project beside the exe; never the exe itself)")
     q.add_argument("--force", action="store_true",
-                   help="write even when the output directory exists and is not empty")
+                   help="replace an existing output directory's ENTIRE contents (including "
+                        "unrelated files) with the newly generated project")
     q.add_argument("--json", action="store_true",
                    help="print the recovery report as JSON on stdout (files are written either way)")
     q.add_argument("--encoding", metavar="CODEPAGE", default=None,

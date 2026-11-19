@@ -265,3 +265,112 @@ def test_existing_output_dir_is_refused_unless_forced(tmp_path):
     assert list(out.glob(".vb6d-*.tmp")) == []
     projectwrite.write_project(make_project(), str(out), force=True)
     assert (out / "Sample.vbp").exists()
+
+
+# --------------------------------------------------------------------------- staged generation
+# Review 0.5.7 item B: --force wrote file by file into the old directory. A crash
+# left a half-updated project, stale generated files survived, and a symlink inside
+# the old tree could redirect a generated write outside it.
+def _leftovers(parent):
+    return sorted(p.name for p in parent.iterdir()
+                  if p.name.startswith(projectwrite.STAGE_PREFIX)
+                  or p.name.startswith(projectwrite.BACKUP_PREFIX))
+
+
+def test_a_new_project_leaves_no_staging_directory_behind(tmp_path):
+    out = tmp_path / "Sample_project"
+    projectwrite.write_project(make_project(), str(out))
+    assert _leftovers(tmp_path) == []
+    assert sorted(p.name for p in out.iterdir()) == [
+        "Sample.vbp", "clsTablo.cls", "form1.frm", "modGenel.bas", "recovery-report.json"]
+
+
+def test_force_replaces_the_whole_directory_and_drops_stale_files(tmp_path):
+    out = tmp_path / "Sample_project"
+    out.mkdir()
+    (out / "OldModule.bas").write_text("' stale generated file\n", encoding="utf-8")
+    (out / "notes.txt").write_text("user file\n", encoding="utf-8")
+    projectwrite.write_project(make_project(), str(out), force=True)
+    assert not (out / "OldModule.bas").exists()  # stale generated file gone
+    assert not (out / "notes.txt").exists()      # documented: force replaces everything
+    assert (out / "modGenel.bas").exists() and (out / "Sample.vbp").exists()
+    assert _leftovers(tmp_path) == []
+
+
+def test_a_failed_generation_keeps_the_previous_project(tmp_path, monkeypatch):
+    out = tmp_path / "Sample_project"
+    projectwrite.write_project(make_project(), str(out))
+    before = {p.name: p.read_bytes() for p in out.iterdir()}
+    real = projectwrite._write_tree
+
+    def partial(directory, *args, **kwargs):
+        real(directory, *args, **kwargs)
+        raise OSError("planted staging failure")
+
+    monkeypatch.setattr(projectwrite, "_write_tree", partial)
+    with pytest.raises(OSError, match="planted"):
+        projectwrite.write_project(make_project(), str(out), force=True)
+    assert {p.name: p.read_bytes() for p in out.iterdir()} == before
+    assert _leftovers(tmp_path) == []
+
+
+def test_a_failed_promotion_restores_the_previous_project(tmp_path, monkeypatch):
+    out = tmp_path / "Sample_project"
+    projectwrite.write_project(make_project(), str(out))
+    before = {p.name: p.read_bytes() for p in out.iterdir()}
+    real_replace = projectwrite.os.replace
+    calls = {"n": 0}
+
+    def flaky(src, dst):
+        if os.path.abspath(dst) == os.path.abspath(out):
+            calls["n"] += 1
+            if calls["n"] == 1:  # the staging -> destination rename; the restore must work
+                raise OSError("planted promotion failure")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(projectwrite.os, "replace", flaky)
+    with pytest.raises(OSError, match="planted"):
+        projectwrite.write_project(make_project(), str(out), force=True)
+    assert {p.name: p.read_bytes() for p in out.iterdir()} == before
+    assert _leftovers(tmp_path) == []
+
+
+def test_a_symlinked_output_directory_is_refused(tmp_path):
+    real_dir = tmp_path / "real"
+    real_dir.mkdir()
+    link = tmp_path / "link_project"
+    try:
+        os.symlink(real_dir, link, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("this filesystem/user cannot create directory symlinks")
+    with pytest.raises(fileio.InputError, match="symlink"):
+        projectwrite.write_project(make_project(), str(link), force=True)
+    assert list(real_dir.iterdir()) == []  # nothing was written through the link
+
+
+def test_a_symlink_inside_a_replaced_directory_is_not_followed(tmp_path):
+    out = tmp_path / "Sample_project"
+    out.mkdir()
+    victim = tmp_path / "victim.bas"
+    victim.write_bytes(b"' must not change\n")
+    try:
+        os.symlink(victim, out / "form1.frm")
+    except (OSError, NotImplementedError):
+        pytest.skip("this filesystem/user cannot create symlinks")
+    projectwrite.write_project(make_project(), str(out), force=True)
+    assert victim.read_bytes() == b"' must not change\n"
+    assert not (out / "form1.frm").is_symlink()
+
+
+def test_the_output_directory_may_not_hold_the_source_executable(tmp_path):
+    exe = tmp_path / "app.exe"
+    exe.write_bytes(b"MZ")
+    project = make_project()
+    project.path = str(exe)
+    # the directory itself and every ancestor of the executable
+    for out in (tmp_path, tmp_path / "sub" / ".."):
+        with pytest.raises(fileio.InputError, match="source executable"):
+            projectwrite.write_project(project, str(out), force=True)
+    assert exe.read_bytes() == b"MZ"
+    assert not (tmp_path / "recovery-report.json").exists()
+
