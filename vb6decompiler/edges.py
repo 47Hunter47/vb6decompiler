@@ -22,7 +22,7 @@ import json
 import re
 import sys
 
-from . import blob, pe, x86
+from . import blob, pe, records, x86
 
 # the last range in the file has no next VA to stop it: read up to this many
 # bytes and mark the row capped; upgrade needs an image-end rule
@@ -72,11 +72,13 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
                 bad += 1
                 print(f"# line {n}: record is not a JSON object", file=sys.stderr)
                 continue
-            try:
-                va = int(d["va"], 16)
-            except (ValueError, KeyError, TypeError):
-                bad += 1
-                print(f"# line {n}: record has no usable va", file=sys.stderr)
+            reason = records.reject_reason(d, literals=True)
+            if reason is not None:
+                bad += 1  # one malformed record never voids the batch
+                print(f"# line {n}: {reason}", file=sys.stderr)
+                continue
+            va = records.hex_va(d["va"])
+            if va is None:  # unreachable: reject_reason turned that shape away
                 continue
             procs.append((va, d.get("object_name"), d))
     procs.sort(key=lambda p: p[0])
@@ -84,11 +86,10 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
 
     litmap: dict[int, str] = {}
     for _, _, dossier_row in procs:
-        for lit in dossier_row.get("literals", []):
-            try:
-                litmap[int(lit["va"], 16)] = lit["text"]
-            except (KeyError, TypeError, ValueError):
-                continue  # malformed literal entry: no text, no event
+        for lit in dossier_row.get("literals") or []:
+            lit_va = records.hex_va(lit["va"])
+            if lit_va is not None:  # unreachable: the gate rejected any other shape
+                litmap[lit_va] = lit["text"]
 
     data, sections = blob.load_sections(exe)
     imports = pe.import_names(pe.read(exe))
@@ -212,7 +213,7 @@ def collect(exe: str, dossier_path: str, events: bool = False) -> tuple[list[dic
                         evts.append({"va": row["va"], "text": text})
                         totals["literal_events"] += 1
         r: dict = {"va": f"{va:X}", "object_name": obj,
-                   "names": (dossier_row.get("name_hint") or {}).get("names", []),
+                   "names": (dossier_row.get("name_hint") or {}).get("names") or [],
                    "ended": result["ended"], "instructions": result["instructions"],
                    "calls_imported": imported, "calls_procedures": edges,
                    "calls_late_bound": late}
