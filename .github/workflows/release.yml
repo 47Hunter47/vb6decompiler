@@ -104,3 +104,11 @@ jobs:
       - run: python -m build
       - run: twine check dist/*
       - uses: pypa/gh-action-pypi-publish@release/v1
+      # The tag and the PyPI artefact are the release's evidence; this publishes
+      # the GitHub release page for the same tag so the three never disagree.
+      - name: publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "v$RELEASE_VERSION" >/dev/null 2>&1 ||
+            gh release create "v$RELEASE_VERSION" --verify-tag --generate-notes
