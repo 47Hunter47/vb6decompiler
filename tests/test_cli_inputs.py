@@ -400,6 +400,98 @@ def test_vb6d_debug_reraises_the_internal_fault(monkeypatch):
         cli.main(["procs", "anything.exe"])
 
 
+# --------------------------------------------------------------------------- decode / edges exit codes
+# Review 0.5.7 item G: a bad --va raised ValueError (exit 3, "internal error"), a
+# missing --procs file crashed on open, and edges let EngineUnavailable escape as 3.
+def _mini(tmp_path):
+    from _mini_pe import mini_pe
+
+    exe = tmp_path / "app.exe"
+    exe.write_bytes(mini_pe(code=bytes.fromhex("E80A000000C3")))
+    return exe
+
+
+@pytest.mark.parametrize("argv", [
+    ["--va", "GARBAGE"],
+    ["--va", "0x401000"],          # int(x, 16) used to accept the prefix
+    ["--va", "401000", "--end-va", "zzz"],
+    ["--va", "401000", "--end-va", "400000"],   # not above --va
+    ["--va", "401000", "--limit", "0"],
+    ["--va", "401000", "--limit", "-3"],
+    ["--va", "401000", "--window", "0"],
+])
+def test_bad_decode_flag_values_are_exit_two_with_one_line(argv, tmp_path, capsys):
+    exe = _mini(tmp_path)
+    code = cli.main(["decode", str(exe), *argv])
+    out, err = capsys.readouterr()
+    assert code == 2, err
+    assert err.startswith("error: ") and "Traceback" not in err, err
+    assert out == ""
+
+
+def test_decode_missing_procs_file_is_unusable_input(tmp_path, capsys):
+    exe = _mini(tmp_path)
+    code = cli.main(["decode", str(exe), "--va", "401000",
+                     "--procs", str(tmp_path / "gone.jsonl")])
+    out, err = capsys.readouterr()
+    assert code == 2, err
+    assert "no such file or directory" in err and "Traceback" not in err
+    assert out == ""
+
+
+def test_decode_rejects_a_wrong_typed_procs_record_by_line(tmp_path, capsys):
+    pytest.importorskip("capstone")
+    exe = _mini(tmp_path)
+    procs = tmp_path / "d.jsonl"
+    procs.write_text('{"va": "40100F", "name_hint": {"names": 42}}\n'
+                     '{"va": "nothex"}\n', encoding="utf-8")
+    code = cli.main(["decode", str(exe), "--va", "401000", "--procs", str(procs), "--json"])
+    _o, err = capsys.readouterr()
+    assert code == 0, err
+    assert "line 1: name_hint.names is not a list of strings" in err
+    assert "line 2: va 'nothex' is not a hex address" in err
+    assert "2 unreadable lines skipped" in err
+
+
+def _without_capstone(monkeypatch):
+    """Make the import fail the way a core-only install does."""
+    import builtins
+
+    real = builtins.__import__
+
+    def fake(name, *args, **kwargs):
+        if name == "capstone":
+            raise ImportError("No module named 'capstone'")
+        return real(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake)
+
+
+def test_edges_without_the_engine_exits_two_and_writes_nothing(tmp_path, monkeypatch, capsys):
+    from vb6decompiler import cli
+
+    exe = _mini(tmp_path)
+    procs = tmp_path / "d.jsonl"
+    procs.write_text('{"va": "401000"}\n', encoding="utf-8")
+    out = tmp_path / "edges.jsonl"
+    _without_capstone(monkeypatch)
+    code = cli.main(["edges", str(exe), "--dossier", str(procs), "--out", str(out)])
+    _o, err = capsys.readouterr()
+    assert code == 2, err
+    assert err.startswith("error: capstone is not installed") and "Traceback" not in err
+    assert "[asm]" in err
+    assert not out.exists() and list(tmp_path.glob(".vb6d-*.tmp")) == []
+
+
+def test_decode_without_the_engine_exits_two(tmp_path, monkeypatch, capsys):
+    exe = _mini(tmp_path)
+    _without_capstone(monkeypatch)
+    code = cli.main(["decode", str(exe), "--va", "401000"])
+    out, err = capsys.readouterr()
+    assert code == 2, err
+    assert err.startswith("error: capstone is not installed") and out == ""
+
+
 # --------------------------------------------------------------------------- procs --names wording (H2)
 def test_procs_names_help_promises_a_coverage_count(capsys):
     """Review item H2: `procs --names` counts listing VAs; no name is attached to a

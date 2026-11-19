@@ -125,9 +125,22 @@ def cmd_project(args) -> int:
 
 
 def cmd_decode(args) -> int:
-    from . import blob, pe, x86
+    from . import blob, fileio, pe, records, x86
 
-    va = int(args.va, 16)  # bad hex is the exit-2 contract like every input error
+    # Bad flags are the caller's invocation, not a toolkit fault: exit 2 with one
+    # line (int(x, 16) would also have taken "0x", signs and underscores).
+    va = records.hex_va(args.va)
+    if va is None:
+        raise fileio.InputError(f"--va {args.va!r}: not a bare hex address")
+    if args.limit <= 0:
+        raise fileio.InputError(f"--limit {args.limit}: must be a positive count")
+    if args.window <= 0:
+        raise fileio.InputError(f"--window {args.window}: must be a positive byte count")
+    end = None
+    if args.end_va is not None:
+        end = records.hex_va(args.end_va)
+        if end is None:
+            raise fileio.InputError(f"--end-va {args.end_va!r}: not a bare hex address")
     data, sections = blob.load_sections(args.exe)
     window = b""
     for sec in sections:
@@ -141,19 +154,16 @@ def cmd_decode(args) -> int:
                               sec.raw_pointer + delta + min(args.window, sec.raw_size - delta)]
             break
     if not window:
-        print(f"# error: no file bytes mapped at VA {args.va.upper()} "
-              "(outside every section or past its raw data)", file=sys.stderr)
-        return 2
-    if args.end_va:
-        end = int(args.end_va, 16)
+        raise fileio.InputError(f"no file bytes mapped at VA {args.va.upper()} "
+                                "(outside every section or past its raw data)")
+    if end is not None:
         if end <= va:
-            print("# error: --end-va must be above --va", file=sys.stderr)
-            return 2
+            raise fileio.InputError("--end-va must be above --va")
         window = window[: end - va]  # the range's own end: nothing past it is decoded
     try:
         result = x86.decode(window, va, limit=args.limit)
     except x86.EngineUnavailable as exc:
-        print(f"# error: {exc}", file=sys.stderr)
+        print(f"error: {exc}", file=sys.stderr)
         return 2
     # name call targets against this file's own import table; late-bound
     # [reg+disp] calls stay unannotated because nothing here can name them
@@ -232,7 +242,7 @@ def cmd_decode(args) -> int:
 
 
 def cmd_edges(args) -> int:
-    from . import edges, fileio
+    from . import edges, fileio, x86
 
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.dossier)), "edges.jsonl")
     # a typo'd dossier is unusable input, not an empty edge set: name it
@@ -241,7 +251,13 @@ def cmd_edges(args) -> int:
     # writing onto either input file would destroy it after a five-minute pass:
     # refuse before collect() opens the image
     fileio.refuse_overwrite_inputs(out, [args.dossier, args.exe])
-    rows, bad, totals = edges.collect(args.exe, args.dossier, events=args.events)
+    try:
+        rows, bad, totals = edges.collect(args.exe, args.dossier, events=args.events)
+    except x86.EngineUnavailable as exc:
+        # same contract as decode: the optional extra is missing, so this is
+        # unusable capability (exit 2) with the install hint, and no output file
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     if bad:
         print(f"# warning: {bad} unreadable lines skipped in {args.dossier}", file=sys.stderr)
     with fileio.atomic_out(out) as fh:
