@@ -71,7 +71,7 @@ def _reserved_name(stem: str) -> bool:
     return stem.split(".")[0].strip().lower() in _RESERVED
 
 
-def _safe_stem(name: str | None) -> tuple[str | None, str | None]:
+def safe_stem(name: str | None) -> tuple[str | None, str | None]:
     """A single-path-component stem for an untrusted name: ``(stem, why)``.
 
     ``why`` says what had to be repaired (illegal characters, stripped dots,
@@ -123,7 +123,7 @@ def plan_files(project: VBProject) -> dict:
             unsupported.append({"object_index": o.index, "name": o.name,
                                 "raw_type": f"{o.raw_type:X}"})
             continue
-        stem, why = _safe_stem(o.name)
+        stem, why = safe_stem(o.name)
         if stem and o.object_type == "form":
             stem = stem.lower()  # real .vbp files list their forms in lower case
         cands = ([stem] if stem and why is None else []) \
@@ -153,7 +153,7 @@ def plan_files(project: VBProject) -> dict:
         files[o.index] = entry
         taken[chosen.lower()] = o.index
 
-    vbp_stem, vbp_why = _safe_stem(project.project_name)
+    vbp_stem, vbp_why = safe_stem(project.project_name)
     if vbp_stem is None:
         vbp_stem, vbp_why = "project", f"project name unusable ({vbp_why})"
     elif _reserved_name(vbp_stem):

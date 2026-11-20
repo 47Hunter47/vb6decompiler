@@ -577,6 +577,80 @@ def cmd_mask(args) -> int:
     return 0 if audit.clean else 1
 
 
+def cmd_spec(args) -> int:
+    from . import fileio, manifest, procs, spec, unknowns
+
+    started = manifest.now()
+    fileio.require(args.dossier)
+    try:
+        records = unknowns._records(args.dossier)
+    except unknowns.ExpectedValueError as exc:
+        raise fileio.InputError(str(exc)) from exc
+
+    kinds: dict[str, tuple[str, str]] = {}
+    if args.exe:
+        project = procs.read(args.exe, encoding=args.encoding)
+        kinds = {o.name: (o.object_type, "object table (vb6d procs)") for o in project.objects}
+
+    design: dict[str, frm_mod.Form] = {}
+    design_reason = "no .frm directory supplied (--frm)"
+    if args.frm:
+        from . import encoding as encoding_mod
+        from . import frm as frm_mod
+        codec, source = encoding_mod.choice(args.encoding, None)
+        scan = frm_mod.scan_directory(args.frm, encoding=codec)
+        design = {form.name.lower(): form for form in scan.forms}
+        design_reason = (f"{len(design)} design blocks of {scan.files_seen} files read as "
+                         f"{codec} ({source}); {len(scan.no_design)} carry no design block, "
+                         f"{len(scan.failures)} failed")
+
+    outline: dict[str, dict] | None = None
+    if args.outline:
+        fileio.require(args.outline)
+        outline = {}
+        for record in unknowns._records(args.outline):
+            va = record.get("va")
+            if isinstance(va, str):
+                outline[va.upper()] = record
+
+    known_tables: set[str] | None = None
+    if args.schema:
+        fileio.require(args.schema)
+        try:
+            with open(args.schema, encoding="utf-8") as fh:
+                known_tables = {name.lower() for name in (json.load(fh).get("tables") or {})}
+        except (OSError, ValueError) as exc:
+            raise fileio.InputError(f"{args.schema}: not a schema JSON ({exc})") from exc
+
+    report = spec.build(records, kinds=kinds or None, design=design or None,
+                        design_reason=design_reason, outline=outline,
+                        known_tables=known_tables)
+    written = spec.files(report)
+    out_dir = args.out
+    if os.path.exists(out_dir) and not os.path.isdir(out_dir):
+        raise fileio.InputError(f"{out_dir}: exists and is not a directory")
+    os.makedirs(out_dir, exist_ok=True)
+    for name, body in written:
+        target = os.path.join(out_dir, name)
+        consumed = [p for p in (args.dossier, args.exe, args.frm, args.outline, args.schema) if p]
+        fileio.refuse_overwrite_inputs(target, consumed)
+        with fileio.atomic_out(target, newline="") as fh:
+            fh.write(body)
+    counts = report.counts()
+    print(f"# {counts['files']} files for {counts['objects']} objects, "
+          f"{counts['procedures']} procedures, {counts['closed']} closed of "
+          f"{counts['statements']} statements -> {out_dir}", file=sys.stderr)
+    for note in report.notes:
+        print(f"# {note}", file=sys.stderr)
+    man = manifest.write(out_dir, skip=args.no_manifest, command="spec",
+                         inputs=[args.dossier] + [p for p in (args.exe, args.frm, args.outline) if p],
+                         encoding=None, started=started, records=counts,
+                         full_paths=args.manifest_paths)
+    if man:
+        print(f"# manifest: {man}", file=sys.stderr)
+    return 0
+
+
 def cmd_schema(args) -> int:
     from . import fileio, manifest, schema, unknowns
 
@@ -784,6 +858,21 @@ def build_parser() -> argparse.ArgumentParser:
     shape.add_argument("--full", action="store_true",
                        help="both inverted indexes at once (large on real builds; default is the procedure rollup)")
     q.set_defaults(func=cmd_xref)
+
+    q = sub.add_parser(
+        "spec",
+        help="one Markdown specification per object, every fact naming its source",
+    )
+    q.add_argument("dossier", help="JSONL produced by vb6d dossier")
+    q.add_argument("--exe", help="the build, for object kinds (object table)")
+    q.add_argument("--frm", help="directory of .frm design text, for the design section")
+    q.add_argument("--outline", help="outline JSONL, for the runtime-call categories per procedure")
+    q.add_argument("--schema", help="schema JSON from 'vb6d schema --format json' (accepted, not needed: "
+                                    "the tables come from the dossier's own sql rows)")
+    q.add_argument("--encoding", help="code page of the .frm text (default: cp1254; env VB6D_ENCODING)")
+    q.add_argument("--out", metavar="DIR", required=True, help="output directory")
+    _manifest_flags(q)
+    q.set_defaults(func=cmd_spec)
 
     q = sub.add_parser(
         "schema",
