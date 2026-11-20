@@ -117,17 +117,18 @@ def test_same_path_spots_the_same_file_under_each_spelling(tmp_path):
     target = tmp_path / "Dir" / "App.exe"
     target.parent.mkdir()
     target.write_bytes(b"MZ")
-    folding = os.path.normcase("A") == os.path.normcase("a")  # case ignores spelling: Windows
     same = [
         str(target.parent.parent / "Dir" / "App.exe"),  # absolute detour
         str(target.parent) + os.sep + ".." + os.sep + "Dir" + os.sep + "App.exe",
     ]
-    if folding:
-        same.append(str(target).upper())  # Windows is case-insensitive
     for other in same:
         assert fileio.same_path(str(target), other), other
-    if not folding:  # on POSIX the case spelling names a DIFFERENT file
-        assert not fileio.same_path(str(target), str(target).upper())
+    # Whether a case variant names the same file is a property of the VOLUME, not
+    # of the platform: Windows and macOS (APFS) fold case, most Linux filesystems
+    # do not, and ``normcase`` only carries the platform's spelling rule - on macOS
+    # it is the identity while the volume still folds. Ask the filesystem.
+    variant = str(target).upper()
+    assert fileio.same_path(str(target), variant) == os.path.exists(variant)
     assert not fileio.same_path(str(target), str(target.parent / "other.exe"))
     assert not fileio.same_path(str(target.parent), str(target))  # a dir is not its file
 
