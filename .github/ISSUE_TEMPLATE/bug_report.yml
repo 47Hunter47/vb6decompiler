@@ -1,0 +1,64 @@
+name: Bug report
+description: A stage did something it should not have, or refused something it should have read
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Most wrong-looking output turns out to be an environment
+        fact, and `vb6d doctor` answers that in one screen — please paste it first.
+
+        **Do not attach the binary, its listings, or a `dossier.jsonl`**: they carry the
+        program's own names, SQL and paths. The command below is designed to be shared.
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "\"vb6d doctor\" output"
+      description: Paste the whole block, including the last summary line.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Tool version
+      description: "`vb6d --version`"
+      placeholder: vb6d 0.10.0
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: The command you ran
+      description: The exact line, with paths replaced by `<path>`. Flags matter.
+      render: shell
+      placeholder: vb6d dossier --listings "<path>" --out "<path>"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened
+      description: |
+        Quote the one line that is wrong. If a count looks wrong, say which count and
+        what you expected; "X of Y" numbers are the easiest thing to check.
+    validations:
+      required: true
+  - type: textarea
+    id: unknowns
+    attributes:
+      label: "\"vb6d unknowns\" output (optional, for recovery-gap reports)"
+      description: |
+        If the problem is "this construct was reported unknown/unparsed", paste
+        `vb6d unknowns <outputs...>`. It prints counts, page buckets and hash prefixes
+        only — no SQL, no names.
+      render: text
+  - type: checkboxes
+    id: not-private
+    attributes:
+      label: Before submitting
+      options:
+        - label: I did not paste the binary, the listings, or any target SQL/name into this issue.
+          required: true
+        - label: This is not a security issue (those go to the Security tab, privately).
+          required: true

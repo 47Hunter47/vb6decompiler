@@ -1,0 +1,65 @@
+name: A build this tool cannot read
+description: Help extend the toolkit to your VB6 build — without sharing the build
+labels: [unsupported-build]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A build this toolkit cannot read is useful information, and it can be shared
+        **safely**: the command below prints counts, page buckets and hash prefixes
+        only. No SQL, no names, no paths, no bytes of your program.
+
+        ```bash
+        vb6d unknowns "<output dir from vb6d run>"
+        ```
+  - type: textarea
+    id: unknowns
+    attributes:
+      label: "\"vb6d unknowns\" output"
+      description: One or more row files (`dossier.jsonl`, `edges.jsonl`, `outline.jsonl`) as arguments.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "\"vb6d doctor\" output"
+      description: The environment matters — an absent optional extra changes which stages ran.
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: shape
+    attributes:
+      label: What kind of build is it?
+      options:
+        - Native-compiled EXE (P-Code — the toolkit does not support this yet)
+        - Native-compiled EXE (native code)
+        - VB6 DLL or OCX (in-proc COM server)
+        - DataReport DLL (rpt*.dll)
+        - Something else / not sure
+    validations:
+      required: true
+  - type: input
+    id: size
+    attributes:
+      label: Roughly how big is it, and how many forms?
+      description: "For example: 40 MB, ~200 forms. No file name."
+  - type: textarea
+    id: what
+    attributes:
+      label: What did the toolkit get wrong or leave out?
+      description: |
+        The stage, the count, and what you expected. "0 of 900 procedures had a
+        literal" is a usable report; "it does not work" is not.
+    validations:
+      required: true
+  - type: checkboxes
+    id: not-private
+    attributes:
+      label: Before submitting
+      options:
+        - label: The output above came from `vb6d unknowns`, not from the binary or its listings.
+          required: true
+        - label: I did not attach the executable, the listings, or any of the program's SQL or names.
+          required: true
