@@ -97,7 +97,7 @@ Statuses mean exactly this:
 | `CLOSED` | balanced, one statement, no glued message | nothing |
 | `OPEN_QUOTE` | a value is concatenated at run time | a live trace of the TDS traffic |
 | `OPEN_PAREN` | tail missing | a live trace |
-| `MULTI` | two statements in one string | split, then re-evaluate |
+| `MULTI` | two statements in one string, or a join where a new statement begins | split, then re-evaluate |
 | `DANGLING` | ends on a connector | another fragment, or a trace |
 | `ESCAPE` | human text glued on | manual reading |
 | `STUCK` | continuation is not SQL | different neighbour |
@@ -105,7 +105,12 @@ Statuses mean exactly this:
 Numbers above were measured on 0.2.x. 0.3.0 corrected one classification: a whole
 statement stored as a single literal no longer reports `STUCK` (it was asking about a
 continuation that does not exist), so `CLOSED` on the same corpus is **higher** and the
-`STUCK` row is **lower** than shown. Re-measure with `vb6d stitch` before quoting either.
+`STUCK` row is **lower** than shown. A later correction reads the joins, not just the
+text: when a later fragment opens with a statement verb after the previous fragment
+ends on a completed value, the candidate reports `MULTI` ("second statement starts at
+a fragment join") — a verb glued letter-to-letter onto that tail hides inside the last
+word and the verb scan counts one statement. Re-measure with `vb6d stitch` before
+quoting any of these figures.
 
 *Claim it supports:* "these statements are complete". *Not:* "these are the
 program's queries" — the closed set is a lower bound, always.

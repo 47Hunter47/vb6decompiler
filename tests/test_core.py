@@ -164,6 +164,56 @@ def test_sql_word_after_a_closed_quote_is_still_closed():
     assert any(c.status == "CLOSED" for c in sqlstitch.stitch(chain, 0))
 
 
+def test_verb_glued_letter_to_letter_at_a_join_is_not_closed():
+    """Measured failure: the verb scan cannot see a verb glued onto a letter.
+
+    ``statements`` deliberately matches a verb only after a non-letter, so the
+    second verb in ``…Dim w`` + ``SELECT cUST…`` hides inside ``wSELECT`` and the
+    join was counted as one statement. On a real listing corpus 619 of 5 122
+    candidates reported CLOSED had a later part opening with a statement verb
+    after a completed tail. The join itself is the evidence, so the gate reads
+    the parts, not the joined text. The first statement (parts 1-2) is still a
+    legitimate CLOSED candidate.
+    """
+    chain = [
+        _lit("SELECT * FROM tOrder WHERE Id = "),
+        _lit("7"),
+        _lit("Kayit bulunamadi"),
+        _lit("Dim w"),
+        _lit("SELECT cUST_ID, cNAME  FROM tCUSTOMER WHERE cACTIVE = 1"),
+    ]
+    cands = sqlstitch.stitch(chain, 0)
+    assert not any(c.parts == 5 and c.status == "CLOSED" for c in cands)
+    assert any(
+        c.parts == 5 and c.status == "MULTI"
+        and c.reason == "second statement starts at a fragment join"
+        for c in cands
+    )
+    assert any(c.parts == 2 and c.status == "CLOSED" for c in cands)
+
+
+def test_verb_after_a_continuation_tail_is_left_to_the_verb_scan():
+    """``IN (`` + ``SELECT …`` continues one statement; only the verb scan calls it two."""
+    chain = [_lit("SELECT * FROM tItem WHERE Flag IN ("), _lit("SELECT Flag FROM tFlagRef)")]
+    cands = sqlstitch.stitch(chain, 0)
+    multi = [c for c in cands if c.status == "MULTI"]
+    assert multi and all(c.reason == "2 statements glued together" for c in multi)
+
+
+def test_two_glued_statements_keep_their_verb_scan_reason():
+    chain = [_lit("DELETE FROM tLog WHERE c = 'b' "), _lit("SELECT n FROM tCount")]
+    cands = sqlstitch.stitch(chain, 0)
+    assert any(
+        c.parts == 2 and c.status == "MULTI" and c.reason == "2 statements glued together"
+        for c in cands
+    )
+
+
+def test_single_statement_chain_after_the_join_gate_stays_closed():
+    chain = [_lit("SELECT * FROM tOrder WHERE Dep = 'E1' "), _lit("AND Kind = 'A'")]
+    assert sqlstitch.stitch(chain, 0)[0].closed
+
+
 def test_dangling_connector_is_reported():
     cand = sqlstitch._classify(
         "SELECT * FROM tItem WHERE ItemKey = 'A' AND", [_lit("x")]
