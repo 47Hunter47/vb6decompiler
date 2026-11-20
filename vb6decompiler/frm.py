@@ -937,6 +937,68 @@ def _frm_files(root: str, recursive: bool = False) -> list[str]:
     return sorted(out)
 
 
+def pick_files(root: str, *, recursive: bool = False) -> list[str]:
+    """The ``.frm`` files a scan would read, in a fixed order.
+
+    Split out of :func:`scan_directory` so a parallel run reads the same list in the
+    same order: threads may finish out of order, the report may not.
+    """
+    fileio.require(root)
+    if not os.path.isdir(root):
+        raise fileio.InputError(f"{root}: expected a directory of .frm files")
+    return _frm_files(root, recursive)
+
+
+def scan_files(files: list[str], *, encoding: str = DEFAULT_CODEPAGE, jobs: int = 1,
+               root: str = "") -> ScanResult:
+    """Parse an explicit file list, optionally on several threads.
+
+    Results are assembled in list order regardless of which thread finished first, and
+    a failing file is recorded where it belongs instead of aborting its neighbours —
+    the same contract the sequential scan has.
+    """
+    from .progress import Progress
+
+    bar = Progress("frm", len(files))
+    parsed: list[tuple[int, Form | None, Exception | None]] = []
+
+    def one(item: tuple[int, str]) -> tuple[int, Form | None, Exception | None]:
+        """Parse one file; the failure travels with it, so nothing is parsed twice."""
+        index, path = item
+        try:
+            return index, parse_frm(path, encoding=encoding), None
+        except (NoDesignBlock, FrmError, OSError) as exc:
+            return index, None, exc
+
+    if jobs > 1 and len(files) > 1:
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=min(jobs, len(files))) as pool:
+            for done, row in enumerate(pool.map(one, enumerate(files)), 1):
+                parsed.append(row)
+                bar.tick(done)
+    else:
+        for done, item in enumerate(enumerate(files), 1):
+            parsed.append(one(item))
+            bar.tick(done)
+    bar.tick(len(files), final=True)
+
+    res = ScanResult(root=root, encoding=encoding)
+    for index, form, exc in sorted(parsed, key=lambda row: row[0]):
+        path = files[index]
+        res.files_seen += 1
+        if form is None:
+            # A file with no design block is an absence; anything else is a failure.
+            if isinstance(exc, NoDesignBlock):
+                res.no_design.append(path)
+            else:
+                res.failures.append((path, str(exc)))
+            continue
+        res.forms.append(form)
+        res.warnings.extend(form.warnings)
+    return res
+
+
 def scan_directory(root: str, *, recursive: bool = False,
                    encoding: str = DEFAULT_CODEPAGE) -> ScanResult:
     """Parse every ``.frm`` under ``root`` and account for all of them."""

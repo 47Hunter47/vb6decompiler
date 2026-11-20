@@ -506,7 +506,11 @@ def cmd_frm(args) -> int:
 
     codec, source = encoding.choice(args.encoding, None)
     _announce(codec, source)
-    res = frm.scan_directory(args.path, recursive=args.recursive, encoding=codec)
+    if args.jobs > 1:
+        files = frm.pick_files(args.path, recursive=args.recursive)
+        res = frm.scan_files(files, encoding=codec, jobs=args.jobs, root=args.path)
+    else:
+        res = frm.scan_directory(args.path, recursive=args.recursive, encoding=codec)
     if args.format == "html" or args.html:
         return _frm_html(args, res)
     if args.json:
@@ -568,7 +572,10 @@ def _frm_html(args, res) -> int:
     for index, view in enumerate(sorted(views, key=lambda v: v.name.lower())):
         name, _why = spec.safe_file_name(view.name, taken, str(index), suffix=".html")
         target = os.path.join(out_dir, name)
-        fileio.refuse_overwrite_inputs(target, [args.path, args.exe])
+        # args.exe is optional: a None in the list reaches os.path and raises
+        # TypeError, which the exit contract would report as a toolkit bug.
+        consumed = [p for p in (args.path, args.exe) if p]
+        fileio.refuse_overwrite_inputs(target, consumed)
         with fileio.atomic_out(target, newline="") as fh:
             fh.write(htmlview.render_form(view, scale=scale))
         links[view.name] = name
@@ -740,6 +747,287 @@ def cmd_mask(args) -> int:
     # --dry-run skips the *write*, not the check: a gate that exits 0 in dry-run can
     # never fail in CI, which is how a real leak would sail through.
     return 0 if audit.clean else 1
+
+
+def _stage_argv(stage: dict, cfg, out_dir: str) -> list[str] | None:
+    """The command line for one stage from a workspace config, or ``None`` to skip it.
+
+    A stage whose input the config does not name is not run: an empty flag would make
+    it fail with a bad-invocation error that has nothing to do with the user's intent.
+    ``None`` lets the caller report it as skipped with a reason.
+
+    Flags are added only where the stage declares them. ``--manifest-paths`` belongs
+    to the stages that write a manifest (the ``--out`` ones); handing it to ``pe`` or
+    ``literals`` was a measured failure — argparse exits 2 inside the worker thread.
+    """
+    name = stage["name"]
+    target, listings, frms, report = cfg.target, cfg.listings, cfg.frm_dir, cfg.report_dir
+    here = os.path.join(out_dir, name)
+    codec = ["--encoding", cfg.encoding] if cfg.encoding else []
+    # A workspace run records input paths: a resume has to re-hash exactly what was
+    # read, and a name alone cannot be found again. A workspace is a local working
+    # directory, unlike a shared single-stage output, which stays path-free by default.
+    resume = ["--manifest-paths"]
+
+    if name == "pe":
+        return [name, target] if target else None
+    if name == "procs":
+        return [name, target, *codec] if target else None
+    if name == "literals":
+        return [name, target, *codec] if target else None
+    if name == "stitch":
+        return [name, listings, *codec] if listings else None
+    if name == "blob":
+        return [name, target, *codec] if target else None
+    if name == "frm":
+        if not frms:
+            return None
+        argv = [name, frms, "--format", "html", "--out", here, *codec, *resume]
+        return argv + (["--exe", target] if target else [])
+    if name == "datareport":
+        return [name, report] if report else None
+    if name == "dossier":
+        if not listings:
+            return None
+        return [name, "--listings", listings, "--out",
+                os.path.join(here, "dossier.jsonl"), *codec, *resume]
+    if name == "schema":
+        return [name, os.path.join(out_dir, "dossier", "dossier.jsonl"), "--format", "json",
+                "--out", os.path.join(here, "schema.json"), *resume]
+    if name == "edges":
+        if not target:
+            return None
+        return [name, target, "--dossier", os.path.join(out_dir, "dossier", "dossier.jsonl"),
+                "--out", os.path.join(here, "edges.jsonl"), *resume]
+    if name == "outline":
+        return [name, os.path.join(out_dir, "edges", "edges.jsonl"),
+                "--out", os.path.join(here, "outline.jsonl"), *resume]
+    return None
+
+
+def cmd_demo(args) -> int:
+    """Write the synthetic build and print the commands to run on it.
+
+    SYNTHETIC, and said twice: in the file names and on the terminal. The builder
+    lives in ``tests/`` because it is test code; a wheel has no tests, so this command
+    explains where to find it instead of pretending the build exists.
+    """
+    from . import fileio
+
+    try:
+        # tests/synth_vb6.py is test code: no type stub, and absent from a wheel.
+        import synth_vb6  # type: ignore[import-not-found]
+    except ImportError:
+        # Running from a checkout: the builder sits next to the package, not inside it,
+        # so a plain import cannot see it (and a wheel has no tests at all).
+        tests_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                 "tests")
+        if os.path.isfile(os.path.join(tests_dir, "synth_vb6.py")):
+            sys.path.insert(0, tests_dir)
+            try:
+                import synth_vb6
+            except ImportError:
+                synth_vb6 = None
+        else:
+            synth_vb6 = None
+    if synth_vb6 is None:
+        raise fileio.InputError(
+            "the synthetic builder ships in the source tree (tests/synth_vb6.py), not in the "
+            "installed package: run 'vb6d demo' from a clone, or see docs/pipeline.md section 7")
+    root = os.path.abspath(args.out)
+    os.makedirs(root, exist_ok=True)
+    target = synth_vb6.build(root)
+    print("# SYNTHETIC build: not a real program, and its numbers are about the builder")
+    print(f"target   {target.exe}")
+    print(f"listings {target.listings}")
+    print(f"frms     {target.frms}")
+    print()
+    print("# the five commands to try:")
+    for line in (
+        f'vb6d pe       "{target.exe}"',
+        f'vb6d procs    "{target.exe}"',
+        f'vb6d literals "{target.exe}"',
+        f'vb6d dossier  --listings "{target.listings}" --out "{os.path.join(root, "dossier.jsonl")}"',
+        f'vb6d frm      "{target.frms}" --format html --out "{os.path.join(root, "html")}"',
+    ):
+        print(line)
+    print()
+    print(f"# or a whole run: write vb6d.toml beside it (vb6d init --dir {root}) and 'vb6d run'")
+    return 0
+
+
+def cmd_init(args) -> int:
+    from . import fileio, workspace
+
+    try:
+        path = workspace.write_template(args.dir)
+    except workspace.ConfigError as exc:      # an existing file: the caller's to resolve
+        raise fileio.InputError(str(exc)) from exc
+    print(f"# wrote {path}", file=sys.stderr)
+    print(f"# next: fill in the paths, then 'vb6d doctor' and 'vb6d run --config {path}'",
+          file=sys.stderr)
+    return 0
+
+
+def cmd_run(args) -> int:
+    from . import fileio, pipeline, workspace
+
+    try:
+        cfg = workspace.resolve(config_path=args.config)
+    except workspace.ConfigError as exc:      # a broken workspace is unusable input
+        raise fileio.InputError(str(exc)) from exc
+    if cfg.path is None:
+        raise fileio.InputError("no vb6d.toml found (run 'vb6d init' or pass --config)")
+    print(f"# workspace: {cfg.path}", file=sys.stderr)
+    for key in cfg.placeholders:
+        print(f"# not set in the workspace: {key} (stages needing it are skipped)", file=sys.stderr)
+
+    try:
+        stages = pipeline.plan(only=(args.only.split(",") if args.only else None),
+                               from_stage=args.from_stage)
+    except ValueError as exc:
+        raise fileio.InputError(str(exc)) from exc
+
+    out_dir = cfg.output or os.path.join(os.path.dirname(os.path.abspath(cfg.path)), "out")
+    os.makedirs(out_dir, exist_ok=True)
+    tool = version_line()
+    workers = args.jobs or cfg.workers or 1
+
+    rows: list[pipeline.StageRun] = []
+    ready: list[dict] = []
+    skipped: list[tuple[dict, str]] = []
+    for stage in stages:
+        argv = _stage_argv(stage, cfg, out_dir)
+        if argv is None:
+            skipped.append((stage, "not configured"))
+            continue
+        if stage["engine"] and not pipeline_engine_present():
+            skipped.append((stage, "needs the [asm] extra (capstone)"))
+            continue
+        if not args.force_stage:
+            # The dossier/edges pair is what a resume is usually asked for, and both
+            # write a manifest, so the same rule covers every stage here.
+            resume_target = _stage_output(argv)
+            inputs = [p for p in (cfg.target, cfg.listings, cfg.frm_dir, cfg.report_dir) if p]
+            if resume_target and os.path.exists(resume_target):
+                fresh, why = pipeline.up_to_date(resume_target, inputs, tool)
+                if fresh:
+                    rows.append(pipeline.StageRun(name=stage["name"], status="up to date",
+                                                  detail=os.path.basename(resume_target)))
+                    continue
+        stage_out = _stage_output(argv)
+        if stage_out:
+            _ensure_out(stage_out, stage["name"])
+        ready.append({**stage, "_argv": argv})
+
+    waves, unreachable = pipeline.waves([{k: v for k, v in s.items() if k != "_argv"}
+                                         for s in ready])
+    argv_by_name = {s["name"]: s["_argv"] for s in ready}
+    skipped.extend(unreachable)
+    failed: set[str] = set()
+    for wave in waves:
+        runnable = []
+        for stage in wave:
+            blocker = pipeline.blocked(stage, failed)
+            if blocker:
+                skipped.append((stage, blocker))
+            else:
+                runnable.append(stage)
+        if not runnable:
+            continue
+        done = pipeline.run_wave(runnable, lambda s: argv_by_name[s["name"]], workers,
+                                 capture_for=lambda s: _capture_path(s["name"], out_dir))
+        rows.extend(done)
+        failed.update(r.name for r in done if r.status == pipeline.FAILED)
+        for row in done:
+            if row.status == pipeline.OK:
+                _record_captured(row, out_dir, cfg, tool)
+
+    for stage, why in skipped:
+        rows.append(pipeline.StageRun(name=stage["name"], status="skipped", detail=why))
+
+    order = {s["name"]: i for i, s in enumerate(stages)}
+    rows.sort(key=lambda r: order.get(r.name, 99))
+    print(pipeline.table(rows), file=sys.stderr)
+    man = None
+    if not args.no_manifest:
+        body = {"workspace": cfg.path, "output": out_dir, "workers": workers,
+                "stages": [{"name": r.name, "status": r.status,
+                            "seconds": round(r.seconds, 2), "detail": r.detail,
+                            "records": r.records} for r in rows]}
+        target = os.path.join(out_dir, "run.manifest.json")
+        try:
+            with open(target, "w", encoding="utf-8", newline="\n") as fh:
+                json.dump(body, fh, indent=2)
+                fh.write("\n")
+            man = target
+        except OSError as exc:
+            print(f"# manifest not written: {target}: {exc.strerror or exc}", file=sys.stderr)
+    if man:
+        print(f"# run manifest: {man}", file=sys.stderr)
+    return pipeline.exit_code(rows)
+
+
+#: Stages whose --out names a directory rather than a file.
+DIR_OUT_STAGES = ("frm", "spec")
+
+
+def _ensure_out(path: str, stage: str) -> None:
+    """Create what a stage needs to write into.
+
+    A dossier refused to open its buffer because out/dossier/ did not exist — a run
+    should not fail on a directory it was going to create anyway.
+    """
+    if stage in DIR_OUT_STAGES:
+        os.makedirs(path, exist_ok=True)
+    else:
+        parent = os.path.dirname(os.path.abspath(path))
+        os.makedirs(parent, exist_ok=True)
+
+
+CAPTURE_SUFFIX = {"stitch": "stitch.csv", "blob": "blob.csv"}
+
+
+def _capture_path(name: str, out_dir: str) -> str | None:
+    """Where a stdout-only stage's records are kept, or ``None`` when it writes itself."""
+    from . import pipeline
+
+    if name not in pipeline.STDOUT_STAGES:
+        return None
+    here = os.path.join(out_dir, name)
+    os.makedirs(here, exist_ok=True)
+    return os.path.join(here, CAPTURE_SUFFIX.get(name, f"{name}.csv"))
+
+
+def _record_captured(row, out_dir: str, cfg, tool: str) -> None:
+    """Give a captured stage the provenance every other stage has.
+
+    Without a manifest a captured file cannot be resumed — and a resume that cannot
+    tell whether the input changed is a resume that lies.
+    """
+    from . import manifest
+
+    captured = _capture_path(row.name, out_dir)
+    if not captured or not os.path.exists(captured):
+        return
+    inputs = [p for p in (cfg.target, cfg.listings, cfg.frm_dir, cfg.report_dir) if p]
+    manifest.write(captured, command=row.name, inputs=inputs, encoding=None,
+                   started=manifest.now(), records={})
+
+
+def _stage_output(argv: list[str]) -> str | None:
+    """The file or directory a stage writes, for the resume check."""
+    if "--out" in argv:
+        return argv[argv.index("--out") + 1]
+    return None
+
+
+def pipeline_engine_present() -> bool:
+    try:
+        import capstone  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 def cmd_spec(args) -> int:
@@ -960,6 +1248,9 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("path")
     q.add_argument("--recursive", action="store_true")
     q.add_argument("--json", action="store_true")
+    q.add_argument("--jobs", type=int, default=1,
+                   help="parse N .frm files in parallel (default 1); output order is fixed "
+                        "either way")
     q.add_argument("--format", choices=("html",), default=None,
                    help="'html' writes a static view (one page per form plus index.html) to --out")
     q.add_argument("--html", action="store_true", help=argparse.SUPPRESS)  # old spelling, same mode
@@ -1033,6 +1324,32 @@ def build_parser() -> argparse.ArgumentParser:
     shape.add_argument("--full", action="store_true",
                        help="both inverted indexes at once (large on real builds; default is the procedure rollup)")
     q.set_defaults(func=cmd_xref)
+
+    q = sub.add_parser(
+        "demo",
+        help="write a SYNTHETIC build and print the commands to run on it (source tree only)",
+    )
+    q.add_argument("--out", metavar="DIR", default="vb6d-demo",
+                   help="where to write it (default: ./vb6d-demo)")
+    q.set_defaults(func=cmd_demo)
+
+    q = sub.add_parser("init", help="write a vb6d.toml template (placeholders only)")
+    q.add_argument("--dir", default=".", help="directory to write it into (default: here)")
+    q.set_defaults(func=cmd_init)
+
+    q = sub.add_parser(
+        "run",
+        help="every stage the workspace configures, in dependency order, with a status table",
+    )
+    q.add_argument("--config", help="vb6d.toml to use (default: the nearest one above here)")
+    q.add_argument("--from", dest="from_stage", metavar="STAGE",
+                   help="start at this stage (dependency order is kept)")
+    q.add_argument("--only", help="comma-separated stages to run")
+    q.add_argument("--jobs", type=int, help="stages to run in parallel (default: from the config)")
+    q.add_argument("--force-stage", action="store_true",
+                   help="rerun stages whose manifest says they are up to date")
+    _manifest_flags(q)
+    q.set_defaults(func=cmd_run)
 
     q = sub.add_parser(
         "spec",

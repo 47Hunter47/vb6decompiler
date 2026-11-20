@@ -3,6 +3,44 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.9.0
+
+One file names the inputs and one command runs the stages.
+
+`vb6d init` writes a `vb6d.toml` of commented placeholders — no target name, no host,
+no path from the machine that generated it, because the file is meant to be committed.
+Unknown keys are refused instead of ignored: a misspelled `listing_dir` would otherwise
+configure nothing and complain about nothing, and relative paths resolve against the
+file so a workspace can be moved. Precedence stays what the toolkit already had, with
+the file where a project's own settings belong: `flag > VB6D_* > vb6d.toml > header
+LCID > default`.
+
+`vb6d run` executes the stages in dependency order from that config, each into its own
+directory under the output root with that stage's manifest. Three properties matter
+more than the feature list. A failing stage does not cancel the rest: each stage's own
+exit code is the verdict, the independent ones keep going, and a stage that needed the
+failed one is reported `skipped: <stage> failed` rather than run against input that was
+never written. "up to date" is a claim with evidence — the manifest beside the output
+must record the same input hashes and the same tool version — so `--force-stage` is for
+when you want the pass repeated, not for suspicion. And the table names every stage
+with status, seconds and note; the exit code is `0` or, when a stage failed, `3` per
+`AGENTS.md`.
+
+`--jobs N` runs one dependency wave in parallel and collects results in plan order, so
+two runs print the same table. Per-file parsing is parallel too: `frm --jobs 4` parses
+on threads and assembles the report in file order, with counts and order identical to
+the sequential path. Long stages print a progress line (`# frm: 120 of 800 (4.3s)`) only
+when stderr is a terminal, and the first line always prints, so a hung stage is
+distinguishable from a slow one.
+
+`vb6d demo --out DIR` writes the synthetic build and the commands to try on it, labelled
+SYNTHETIC; it works from a clone and says where the builder lives when the package came
+from a wheel. `scripts/bench_synth.py` scales that build and times each stage — seconds
+always, peak memory where the platform will tell.
+
+Memory-mapping was already in place (`fileio.image`), so no change was made for it: the
+files that read a whole image were measured again and none of them copies the buffer.
+
 ## 0.8.0
 
 Two ways to see what was recovered, both built so that seeing it does not turn into

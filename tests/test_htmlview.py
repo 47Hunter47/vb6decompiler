@@ -257,3 +257,16 @@ def test_a_form_whose_name_does_not_parse_is_named_as_nothing_to_draw(tmp_path, 
     code = cli.main(["frm", str(frms), "--format", "html", "--out", str(tmp_path / "pages")])
     assert code == 2
     assert "no form to draw" in capsys.readouterr()[1]
+
+
+def test_html_without_exe_still_works(tmp_path, capsys):
+    """Measured crash: --exe is optional, but a None in the consumed-input list reached
+    os.path and came back as exit 3 (a toolkit bug) instead of drawing the page."""
+    target = synth_vb6.build(tmp_path)
+    out = tmp_path / "html"
+    capsys.readouterr()
+    code = cli.main(["frm", str(target.frms), "--format", "html", "--out", str(out)])
+    assert code == 0
+    assert (out / "fSynth01.html").exists()
+    page = (out / "fSynth01.html").read_text(encoding="utf-8")
+    assert "no binary form blob for this form was supplied" in page

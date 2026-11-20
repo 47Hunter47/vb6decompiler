@@ -78,3 +78,19 @@ every stage that takes `--out` (`project`, `dossier`, `edges`, `outline`) also w
 ## Call graph
 
 `vb6d graph <edges.jsonl> [--from NAME_OR_VA] [--depth N] [--direction out|in|both] [--format dot|mermaid] [--out F]` — a slice by default: a whole-program graph of tens of thousands of procedures is unreadable, so `--all` exists, warns about the size, and is the only way to get everything. An edge appears only where the evidence names a target: `calls_procedures` and `calls_imported` become nodes, `calls_late_bound` becomes one labelled `unresolved` node per procedure rather than an arrow to a guess, and a call to a VA the dossier never listed keeps its VA as the label. A `--from` that matches nothing is exit 2 — an empty drawing would read as "this calls nothing". The stderr line carries both numbers (`2 of 4 procedures, 1 of 1 edges`), never a percentage
+
+## Workspace file and one-command run
+
+`vb6d init [--dir D]` writes a `vb6d.toml` of commented placeholders — no target name, no host, no path from the machine that generated it, because the file is meant to be committed. `vb6d run [--from STAGE] [--only a,b] [--jobs N] [--force-stage]` runs the stages in dependency order from that config, writing each stage's output under its own directory (`pe/`, `frm/`, `dossier/`, `schema/`, …) with that stage's manifest. Precedence is `flag > VB6D_* variable > vb6d.toml > the build's header LCID > default`; an unknown key in the file is refused rather than ignored, since a misspelled `listing_dir` would otherwise configure nothing and complain about nothing.
+
+Three properties of `run` are load-bearing. **One failure does not cancel the rest:** each stage's own exit code is the verdict, the independent stages keep going, and stages that needed a failed one are reported `skipped: <stage> failed`. **"up to date" is a claim with evidence:** it appears only when the manifest beside an output records the same input hashes (and, for a run, the same paths) and the same tool version, so `--force-stage` is for the case where you want the pass repeated, not for suspicion. **The table names every stage** with status, seconds and its note, and the exit code follows the contract: `0` when nothing failed, `3` when a stage did.
+
+`--jobs N` runs the stages of one dependency wave in parallel; results are collected in plan order, so two runs print the same table. Per-file parsing is parallel too: `vb6d frm --jobs 4` parses N files on threads and assembles the report in file order — the counts and the order are identical to the sequential path, which is what the test asserts. `--exe` on `frm --format html` cross-checks geometry against the executable's own form blobs.
+
+A progress line (`# frm: 120 of 800 (4.3s)`) appears on long stages only when stderr is a terminal: a stage that writes into a pipe someone is parsing stays silent, and the first line always prints so a hung stage is distinguishable from a slow one.
+
+## Synthetic demo and the benchmark
+
+`vb6d demo --out DIR` writes the synthetic build and prints the commands to run on it. It is SYNTHETIC and says so: every number it produces is about the builder, never about VB6. The builder lives in the source tree (`tests/synth_vb6.py`), so the command works from a clone and explains itself when the package was installed from a wheel.
+
+`python scripts/bench_synth.py --target-mb 100 --jobs 1 4` scales that build and times each stage, printing seconds and peak memory. Not part of the package and never imported by it; peak memory reads the OS counters and prints `n/a` where the platform will not say. Read the numbers as "this machine, this builder" — a real target's timing is yours to measure.

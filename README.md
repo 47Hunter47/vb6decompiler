@@ -33,14 +33,18 @@ host, no database name, no account, no credential, no absolute install path.
 
 ## Quick start
 
-Install, then the six commands a new target gets first. `vb6d doctor` comes before
-them: it names the environment (interpreter, optional engine, runtime table, code
-page, `VB6D_*` paths, temp, disk) so a first failure is not blamed on the file. Each
-line shows the shape a run prints; names and counts are placeholders:
+Install, then the commands a new target gets first. `vb6d doctor` comes before them:
+it names the environment (interpreter, optional engine, runtime table, code page,
+`VB6D_*` paths, temp, disk) so a first failure is not blamed on the file. `init` and
+`run` are the workspace path: one file names the inputs, one command runs the stages
+and prints a status table. Each line shows the shape a run prints; names and counts
+are placeholders:
 
 ```bash
 pip install vb6decompiler                              # add "[asm]" for decode/edges only
 vb6d doctor                                            # first: one ok/warn/fail line per environment fact
+vb6d init                                              # a vb6d.toml of placeholders, then fill in paths
+vb6d run                                               # every stage, in dependency order, one table
 vb6d pe        "<install dir>"                         # stderr: # N images, M import a VB6 runtime, K unreadable
 vb6d procs     "<app.exe>" > app.txt                  # stdout: [ 37] fDemo011  form  methods=44 per object
 vb6d literals  "<app.exe>" > literals.csv             # CSV on stdout; stderr: # N literals
@@ -52,6 +56,7 @@ vb6d dossier   --listings "<listings dir>"            # dossier.jsonl INSIDE the
 
 | Stage | Command | Evidence it produces |
 |---|---|---|
+| Workspace run | `vb6d init` then `vb6d run` | one `vb6d.toml` names the inputs; every stage in dependency order, resumable on manifest evidence - [evidence details](docs/commands.md#workspace-file-and-one-command-run) |
 | Environment check | `vb6d doctor` | one ok/warn/fail line per environment fact: interpreter, optional engine, runtime table, code page and its source, `VB6D_*` paths, temp, disk - [evidence details](docs/commands.md#environment-check) |
 | PE surface of an install | `vb6d pe <dir>` | imports, exports, VB6 runtime dependency, ActiveX/COM classification |
 | Procedure inventory | `vb6d procs <exe>` | object table: objects and method counts, entry points verified by prologue |
