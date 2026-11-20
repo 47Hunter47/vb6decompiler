@@ -58,6 +58,8 @@ vb6d dossier   --listings "<listings dir>"            # dossier.jsonl INSIDE the
 | String / SQL harvest | `vb6d literals <exe or listing dir>` | `BSTR` (UTF-16LE) literals the ASCII scanners miss, with code addresses |
 | SQL reconstruction | `vb6d stitch <listing dir>` | fragments joined into whole statements, with unprovable buckets - [evidence details](docs/commands.md#sql-reconstruction) |
 | Form design | `vb6d frm <dir>` | controls, geometry, `Visible`, control arrays, `SSTab` pages from `.frm` text |
+| Form mockups (HTML) | `vb6d frm <dir> --format html --out DIR` | a static page per form: boxes at the recovered geometry, unknown types as labelled placeholders - [evidence details](docs/commands.md#form-mockups) |
+| Call graph | `vb6d graph <edges.jsonl> --from NAME` | a DOT/Mermaid slice around one procedure or object, unresolved calls named as such - [evidence details](docs/commands.md#call-graph) |
 | Form geometry from binary | `vb6d blob <exe> --validate` | geometry for forms that have no `.frm`, calibrated against `.frm` ground truth |
 | Per-procedure evidence | `vb6d dossier --listings <dir>` | one JSON object per procedure: literals, SQL, hints - [evidence details](docs/commands.md#per-procedure-evidence) |
 | Unknown summary | `vb6d unknowns <outputs...>` | the markers the stages wrote, as counts, VA pages and hash prefixes - safe to paste in an issue - [evidence details](docs/commands.md#unknown-summary) |

@@ -3,6 +3,34 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.8.0
+
+Two ways to see what was recovered, both built so that seeing it does not turn into
+believing more than the evidence says.
+
+`vb6d frm <dir> --format html --out DIR` writes one static page per form plus an
+index: known control types are drawn as the plain HTML element that reads like them,
+and any other type is a labelled placeholder box with its own type name — an `SSTab`
+is drawn as an `SSTab`, not as a guess. `--exe` adds the forms that exist only as
+binary blobs and cross-checks the `.frm` geometry against them per form, on the
+numbers. Every page prints the twips→pixel factor **and says it is assumed**: 15
+twips/px is the classic 96 dpi value, `docs/formats.md` states no factor, and nothing
+here measured one for a given build, so `--scale` overrides it and an explicit `0`
+is exit 2 instead of being coerced back to the default. The output carries no script
+and no external resource and a CSP meta forbids both anyway, so a recovered form is
+safe to open from `file://` on a machine that has never seen this tool.
+
+`vb6d graph <edges.jsonl>` draws a DOT or Mermaid call graph — a *slice* by default,
+because a whole-program graph of 34,000 procedures is unreadable: `--from` a VA or an
+object name, `--depth` hops, `--direction out|in|both`. `--all` exists, warns about
+the size, and is the only way to get everything. An edge appears only where the
+evidence names a target: an attributed VA and an imported helper become nodes, while
+a late-bound call becomes one labelled `unresolved` node per procedure instead of an
+arrow to a guess, and a call to a VA the dossier never listed keeps its VA as its
+label. A `--from` that matches nothing exits 2, since an empty drawing would read as
+"this calls nothing"; the stderr line gives both numbers (`2 of 4 procedures`) rather
+than a percentage, which cannot distinguish a slice from a loss.
+
 ## 0.7.0
 
 The data model the SQL actually describes, and one specification file per object.
