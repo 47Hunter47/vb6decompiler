@@ -70,6 +70,15 @@ def _entries() -> dict[str, dict]:
         return {}
 
 
+def count() -> int:
+    """How many helpers the table carries. ``0`` means it did not load.
+
+    The loaders above answer ``None``/a sentinel for a missing or corrupt file so
+    that no annotation can fail a run; ``doctor`` needs the other answer.
+    """
+    return len(_entries())
+
+
 def describe_runtime_call(name: str) -> RuntimeCall | None:
     """The table's record for ``name``, or ``None`` when it has nothing to say."""
     entry = _entries().get(name)

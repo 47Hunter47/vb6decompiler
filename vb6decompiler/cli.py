@@ -110,6 +110,7 @@ def cmd_procs(args) -> int:
 def cmd_project(args) -> int:
     from . import encoding, procs, projectwrite
 
+
     explicit = args.encoding or encoding.env_codepage()
     project = procs.read(args.exe, encoding=explicit)
     source = "env" if (not args.encoding and encoding.env_codepage()) else project.encoding_source
@@ -244,6 +245,7 @@ def cmd_decode(args) -> int:
 def cmd_edges(args) -> int:
     from . import edges, fileio, x86
 
+
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.dossier)), "edges.jsonl")
     # a typo'd dossier is unusable input, not an empty edge set: name it
     # with the path as typed before collect() opens anything
@@ -273,6 +275,7 @@ def cmd_edges(args) -> int:
 
 def cmd_outline(args) -> int:
     from . import fileio, outline
+
 
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.edges)), "outline.jsonl")
     fileio.require(args.edges)  # same contract: the path as typed, one line, exit 2
@@ -470,6 +473,7 @@ def cmd_datareport(args) -> int:
 def cmd_dossier(args) -> int:
     from . import dossier, encoding, fileio, literals
 
+
     # A typo'd listing directory would produce an empty, perfectly valid JSONL file;
     # fileio.require turns that into the exit-2 contract instead of a silent no-op.
     fileio.require(args.listings)
@@ -538,7 +542,20 @@ def cmd_mask(args) -> int:
     return 0 if audit.clean else 1
 
 
-def _version_line() -> str:
+def cmd_doctor(args) -> int:
+    from . import doctor
+
+    checks = doctor.run(args.dir)
+    if args.json:
+        print(doctor.as_json(checks))
+    else:
+        for c in checks:
+            print(f"{c.status:<5} {c.name:<22} {c.message}")
+    print(doctor.summarise(checks), file=sys.stderr)
+    return doctor.exit_code(checks)
+
+
+def version_line() -> str:
     from importlib.metadata import PackageNotFoundError, version
 
     try:
@@ -555,7 +572,7 @@ def build_parser() -> argparse.ArgumentParser:
     # An agent needs to pin the tool that produced a result file. The version
     # lives in pyproject.toml only (docs/RULES.md), so it is read from the
     # installed distribution; a bare source checkout has no metadata to ask.
-    p.add_argument("--version", action="version", version=_version_line(),
+    p.add_argument("--version", action="version", version=version_line(),
                    help="print the package version and exit")
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -671,6 +688,11 @@ def build_parser() -> argparse.ArgumentParser:
     shape.add_argument("--full", action="store_true",
                        help="both inverted indexes at once (large on real builds; default is the procedure rollup)")
     q.set_defaults(func=cmd_xref)
+
+    q = sub.add_parser("doctor", help="is this machine able to run the toolkit? (one line per check)")
+    q.add_argument("--json", action="store_true")
+    q.add_argument("--dir", help="directory whose free space to report (default: the current one)")
+    q.set_defaults(func=cmd_doctor)
 
     q = sub.add_parser("mask", help="mask credentials in generated artefacts and audit the result")
     q.add_argument("path")
