@@ -346,3 +346,27 @@ report computes this total" — the arithmetic lives in the DLL's compiled code.
   only visible in a trace. A trace tool that hooks the VB6 runtime's string and
   socket functions is the honest next stage; static analysis stops at the boundary
   and this toolkit reports it as a boundary.
+
+## 7. Try it without a target
+
+Every stage needs a compiled build, and a real one is not something this project
+can ship. `tests/synth_vb6.py` builds one **synthetic** target instead — one
+executable plus the listing and `.frm` text a decompiler would have written next
+to it — and `tests/test_e2e_synth.py` runs the whole pipeline on it:
+
+```python
+>>> from pathlib import Path
+>>> import synth_vb6                     # tests/ on sys.path
+>>> t = synth_vb6.build(Path("/tmp/synth"))
+>>> t.exe, t.listings, t.frms            # then: vb6d pe/literals/blob <t.exe>
+```
+
+The build carries 2 objects, 4 verified procedure entries, 4 `BSTR` literals (one
+non-ASCII), one SQL chain that closes and one that cannot, and a form blob whose
+geometry equals its `.frm` text (so `blob --validate` reports 3 of 3 controls).
+
+It is **synthetic**, and every number it produces is about the builder, not about
+VB6: it proves the stages agree with each other (the listing's VAs are the object
+table's entries, the blob's geometry is the design text's), not that they are right
+about your program. The reference figures in sections 0-5 stay the only measured
+ones.
