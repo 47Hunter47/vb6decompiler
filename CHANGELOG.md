@@ -3,6 +3,18 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.10.2
+
+`vb6d datareport --jobs N` reads the report DLLs in parallel, which is what 0.9.0's
+`--jobs` did for `frm` and left half-done here. Both per-file stages keep their output
+order regardless of which thread finishes first, and a workspace's `workers` value now
+reaches them, so a `vb6d run` with `--jobs 4` parallelises the parsing instead of only
+the stage waves.
+
+`datareport` stays a reader rather than a scanner: an unreadable DLL raises in both
+modes instead of being counted out of the summary, because a design count that quietly
+lost a file is worse than a run that stopped and said which file it could not read.
+
 ## 0.10.1
 
 Packaging metadata only: keywords, classifiers, and the project URLs that were missing

@@ -656,7 +656,7 @@ def cmd_datareport(args) -> int:
     from . import datareport
 
     files = datareport.iter_files([args.path]) if os.path.isdir(args.path) else [args.path]
-    designs = datareport.read_paths(files)
+    designs = datareport.read_paths(files, jobs=args.jobs)
     if args.json:
         _emit({"summary": datareport.summary(designs), "designs": [d.as_dict() for d in designs]}, True)
         return 0
@@ -749,7 +749,7 @@ def cmd_mask(args) -> int:
     return 0 if audit.clean else 1
 
 
-def _stage_argv(stage: dict, cfg, out_dir: str) -> list[str] | None:
+def _stage_argv(stage: dict, cfg, out_dir: str, workers: int = 1) -> list[str] | None:
     """The command line for one stage from a workspace config, or ``None`` to skip it.
 
     A stage whose input the config does not name is not run: an empty flag would make
@@ -762,6 +762,9 @@ def _stage_argv(stage: dict, cfg, out_dir: str) -> list[str] | None:
     """
     name = stage["name"]
     target, listings, frms, report = cfg.target, cfg.listings, cfg.frm_dir, cfg.report_dir
+    # The per-file stages read independent files, so a workspace with workers > 1 hands
+    # them the same number; both keep their output order regardless (tested).
+    parallel = ["--jobs", str(workers)] if workers > 1 else []
     here = os.path.join(out_dir, name)
     codec = ["--encoding", cfg.encoding] if cfg.encoding else []
     # A workspace run records input paths: a resume has to re-hash exactly what was
@@ -782,10 +785,10 @@ def _stage_argv(stage: dict, cfg, out_dir: str) -> list[str] | None:
     if name == "frm":
         if not frms:
             return None
-        argv = [name, frms, "--format", "html", "--out", here, *codec, *resume]
+        argv = [name, frms, "--format", "html", "--out", here, *codec, *resume, *parallel]
         return argv + (["--exe", target] if target else [])
     if name == "datareport":
-        return [name, report] if report else None
+        return [name, report, *parallel] if report else None
     if name == "dossier":
         if not listings:
             return None
@@ -947,7 +950,7 @@ def cmd_run(args) -> int:
     ready: list[dict] = []
     skipped: list[tuple[dict, str]] = []
     for stage in stages:
-        argv = _stage_argv(stage, cfg, out_dir)
+        argv = _stage_argv(stage, cfg, out_dir, workers)
         if argv is None:
             skipped.append((stage, "not configured"))
             continue
@@ -1325,6 +1328,8 @@ def build_parser() -> argparse.ArgumentParser:
     q.set_defaults(func=cmd_blob)
 
     q = sub.add_parser("datareport", help="DataReport layouts from report DLLs")
+    q.add_argument("--jobs", type=int, default=1,
+                   help="read N files in parallel (default 1); the report keeps file order")
     q.add_argument("path", help="a DLL, or the install directory holding rpt*.dll")
     q.add_argument("--json", action="store_true")
     q.set_defaults(func=cmd_datareport)

@@ -678,11 +678,32 @@ def read_designs(path: str) -> list[Design]:
     return designs
 
 
-def read_paths(paths: Iterable[str]) -> list[Design]:
-    """Read a list of files, keeping every design (rule 10: no name-keyed dict)."""
-    designs: list[Design] = []
-    for path in paths:
-        designs.extend(read_designs(path))
+def read_paths(paths: Iterable[str], *, jobs: int = 1) -> list[Design]:
+    """Read a list of files, keeping every design (rule 10: no name-keyed dict).
+
+    ``jobs`` reads several files at once, because a report install holds a dozen DLLs
+    and each one is an independent parse. The result is assembled in the order the
+    paths were given, not the order the threads finished: two runs print the same
+    report, which is the property the sequential version had for free.
+
+    A file that cannot be read raises exactly as it would sequentially — this is a
+    reader, not a scanner, and hiding a broken DLL would make the summary lie about
+    how many designs exist.
+    """
+    paths = list(paths)
+    if jobs <= 1 or len(paths) <= 1:
+        designs: list[Design] = []
+        for path in paths:
+            designs.extend(read_designs(path))
+        return designs
+
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=min(jobs, len(paths))) as pool:
+        per_file = list(pool.map(read_designs, paths))
+    designs = []
+    for group in per_file:                      # ordered by input, not by completion
+        designs.extend(group)
     return designs
 
 
