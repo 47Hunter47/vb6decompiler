@@ -941,6 +941,11 @@ def scan_directory(root: str, *, recursive: bool = False,
                    encoding: str = DEFAULT_CODEPAGE) -> ScanResult:
     """Parse every ``.frm`` under ``root`` and account for all of them."""
     fileio.require(root)  # a missing directory is unusable input, not zero forms
+    # A file named here is the caller's fix (exit 2), not a toolkit fault: plain
+    # listing raised NotADirectoryError from os.listdir (exit 3 since the exit-code
+    # series) and --recursive os.walk silently returned "0 files", exit 0.
+    if not os.path.isdir(root):
+        raise fileio.InputError(f"{root}: expected a directory of .frm files")
     res = ScanResult(root=root, encoding=encoding)
     for path in _frm_files(root, recursive):
         res.files_seen += 1

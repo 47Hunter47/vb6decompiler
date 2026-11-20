@@ -502,3 +502,33 @@ def test_procs_names_help_promises_a_coverage_count(capsys):
     out, _err = capsys.readouterr()
     flat = " ".join(out.split())  # argparse wraps help at the terminal width
     assert "coverage count" in flat and "no name is attached" in flat, out
+
+
+# --------------------------------------------------------------------------- frm scan root is a directory
+def _frm_file(tmp_path):
+    f = tmp_path / "fDemo011.frm"
+    f.write_text("VERSION 5.00\r\n", encoding="cp1254")
+    return f
+
+
+def test_frm_on_a_file_exits_2_and_names_the_path(tmp_path, capsys):
+    """Naming a file where the scan walks a directory is the caller's fix.
+
+    Measured before the guard: os.listdir raised NotADirectoryError, which the
+    exit-code contract files as 3 "internal error" although no code is at fault.
+    """
+    f = _frm_file(tmp_path)
+    code = cli.main(["frm", str(f)])
+    err = capsys.readouterr().err
+    assert code == 2, err
+    assert str(f) in err and "internal error" not in err
+
+
+def test_frm_recursive_on_a_file_is_exit_2_not_zero_files(tmp_path, capsys):
+    """The recursive variant was worse: os.walk of a file yields nothing, so the
+    run reported "0 files" at exit 0 - indistinguishable from an empty success."""
+    f = _frm_file(tmp_path)
+    code = cli.main(["frm", "--recursive", str(f)])
+    err = capsys.readouterr().err
+    assert code == 2, err
+    assert str(f) in err
