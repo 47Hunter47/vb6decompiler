@@ -3,6 +3,11 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.10.1
+
+Packaging metadata only: keywords, classifiers, and the project URLs that were missing
+(documentation, changelog, issues, contributing, security). No code changed.
+
 ## 0.10.0
 
 `vb6d explore <run output dir> --out DIR` turns a run's directory of row files into a
