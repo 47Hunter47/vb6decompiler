@@ -5,10 +5,22 @@ on:
   pull_request:
 jobs:
   suite:
-    runs-on: ubuntu-latest
+    # Windows and macOS are where VB6 tools are actually used; ubuntu keeps the
+    # four-interpreter sweep. fail-fast is off because the first run on a new
+    # platform is the evidence a fix needs - one red job must not cancel it.
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         python-version: ["3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: windows-latest
+            python-version: "3.11"
+          - os: windows-latest
+            python-version: "3.13"
+          - os: macos-latest
+            python-version: "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,6 +30,9 @@ jobs:
       - run: python -m compileall -q vb6decompiler tests
       - run: python -m pytest -q
       - name: the x86 and edges lanes must run, not skip
+        # bash explicitly: pipefail/tee/grep are not PowerShell, and the Windows
+        # runners default to pwsh.
+        shell: bash
         run: |
           set -o pipefail
           python -m pytest tests/test_x86.py tests/test_edges.py -q -rs 2>&1 | tee lanes.log
@@ -25,6 +40,8 @@ jobs:
       - run: ruff check
       - run: mypy vb6decompiler
       - name: the runtime call table must ship inside the wheel
+        # bash: the heredoc below is not PowerShell syntax either.
+        shell: bash
         run: |
           python -m build --wheel
           python - <<'PY'
