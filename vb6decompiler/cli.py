@@ -108,8 +108,9 @@ def cmd_procs(args) -> int:
 
 
 def cmd_project(args) -> int:
-    from . import encoding, procs, projectwrite
+    from . import encoding, manifest, procs, projectwrite
 
+    started = manifest.now()
 
     explicit = args.encoding or encoding.env_codepage()
     project = procs.read(args.exe, encoding=explicit)
@@ -122,6 +123,13 @@ def cmd_project(args) -> int:
     counts = report["counts"]
     print(f"# {counts['vbp_entries']} placeholder files + {projectwrite.DEFAULT_REPORT_NAME} -> {out_dir}",
           file=sys.stderr)
+    # Beside the directory, not inside it: the tree is the recovered project and a
+    # file of ours in it would be read as a source object.
+    written = manifest.write(out_dir, skip=args.no_manifest, command="project",
+                             inputs=[args.exe], encoding=(project.encoding, source),
+                             started=started, records=counts, full_paths=args.manifest_paths)
+    if written:
+        print(f"# manifest: {written}", file=sys.stderr)
     return 0
 
 
@@ -243,8 +251,9 @@ def cmd_decode(args) -> int:
 
 
 def cmd_edges(args) -> int:
-    from . import edges, fileio, x86
+    from . import edges, fileio, manifest, x86
 
+    started = manifest.now()
 
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.dossier)), "edges.jsonl")
     # a typo'd dossier is unusable input, not an empty edge set: name it
@@ -270,12 +279,19 @@ def cmd_edges(args) -> int:
           f"{totals['edges']} attributed to listed procedures, {totals['late_bound']} late-bound, "
           f"{totals['obj_named']} on object-table functions of known objects, "
           f"{totals['uncensus']} still unnamed{ev}", file=sys.stderr)
+    written = manifest.write(out, skip=args.no_manifest, command="edges",
+                             inputs=[args.exe, args.dossier], encoding=None, started=started,
+                             records={"procedures": len(rows), "unreadable_lines": bad, **totals},
+                             full_paths=args.manifest_paths)
+    if written:
+        print(f"# manifest: {written}", file=sys.stderr)
     return 0
 
 
 def cmd_outline(args) -> int:
-    from . import fileio, outline
+    from . import fileio, manifest, outline
 
+    started = manifest.now()
 
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(args.edges)), "outline.jsonl")
     fileio.require(args.edges)  # same contract: the path as typed, one line, exit 2
@@ -321,6 +337,15 @@ def cmd_outline(args) -> int:
     print(f"# {rows} procedures -> {out}; {categorized} runtime hits bucketed by "
           f"category (third-party notes - unverified), {unlisted} runtime hits the table "
           f"does not categorize, {api} hits on other dlls", file=sys.stderr)
+    written = manifest.write(out, skip=args.no_manifest, command="outline",
+                             inputs=[args.edges], encoding=None, started=started,
+                             records={"procedures": rows, "unreadable_lines": bad,
+                                      "categorized_calls": categorized,
+                                      "uncategorized_calls": unlisted,
+                                      "external_calls": api},
+                             full_paths=args.manifest_paths)
+    if written:
+        print(f"# manifest: {written}", file=sys.stderr)
     return 0
 
 
@@ -471,8 +496,9 @@ def cmd_datareport(args) -> int:
 
 
 def cmd_dossier(args) -> int:
-    from . import dossier, encoding, fileio, literals
+    from . import dossier, encoding, fileio, literals, manifest
 
+    started = manifest.now()
 
     # A typo'd listing directory would produce an empty, perfectly valid JSONL file;
     # fileio.require turns that into the exit-2 contract instead of a silent no-op.
@@ -497,6 +523,15 @@ def cmd_dossier(args) -> int:
     for line in report.lines():
         print(line, file=sys.stderr)
     print(f"# wrote {out_path}", file=sys.stderr)
+    written = manifest.write(
+        out_path, skip=args.no_manifest, command="dossier",
+        inputs=[args.listings] + ([args.inventory] if args.inventory else []),
+        encoding=(codec, source), started=started,
+        records={"procedures": report.procedures, "with_literal": report.with_literal,
+                 "with_closed_sql": report.with_closed_sql, "failed": len(report.failed)},
+        full_paths=args.manifest_paths)
+    if written:
+        print(f"# manifest: {written}", file=sys.stderr)
     return 0
 
 
@@ -542,6 +577,22 @@ def cmd_mask(args) -> int:
     return 0 if audit.clean else 1
 
 
+def cmd_unknowns(args) -> int:
+    from . import fileio, unknowns
+
+    # A typo'd path here would print an empty table and exit 0, which reads as
+    # "nothing is unknown" - the opposite of what the stage is asked.
+    for path in args.outputs:
+        fileio.require(path)
+    report = unknowns.collect(args.outputs)
+    print(unknowns.as_json(report) if args.json else unknowns.as_text(report), end="")
+    for line in report.lines():
+        print(line, file=sys.stderr)
+    # Unreadable inputs are named and counted; the counts that remain are still
+    # evidence, so this is a completed run (exit 0), not a failure.
+    return 0
+
+
 def cmd_doctor(args) -> int:
     from . import doctor
 
@@ -562,6 +613,15 @@ def version_line() -> str:
         return f"vb6d {version('vb6decompiler')}"
     except PackageNotFoundError:
         return "vb6d (version unknown: bare source checkout, not installed)"
+
+
+def _manifest_flags(parser) -> None:
+    """The two switches every ``--out`` stage shares (see :mod:`vb6decompiler.manifest`)."""
+    parser.add_argument("--no-manifest", action="store_true",
+                        help="do not write <out>.manifest.json beside the output")
+    parser.add_argument("--manifest-paths", action="store_true",
+                        help="record full input paths in the manifest (default: file names only, "
+                             "because the manifest is shared like the output)")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -599,6 +659,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("exe")
     q.add_argument("--out", metavar="DIR", default=None,
                    help="output directory (default: <exe-name>_project beside the exe; never the exe itself)")
+    _manifest_flags(q)
     q.add_argument("--force", action="store_true",
                    help="replace an existing output directory's ENTIRE contents (including "
                         "unrelated files) with the newly generated project")
@@ -650,6 +711,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--listings", required=True, metavar="DIR",
                    help="directory of decompiler listings (the same input as 'literals'/'stitch')")
     q.add_argument("--out", default=None, help="JSONL output path (default: DIR/dossier.jsonl)")
+    _manifest_flags(q)
     q.add_argument("--inventory", default=None,
                    help="pseudoc_inventory.py output directory to merge by procedure VA")
     q.add_argument("--encoding", metavar="CODEPAGE", default=None,
@@ -670,12 +732,14 @@ def build_parser() -> argparse.ArgumentParser:
     ed.add_argument("exe")
     ed.add_argument("--dossier", required=True, help="JSONL produced by vb6d dossier")
     ed.add_argument("--out", help="output JSONL (default: edges.jsonl next to the dossier file)")
+    _manifest_flags(ed)
     ed.add_argument("--events", action="store_true", help="add ordered per-procedure event streams: named calls + loads of immediates that are dossier literals")
     ed.set_defaults(func=cmd_edges)
 
     ovl = sub.add_parser("outline", help="read an edges file through the runtime table: per-procedure operation counts (no engine needed)")
     ovl.add_argument("edges", help="JSONL produced by vb6d edges")
     ovl.add_argument("--out", help="output JSONL (default: outline.jsonl next to the edges file)")
+    _manifest_flags(ovl)
     ovl.set_defaults(func=cmd_outline)
 
     q = sub.add_parser("xref", help="query a dossier file from the other side: which procedures touch X")
@@ -688,6 +752,15 @@ def build_parser() -> argparse.ArgumentParser:
     shape.add_argument("--full", action="store_true",
                        help="both inverted indexes at once (large on real builds; default is the procedure rollup)")
     q.set_defaults(func=cmd_xref)
+
+    q = sub.add_parser(
+        "unknowns",
+        help="count what the stages marked unknown, in a form safe to paste in an issue",
+    )
+    q.add_argument("outputs", nargs="+", metavar="output",
+                   help="JSONL/JSON/CSV row files written by dossier, edges or outline")
+    q.add_argument("--json", action="store_true")
+    q.set_defaults(func=cmd_unknowns)
 
     q = sub.add_parser("doctor", help="is this machine able to run the toolkit? (one line per check)")
     q.add_argument("--json", action="store_true")
