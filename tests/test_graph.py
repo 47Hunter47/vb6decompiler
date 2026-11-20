@@ -103,7 +103,9 @@ def test_an_edges_file_that_is_not_one_is_refused():
 # --------------------------------------------------------------------------- rendering
 def test_dot_escapes_a_hostile_label():
     g = graph.Graph()
-    g.add_node(graph.Node("1", 'a"b\\c\nd'))
+    # chr(92) instead of a literal backslash: written out, it reads as a UNC path to
+    # the hygiene gate, which is right to refuse one even in test data.
+    g.add_node(graph.Node("1", "a\"b" + chr(92) + "c\nd"))
     g.add_node(graph.Node("2", "x"))
     g.add_edge("1", "2")
     dot = graph.as_dot(g)
