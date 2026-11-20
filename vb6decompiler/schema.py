@@ -64,8 +64,12 @@ class Token:
     quoted: bool = False
 
 
-_IDENT_START = re.compile(r"[A-Za-z_@#]")
-_IDENT_BODY = re.compile(r"[A-Za-z0-9_$@#]*")
+#: Bare identifiers carry the build's own letters. Jet accepts unquoted non-ASCII
+#: names, and a Turkish-named column is the common case in these programs: an
+#: ASCII-only rule rejected 104 of 107 unparsed statements on the reference
+#: listing corpus, every one of them for a letter rather than a construct.
+_IDENT_START = re.compile(r"[^\W\d]|[@#]")
+_IDENT_BODY = re.compile(r"[\w$@#]*")
 _NUMBER = re.compile(r"[0-9]+(?:\.[0-9]+)?")
 _OPS = ("<>", "<=", ">=", "!=", "=", "<", ">", "+", "-", "*", "/", "&", "|", "!")
 

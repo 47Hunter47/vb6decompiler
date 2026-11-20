@@ -3,6 +3,53 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.7.0
+
+The data model the SQL actually describes, and one specification file per object.
+
+`vb6d schema <dossier.jsonl>` reads the closed statements as a model: per table the
+columns named explicitly plus who reads and who writes it, a CRUD matrix per
+(object, table), the statements it could not parse with their reason, and the open
+ones counted as gaps. Its tokenizer handles the dialect these programs use —
+`[bracketed names]`, `#date#` literals, `''` escapes, `?` markers,
+`schema.table.column`, and unquoted non-ASCII identifiers — and refuses the rest by
+name instead of approximating it. Statements in = parsed + unparsed + open, printed
+with the report so a reader can add it up.
+
+Measured on the reference listing corpus (45,035 statements, 3,961 of them closed):
+**3,908 parsed, 53 unparsed, 41,074 open** — the invariants hold exactly. **420
+tables** and **1,775** object-table CRUD rows; 303 columns stayed unattributed
+because the statement names more than one table and does not say which one owns
+them. The 53 refusals are honest: 47 statements carry a typographic quote where SQL
+needs `'`, 5 carry characters lost in decoding, 1 has an unterminated date literal.
+The first run of this stage refused 104 of those on a *letter* alone — an ASCII-only
+identifier rule against Jet's Turkish names — which is what the measurement was for.
+
+Where the tokenizer's table list disagrees with the hint `sqlstitch` already wrote
+(300 of the 3,961 closed statements), the disagreement is listed rather than
+averaged: 293 are comma-joined `FROM a,b` lists where the hint caught only the first
+table, and the 7 the other way are two statements glued by a quote (the closed claim
+is itself wrong there) plus one where the hint read `ORDER` as a table.
+
+`vb6d spec <dossier.jsonl> --out DIR` writes `index.md` plus one Markdown file per
+object: kind **and the stage the kind came from**, the design table when `.frm` text
+is supplied (control, type, caption, twips geometry, `Visible`, array index), each
+procedure by VA with its name hints, the text that reads as a message, its SQL with
+closed and open kept apart, and the runtime-call categories with their `unverified`
+marker. Gaps carry their denominator — open SQL, controls with no recovered
+rectangle, helpers the table does not categorize — and an input that was not
+supplied is named in the file (`no .frm directory supplied`) instead of leaving a
+section that reads like a measurement.
+
+Text from the build is untrusted everywhere it lands: one Markdown escaper handles
+names, captions and messages (HTML, table pipes, emphasis characters, CR/LF and the
+Unicode line separators), and file names go through `projectwrite`'s Windows-safe
+rules — now public as `safe_stem`, since two modules need them — so a reserved device
+name, a path escape or a 300-character name cannot decide where a file lands.
+
+Both stages reuse what the toolkit already had: `dossier` for the evidence, `frm` for
+the design, `outline` for the runtime categories, `manifest` for provenance.
+
 ## 0.6.0
 
 First-run trust. `vb6d doctor` answers the question a newcomer actually has — why

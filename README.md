@@ -61,6 +61,8 @@ vb6d dossier   --listings "<listings dir>"            # dossier.jsonl INSIDE the
 | Form geometry from binary | `vb6d blob <exe> --validate` | geometry for forms that have no `.frm`, calibrated against `.frm` ground truth |
 | Per-procedure evidence | `vb6d dossier --listings <dir>` | one JSON object per procedure: literals, SQL, hints - [evidence details](docs/commands.md#per-procedure-evidence) |
 | Unknown summary | `vb6d unknowns <outputs...>` | the markers the stages wrote, as counts, VA pages and hash prefixes - safe to paste in an issue - [evidence details](docs/commands.md#unknown-summary) |
+| Data model from the SQL | `vb6d schema <dossier.jsonl>` | tables, the columns named explicitly, who reads and writes them, and the CRUD matrix - [evidence details](docs/commands.md#data-model-from-the-sql) |
+| Specification per object | `vb6d spec <dossier.jsonl> --out DIR` | one Markdown file per object: design table, per-procedure SQL and messages, runtime categories, gaps - [evidence details](docs/commands.md#specification-per-object) |
 | DataReport layout | `vb6d datareport <dll or dir>` | report sections, controls, captions recovered from the runtime blobs |
 | Form icons from `.frx` | `python -m vb6decompiler.frx_icon <frx dir> <out> [--validate <frm dir>]` | standalone `.ico` per form, straight from the `.frx` files - [evidence details](docs/commands.md#form-icons-from-frx) |
 | Second-opinion decompiler run | `scripts/ghidra_bridge.py --ghidra <dir> --bin <exe> --targets <csv> --out <dir>` | one pseudo-C file per procedure, from a local Ghidra - [evidence details](docs/commands.md#second-opinion-decompiler-run) |

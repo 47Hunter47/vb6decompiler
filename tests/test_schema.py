@@ -30,6 +30,16 @@ def test_a_doubled_quote_inside_a_string_stays_one_token():
     assert [t.bare for t in tokens if t.kind == "string"] == ["rock'n'roll"]
 
 
+def test_a_bare_identifier_may_carry_the_builds_own_letters():
+    """Measured on the reference corpus: 104 of 107 unparsed statements failed on a
+    letter, not on a construct - Jet accepts unquoted Turkish names, and an
+    ASCII-only identifier rule turned them into 'unexpected character'."""
+    parsed = schema.parse("SELECT ÁrKod, Müşteri FROM tCari WHERE Şehir = 'İzmir'")
+    assert parsed.tables == ["tCari"]
+    assert {(c.table, c.name) for c in parsed.columns} == {
+        ("tCari", "ÁrKod"), ("tCari", "Müşteri"), ("tCari", "Şehir")}
+
+
 def test_parameter_markers_are_counted():
     assert schema.parse("SELECT a FROM t WHERE b = ? AND c = ?").params == 2
 
