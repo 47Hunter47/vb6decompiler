@@ -33,11 +33,14 @@ host, no database name, no account, no credential, no absolute install path.
 
 ## Quick start
 
-Install, then the five commands a new target gets first. Each line shows the shape
-a run prints; names and counts are placeholders:
+Install, then the six commands a new target gets first. `vb6d doctor` comes before
+them: it names the environment (interpreter, optional engine, runtime table, code
+page, `VB6D_*` paths, temp, disk) so a first failure is not blamed on the file. Each
+line shows the shape a run prints; names and counts are placeholders:
 
 ```bash
 pip install vb6decompiler                              # add "[asm]" for decode/edges only
+vb6d doctor                                            # first: one ok/warn/fail line per environment fact
 vb6d pe        "<install dir>"                         # stderr: # N images, M import a VB6 runtime, K unreadable
 vb6d procs     "<app.exe>" > app.txt                  # stdout: [ 37] fDemo011  form  methods=44 per object
 vb6d literals  "<app.exe>" > literals.csv             # CSV on stdout; stderr: # N literals
@@ -49,6 +52,7 @@ vb6d dossier   --listings "<listings dir>"            # dossier.jsonl INSIDE the
 
 | Stage | Command | Evidence it produces |
 |---|---|---|
+| Environment check | `vb6d doctor` | one ok/warn/fail line per environment fact: interpreter, optional engine, runtime table, code page and its source, `VB6D_*` paths, temp, disk - [evidence details](docs/commands.md#environment-check) |
 | PE surface of an install | `vb6d pe <dir>` | imports, exports, VB6 runtime dependency, ActiveX/COM classification |
 | Procedure inventory | `vb6d procs <exe>` | object table: objects and method counts, entry points verified by prologue |
 | String / SQL harvest | `vb6d literals <exe or listing dir>` | `BSTR` (UTF-16LE) literals the ASCII scanners miss, with code addresses |
@@ -56,6 +60,7 @@ vb6d dossier   --listings "<listings dir>"            # dossier.jsonl INSIDE the
 | Form design | `vb6d frm <dir>` | controls, geometry, `Visible`, control arrays, `SSTab` pages from `.frm` text |
 | Form geometry from binary | `vb6d blob <exe> --validate` | geometry for forms that have no `.frm`, calibrated against `.frm` ground truth |
 | Per-procedure evidence | `vb6d dossier --listings <dir>` | one JSON object per procedure: literals, SQL, hints - [evidence details](docs/commands.md#per-procedure-evidence) |
+| Unknown summary | `vb6d unknowns <outputs...>` | the markers the stages wrote, as counts, VA pages and hash prefixes - safe to paste in an issue - [evidence details](docs/commands.md#unknown-summary) |
 | DataReport layout | `vb6d datareport <dll or dir>` | report sections, controls, captions recovered from the runtime blobs |
 | Form icons from `.frx` | `python -m vb6decompiler.frx_icon <frx dir> <out> [--validate <frm dir>]` | standalone `.ico` per form, straight from the `.frx` files - [evidence details](docs/commands.md#form-icons-from-frx) |
 | Second-opinion decompiler run | `scripts/ghidra_bridge.py --ghidra <dir> --bin <exe> --targets <csv> --out <dir>` | one pseudo-C file per procedure, from a local Ghidra - [evidence details](docs/commands.md#second-opinion-decompiler-run) |

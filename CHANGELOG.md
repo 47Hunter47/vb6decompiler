@@ -3,6 +3,60 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.6.0
+
+First-run trust. `vb6d doctor` answers the question a newcomer actually has — why
+the first command failed — in one `ok`/`warn`/`fail` line per fact: the interpreter
+against `requires-python`, capstone present or absent and which stages that
+disables, the runtime table's size and the DLL build it speaks for, the code page
+that would be chosen and where that choice came from, every path-valued `VB6D_*`
+variable, a writable temp directory and free space under the output directory. No
+input file and no network; `--json` for a script. Exit codes extend the contract
+already in `AGENTS.md`: `0` nothing to report, `1` warnings only, `2` a check
+failed.
+
+Every stage that takes `--out` now writes `<out>.manifest.json` beside its output:
+tool version, command, each input's name and SHA-256 (streamed in blocks, so a
+100 MB target costs the memory a 1 KB file does, and a directory is hashed over its
+files' names, sizes and hashes), the code page and its source, Python version, UTC
+start and end, and the run's record counts. The artefact itself stays
+byte-identical. Input paths are file names by default because a manifest is shared
+like the output beside it; `--manifest-paths` records absolute paths and
+`--no-manifest` skips the file — removing a stale one, since it would describe the
+new artefact with the old input's hash.
+
+`vb6d unknowns <outputs...>` turns the markers the stages already wrote into
+numbers that are safe to paste into an issue: a count with its record denominator
+per kind, the VA page buckets the markers sit in, and for any text only its length
+and the first 8 hex digits of its SHA-256. The kinds are the emitters' own field
+names — an unclosed `sql[].status`, `calls_late_bound`, `unverified_operations`,
+`runtime_unlisted`, a kind spelled `unknown` — never an inference about what
+"unknown" might mean elsewhere.
+
+Testing no longer needs a real build. `tests/synth_vb6.py` constructs one
+**synthetic** VB6-like target — every byte layout taken from `docs/formats.md` —
+and `tests/test_e2e_synth.py` runs `pe`, `procs`, `literals`, `stitch`, `frm`,
+`blob`, `dossier` and, when capstone is present, `decode`, `edges` and `outline`
+on it, asserting exact counts and lines. It proves the stages agree with each other
+(the listing's procedure VAs are the object table's entries, the form blob's
+geometry is the design text's), never that they are right about a real program;
+`docs/pipeline.md` §7 says so where it shows how to build one.
+
+Two behaviour corrections. `frm` on a file instead of a scan directory now exits 2
+and names the path as typed: it used to raise `NotADirectoryError` into exit 3
+("internal error") for an invocation whose only problem was the argument, and
+`frm --recursive <file>` was worse — `os.walk` over a file yields nothing, so it
+printed `0 files` and exited 0 like an empty success. And `sqlstitch` no longer
+reports a candidate `CLOSED` when a later fragment opens with a statement verb
+after the previous fragment ended on a completed value: the verb scan matches a
+verb only after a non-letter (so data glued to a digit counts as a second
+statement), which meant a verb glued letter-to-letter — `…Dim w` + `SELECT …` —
+hid inside the last word. On the reference listing corpus the candidate count was
+unchanged at 60,794 while 842 of the 5,122 candidates that had claimed `CLOSED`
+became `MULTI` with its own reason, and the procedures holding a closed statement
+went from 1,842 to 1,839. `AGENTS.md` also stops claiming error lines are
+`#`-prefixed.
+
 ## 0.5.8
 
 Reliability and data-safety pass. Every writer now creates its buffer with
