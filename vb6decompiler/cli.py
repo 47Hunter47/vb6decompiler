@@ -805,6 +805,56 @@ def _stage_argv(stage: dict, cfg, out_dir: str) -> list[str] | None:
     return None
 
 
+def explore_chunk_default() -> int:
+    """The chunk size the explorer documents; kept in one place."""
+    from . import explore
+
+    return explore.CHUNK_BYTES
+
+
+def cmd_explore(args) -> int:
+    from . import explore, fileio, manifest
+
+    started = manifest.now()
+    root = os.path.abspath(args.root)
+    fileio.require(root)
+    if not os.path.isdir(root):
+        raise fileio.InputError(f"{root}: expected a 'vb6d run' output directory")
+    src = explore.read_source(root)
+    if not src.procedures and not src.tables and not src.forms:
+        raise fileio.InputError(
+            f"{root}: nothing to explore (no dossier, schema or frm page found under it)")
+
+    out_dir = os.path.abspath(args.out)
+    if os.path.exists(out_dir) and not os.path.isdir(out_dir):
+        raise fileio.InputError(f"{out_dir}: exists and is not a directory")
+    os.makedirs(out_dir, exist_ok=True)
+    # The form mockups stay where the frm stage wrote them; the explorer links to
+    # them relatively, so it can live anywhere inside (or beside) the run directory.
+    prefix = os.path.relpath(os.path.join(root, "frm"), out_dir).replace(os.sep, "/") + "/"
+    built = explore.build(src, limit=args.chunk_bytes, forms_prefix=prefix)
+    for name, body in built.files.items():
+        target = os.path.join(out_dir, name)
+        fileio.refuse_overwrite_inputs(target, [root])
+        with fileio.atomic_out(target, newline="") as fh:
+            fh.write(body)
+    counts = src.counts()
+    print(f"# {counts['procedures']} procedures, {counts['statements']} statements, "
+          f"{counts['tables']} tables, {counts['forms']} form pages -> {out_dir}",
+          file=sys.stderr)
+    print(built.summary(limit=args.chunk_bytes), file=sys.stderr)
+    for missing in src.missing:
+        print(f"# not available: {missing}", file=sys.stderr)
+    written = manifest.write(out_dir, skip=args.no_manifest, command="explore",
+                             inputs=[root], encoding=None, started=started,
+                             records={**counts, "pages": len(built.files),
+                                      "data_blocks": len(built.blocks)},
+                             full_paths=args.manifest_paths)
+    if written:
+        print(f"# manifest: {written}", file=sys.stderr)
+    return 0
+
+
 def cmd_demo(args) -> int:
     """Write the synthetic build and print the commands to run on it.
 
@@ -1324,6 +1374,17 @@ def build_parser() -> argparse.ArgumentParser:
     shape.add_argument("--full", action="store_true",
                        help="both inverted indexes at once (large on real builds; default is the procedure rollup)")
     q.set_defaults(func=cmd_xref)
+
+    q = sub.add_parser(
+        "explore",
+        help="an offline HTML explorer over a 'vb6d run' output directory",
+    )
+    q.add_argument("root", metavar="output-dir", help="the directory 'vb6d run' wrote")
+    q.add_argument("--out", metavar="DIR", required=True, help="where to write the site")
+    q.add_argument("--chunk-bytes", type=int, default=explore_chunk_default(),
+                   help="largest embedded data block (default 2 MiB)")
+    _manifest_flags(q)
+    q.set_defaults(func=cmd_explore)
 
     q = sub.add_parser(
         "demo",

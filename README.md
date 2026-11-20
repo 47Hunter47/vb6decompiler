@@ -64,6 +64,7 @@ vb6d dossier   --listings "<listings dir>"            # dossier.jsonl INSIDE the
 | SQL reconstruction | `vb6d stitch <listing dir>` | fragments joined into whole statements, with unprovable buckets - [evidence details](docs/commands.md#sql-reconstruction) |
 | Form design | `vb6d frm <dir>` | controls, geometry, `Visible`, control arrays, `SSTab` pages from `.frm` text |
 | Form mockups (HTML) | `vb6d frm <dir> --format html --out DIR` | a static page per form: boxes at the recovered geometry, unknown types as labelled placeholders - [evidence details](docs/commands.md#form-mockups) |
+| Offline explorer | `vb6d explore <run dir> --out DIR` | a static site over the run: searchable procedures, tables, form mockups; works from `file://` - [evidence details](docs/commands.md#offline-explorer) |
 | Call graph | `vb6d graph <edges.jsonl> --from NAME` | a DOT/Mermaid slice around one procedure or object, unresolved calls named as such - [evidence details](docs/commands.md#call-graph) |
 | Form geometry from binary | `vb6d blob <exe> --validate` | geometry for forms that have no `.frm`, calibrated against `.frm` ground truth |
 | Per-procedure evidence | `vb6d dossier --listings <dir>` | one JSON object per procedure: literals, SQL, hints - [evidence details](docs/commands.md#per-procedure-evidence) |

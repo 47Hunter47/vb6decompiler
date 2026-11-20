@@ -3,6 +3,34 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.10.0
+
+`vb6d explore <run output dir> --out DIR` turns a run's directory of row files into a
+site a person can read: an overview with the counts and what was missing, a searchable
+procedures page, the tables the closed SQL names (with the CRUD matrix and the
+statements that could not be parsed), and a forms page that links to the mockups the
+`frm` stage already built. No server, no network, no library: it opens from
+`file://` and works.
+
+Two rules make it safe rather than merely convenient. Nothing from the build can
+become markup: the embedded JSON writes `<`, `>` and `&` as JSON unicode escapes, so a
+caption or a SQL string carrying a closing `script` tag cannot end the block it sits
+in, and the page's script writes through `textContent`, so no string is ever parsed as
+HTML. And only one script runs: the CSP carries a per-file nonce, so the page allows
+exactly the script it was built with.
+
+What it embeds is a bounded slice, and the page says so: procedure labels, closed SQL
+text, message-like literals, and table and column names. The full literal list stays in
+`dossier.jsonl`, because embedding the 441k literals of a real build would produce a
+page nobody can open. The data is split into blocks of at most 2 MiB by default and the
+stderr summary quotes the block count and the largest block, so a page that feels slow
+has a number attached to it.
+
+`vb6d diff` was not built: it needs two builds of the same program, and the hand-over
+recorded no second build. Matching procedures between builds is a real problem worth
+doing properly — by object name, ordinal and a literal fingerprint, never by VA, since
+addresses move — and it is not something to fake on one build.
+
 ## 0.9.0
 
 One file names the inputs and one command runs the stages.

@@ -94,3 +94,11 @@ A progress line (`# frm: 120 of 800 (4.3s)`) appears on long stages only when st
 `vb6d demo --out DIR` writes the synthetic build and prints the commands to run on it. It is SYNTHETIC and says so: every number it produces is about the builder, never about VB6. The builder lives in the source tree (`tests/synth_vb6.py`), so the command works from a clone and explains itself when the package was installed from a wheel.
 
 `python scripts/bench_synth.py --target-mb 100 --jobs 1 4` scales that build and times each stage, printing seconds and peak memory. Not part of the package and never imported by it; peak memory reads the OS counters and prints `n/a` where the platform will not say. Read the numbers as "this machine, this builder" — a real target's timing is yours to measure.
+
+## Offline explorer
+
+`vb6d explore <run output dir> --out DIR [--chunk-bytes N]` — a static site over what `vb6d run` wrote: an overview, a searchable procedures page, the tables the closed SQL names (with the CRUD matrix and the statements that could not be parsed), and a forms page that links to the mockups the `frm` stage built. It works from `file://` on a machine with no server and no network: no `fetch`, no external file, no library.
+
+Two rules make it safe rather than merely convenient. **No untrusted text becomes markup:** the embedded JSON escapes `<`, `>` and `&` as JSON unicode escapes, so a caption or a SQL string containing a closing `script` tag cannot end the block it sits in, and the page's own script writes through `textContent`, so a string is never parsed as HTML. **Only one script runs:** the CSP carries a per-file nonce, so the page allows exactly the script it was built with and nothing else.
+
+What it embeds is a bounded slice, and the page says so: the procedure labels, the closed SQL text, the message-like literals and the table and column names. The full literal list stays in `dossier.jsonl` — embedding 441k literals of a real build would make a page nobody can open. Data is split into blocks of at most `--chunk-bytes` (2 MiB by default) and the stderr summary quotes the block count and the largest block, so a slow page has a number attached to it.
