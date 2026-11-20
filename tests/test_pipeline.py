@@ -69,11 +69,27 @@ def test_a_failed_dependency_blocks_only_its_dependents():
 # --------------------------------------------------------------------------- exit codes
 def test_exit_code_is_zero_only_when_nothing_failed(capsys):
     ok = pipeline.StageRun(name="pe", status=pipeline.OK)
-    bad = pipeline.StageRun(name="edges", status=pipeline.FAILED)
+    bad = pipeline.StageRun(name="edges", status=pipeline.FAILED, code=3)
     assert pipeline.exit_code([ok, ok]) == 0
     assert pipeline.exit_code([ok, bad]) == 3
     err = capsys.readouterr()[1]
     assert "# failed: 1 of 2 stages (edges)" in err
+
+
+def test_a_bad_workspace_is_exit_2_and_a_broken_toolkit_is_exit_3(capsys):
+    """The contract's two kinds of trouble must not arrive as one code."""
+    ok = pipeline.StageRun(name="pe", status=pipeline.OK)
+    input_bad = pipeline.StageRun(name="dossier", status=pipeline.FAILED, code=2)
+    toolkit_bad = pipeline.StageRun(name="edges", status=pipeline.FAILED, code=3)
+
+    assert pipeline.exit_code([ok, input_bad]) == 2
+    assert pipeline.exit_code([ok, toolkit_bad]) == 3
+    # One of each: the toolkit failure wins, because nothing downstream is trustworthy.
+    assert pipeline.exit_code([input_bad, toolkit_bad]) == 3
+    # An undefined code is itself a defect, so it is reported as the toolkit's.
+    odd = pipeline.StageRun(name="mask", status=pipeline.FAILED, code=1)
+    assert pipeline.exit_code([ok, odd]) == 3
+    capsys.readouterr()
 
 
 def test_the_table_has_one_row_per_stage_in_the_given_order():
@@ -202,7 +218,9 @@ def test_a_missing_input_fails_one_stage_and_skips_its_dependents(tmp_path):
     # No listings directory: dossier cannot run, so schema must not pretend to.
     cfg.write_text('listings = "nope"\noutput = "out"\n', encoding="utf-8")
     code, _out, err = _quiet(["run", "--config", str(cfg), "--only", "dossier,schema"])
-    assert code == 3
+    # The workspace is wrong, not the toolkit: the stage said 2 and the run repeats it
+    # (flattening every failure into 3 told the user the tool had broken).
+    assert code == 2
     table = err[err.find("stage "):]
     assert "dossier    failed" in table
     assert "schema     skipped" in table and "dossier failed" in table

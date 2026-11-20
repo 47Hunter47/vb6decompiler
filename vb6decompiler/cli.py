@@ -1414,6 +1414,8 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--jobs", type=int, help="stages to run in parallel (default: from the config)")
     q.add_argument("--force-stage", action="store_true",
                    help="rerun stages whose manifest says they are up to date")
+    # The exit code is the worst stage's own: 2 when the workspace is wrong, 3 when a
+    # stage hit a toolkit failure. Named here so nobody has to read the source to know.
     _manifest_flags(q)
     q.set_defaults(func=cmd_run)
 

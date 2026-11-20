@@ -54,6 +54,9 @@ class StageRun:
     seconds: float = 0.0
     detail: str = ""
     records: dict = field(default_factory=dict)
+    #: The stage's own exit code, kept so ``run`` can report the contract's reason
+    #: rather than flattening every failure into one code.
+    code: int = 0
 
     def row(self) -> str:
         seconds = f"{self.seconds:.1f}s" if self.status != SKIPPED else "-"
@@ -194,6 +197,7 @@ def run_stage(argv: list[str], capture: str | None = None) -> StageRun:
         code = cli.main(argv)
     row.seconds = time.monotonic() - started
     row.status = OK if code == 0 else FAILED
+    row.code = code
     if code:
         row.detail = f"exit {code}"
     return row
@@ -225,14 +229,27 @@ def table(rows: list[StageRun]) -> str:
 
 
 def exit_code(rows: list[StageRun]) -> int:
-    """``0`` when nothing failed, else the code the contract keeps for the toolkit.
+    """The run's own code, taken from the worst failure it saw.
 
-    A stage failure is reported, not raised: the run did what it was asked and named
-    what went wrong, which is exit 3 in ``AGENTS.md`` (the toolkit could not complete
-    the work), with one stderr line naming the stages.
+    ``AGENTS.md`` distinguishes the two kinds of trouble, and a run of eleven stages
+    can hit both, so it reports the one the user has to act on first:
+
+    * a stage that failed because of the input or an invocation (2) means the
+      *workspace* is wrong — the same code a single stage would have returned;
+    * a stage that failed because of the toolkit (3) means a bug or an unwritable
+      output, and it wins over 2 because nothing downstream can be trusted;
+    * a failure with any other code is treated as the toolkit's (3), since only 0-3
+      are defined and an unexpected one is itself a defect.
+
+    Flattening both into 3 was wrong: it told a user with a typo in the config that the
+    toolkit had broken.
     """
-    bad = [r.name for r in rows if r.status == FAILED]
+    bad = [r for r in rows if r.status == FAILED]
     if not bad:
         return 0
-    print(f"# failed: {len(bad)} of {len(rows)} stages ({', '.join(bad)})", file=sys.stderr)
-    return 3
+    names = ", ".join(r.name for r in bad)
+    print(f"# failed: {len(bad)} of {len(rows)} stages ({names})", file=sys.stderr)
+    codes = {r.code for r in bad}
+    if 3 in codes or any(c not in (2, 3) for c in codes):
+        return 3
+    return 2

@@ -3,6 +3,15 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.10.3
+
+`vb6d run` now reports the contract's two kinds of trouble as two codes. A stage that
+refuses the workspace (a missing path, a bad flag value) exits 2, and 0.9.0 flattened
+that into 3 — which told a user with a typo in `vb6d.toml` that the toolkit had broken.
+The run now repeats the worst code its stages returned: 2 when the workspace is wrong,
+3 only when a stage itself hit a toolkit failure, and an undefined code is treated as 3
+because it is a defect by definition.
+
 ## 0.10.2
 
 `vb6d datareport --jobs N` reads the report DLLs in parallel, which is what 0.9.0's
