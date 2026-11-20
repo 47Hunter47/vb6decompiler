@@ -8,10 +8,11 @@ and test results live elsewhere.
 ## Running the tool (the contract an agent needs)
 
 * Shape: `vb6d <stage> <path> [flags]`; every stage answers `vb6d <stage> --help`.
-* stdout carries record lines only when you strip comments: footnotes, summaries
-  and error messages are `#`-prefixed — on stderr for every stage except `mask`,
-  and `procs` writes one `#` count line to stdout. Discard `#` lines when
-  parsing. `--json` exists for `pe`, `procs`, `project`, `stitch`, `frm`, `blob`,
+* stdout carries record lines only when you strip comments: footnotes and
+  summaries are `#`-prefixed — on stderr for every stage except `mask`, and
+  `procs` writes one `#` count line to stdout. Error lines are not comments:
+  they land on stderr as `error: ...` or `internal error: ...` (the exit codes
+  below say which). Discard `#` lines when parsing. `--json` exists for `pe`, `procs`, `project`, `stitch`, `frm`, `blob`,
   `datareport` and `decode`; `dossier`, `edges` and `outline` are row-file
   stages (JSONL: one JSON object per line, no flag needed) because their row
   counts run to tens of thousands; `literals` is CSV-only for the same reason.
