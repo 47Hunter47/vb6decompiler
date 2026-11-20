@@ -102,3 +102,38 @@ A progress line (`# frm: 120 of 800 (4.3s)`) appears on long stages only when st
 Two rules make it safe rather than merely convenient. **No untrusted text becomes markup:** the embedded JSON escapes `<`, `>` and `&` as JSON unicode escapes, so a caption or a SQL string containing a closing `script` tag cannot end the block it sits in, and the page's own script writes through `textContent`, so a string is never parsed as HTML. **Only one script runs:** the CSP carries a per-file nonce, so the page allows exactly the script it was built with and nothing else.
 
 What it embeds is a bounded slice, and the page says so: the procedure labels, the closed SQL text, the message-like literals and the table and column names. The full literal list stays in `dossier.jsonl` — embedding 441k literals of a real build would make a page nobody can open. Data is split into blocks of at most `--chunk-bytes` (2 MiB by default) and the stderr summary quotes the block count and the largest block, so a slow page has a number attached to it.
+
+## Command reference
+
+Every command with the comment the README used to carry inline:
+
+```
+vb6d --version                                     # which version of this tool am I
+vb6d pe            <install dir>                 # what is this install made of
+vb6d procs         <app.exe>                     # object table: objects, method counts
+vb6d procs         <app.exe> --validate          # are the entry points real prologues
+vb6d procs         <app.exe> --names <listing dir> # count listing VAs; name hints: vb6d dossier
+vb6d literals      <app.exe>                     # BSTR/UTF-16 literals with addresses
+vb6d literals      <listing dir> --sql-only      # literals a decompiler listing produced
+vb6d stitch        <listing dir>                 # join fragments, classify what stayed open
+vb6d frm           <listing dir>                 # .frm controls, geometry, arrays, SSTab
+vb6d blob          <app.exe> --validate --frm-dir <frm dir>
+vb6d datareport    <install dir>                 # report layouts from the report DLLs
+vb6d dossier       --listings <listing dir>      # one JSON object per procedure (JSONL)
+vb6d mask          .                             # mask credentials in your artefacts
+vb6d mask          . --dry-run                   # report only; exit 1 if anything is live
+```
+
+Every stage that decodes text prints the code page it used once, on stderr:
+`# encoding: cp1254 (default)`. The source is one of `explicit` (the `--encoding`
+flag), `env` (`VB6D_ENCODING`), `lcid` (the build's header) or `default`.
+
+Exit codes: 0 = completed, whatever it found; 1 = mask audit not clean; 2 =
+unusable input or a wrong invocation (one line on stderr, no traceback — set
+`VB6D_DEBUG=1` for the traceback when reporting a bug); 3 = the toolkit's own
+failure, a bug or an unwritable output — stderr says `internal error:` and names
+the exception type, which is worth a bug report in a way a 2 from your own path
+is not.
+
+What the reference build (111 MB, 802 forms) produced while this toolkit was
+developed, so you can tell at a glance whether your own numbers look sane:

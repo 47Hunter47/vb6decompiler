@@ -45,12 +45,35 @@ pip install vb6decompiler                              # add "[asm]" for decode/
 vb6d doctor                                            # first: one ok/warn/fail line per environment fact
 vb6d init                                              # a vb6d.toml of placeholders, then fill in paths
 vb6d run                                               # every stage, in dependency order, one table
+vb6d explore out --out out/explore                     # the same results as a site you can click
+```
+
+`vb6d run` writes one directory per stage and a table like this:
+
+```
+stage      status        time  records                            note
+pe         ok            0.1s  -
+dossier    ok            0.1s  -
+datareport skipped          -  -                                  not configured
+```
+
+A stage that fails does not cancel the others, and anything that needed it is reported
+`skipped: <stage> failed`. Run it again and the stages already done say `up to date` —
+the manifest beside each output has to match the input hashes and the tool version.
+
+Every stage still runs on its own, which is what you want once you are chasing one
+question rather than the whole program:
+
+```bash
 vb6d pe        "<install dir>"                         # stderr: # N images, M import a VB6 runtime, K unreadable
 vb6d procs     "<app.exe>" > app.txt                  # stdout: [ 37] fDemo011  form  methods=44 per object
 vb6d literals  "<app.exe>" > literals.csv             # CSV on stdout; stderr: # N literals
 vb6d stitch    "<listings dir>"                       # statements + buckets; stderr: # {'candidates': N, 'closed': M, ...}
 vb6d dossier   --listings "<listings dir>"            # dossier.jsonl INSIDE the listings dir; its path on stderr
 ```
+
+The full command list, the exit codes and the one `# encoding:` line every decoding
+stage prints are in the [command reference](docs/commands.md#command-reference).
 
 ## What it does
 
@@ -242,56 +265,11 @@ fKesik	unknown	controls=1
 The other stages need a VB6 binary or a decompiler listing of your own;
 `vb6d <stage> --help` states what each one expects.
 
-## Quick start
+## Every command, and what a run looks like
 
-```
-vb6d --version                                     # which version of this tool am I
-vb6d pe            <install dir>                 # what is this install made of
-vb6d procs         <app.exe>                     # object table: objects, method counts
-vb6d procs         <app.exe> --validate          # are the entry points real prologues
-vb6d procs         <app.exe> --names <listing dir> # count listing VAs; name hints: vb6d dossier
-vb6d literals      <app.exe>                     # BSTR/UTF-16 literals with addresses
-vb6d literals      <listing dir> --sql-only      # literals a decompiler listing produced
-vb6d stitch        <listing dir>                 # join fragments, classify what stayed open
-vb6d frm           <listing dir>                 # .frm controls, geometry, arrays, SSTab
-vb6d blob          <app.exe> --validate --frm-dir <frm dir>
-vb6d datareport    <install dir>                 # report layouts from the report DLLs
-vb6d dossier       --listings <listing dir>      # one JSON object per procedure (JSONL)
-vb6d mask          .                             # mask credentials in your artefacts
-vb6d mask          . --dry-run                   # report only; exit 1 if anything is live
-```
-
-Every stage that decodes text prints the code page it used once, on stderr:
-`# encoding: cp1254 (default)`. The source is one of `explicit` (the `--encoding`
-flag), `env` (`VB6D_ENCODING`), `lcid` (the build's header) or `default`.
-
-Exit codes: 0 = completed, whatever it found; 1 = mask audit not clean; 2 =
-unusable input or a wrong invocation (one line on stderr, no traceback — set
-`VB6D_DEBUG=1` for the traceback when reporting a bug); 3 = the toolkit's own
-failure, a bug or an unwritable output — stderr says `internal error:` and names
-the exception type, which is worth a bug report in a way a 2 from your own path
-is not.
-
-What the reference build (111 MB, 802 forms) produced while this toolkit was
-developed, so you can tell at a glance whether your own numbers look sane:
-
-| Stage | Result |
-|---|---|
-| object table | 834 objects, 34,415 methods, 0.4 s |
-| literals from the image | 167,564 in 4.6 s (6,171 with a SQL verb) |
-| literals from a listing | 441,607 in 12,480 procedures |
-| statements | 10,691 starts → 8,745 closed in 4,109 procedures, 494 tables |
-| `.frm` design | 369 forms, 30,000 controls, 126 forms with control arrays |
-| form blobs | 801 blobs, 24,967/24,967 controls (100 %), 367/369 forms |
-| DataReports | 437 layouts (413 in report DLLs + 24 embedded in the executable) |
-| dossier | 34,159 procedures in 52 s (4,416 of them carrying CLOSED SQL) |
-| edges | 4 m 47 s single pass: 34,159/34,159 ranges end on `ret` inside their own bounds; 1,897,375 calls named via imports + 9,980 via import thunks; 27,033 edges attributed to listed procedures; 1,791,902 late-bound; 79 hits still unnamed |
-| outline | 1,882,740 of 1,907,355 runtime hits (98.7 %) land in a runtime-table category, in 2 s, engine-free |
-
-A different program legitimately gives different numbers. The tests assert
-invariants and lower bounds, not these totals. The `stitch` row was measured before
-0.3.0 fixed the `STUCK` classification of one-literal statements, so it understates
-`closed` — see `docs/pipeline.md` §3.
+- [Command reference](docs/commands.md#command-reference) — every stage with its flags, the one `# encoding:` line each prints, and the exit codes 0/1/2/3 with what each one means.
+- [Reference numbers](docs/reference-numbers.md) — what the build this toolkit was developed against produced, stage by stage.
+- [The pipeline](docs/pipeline.md) — what each stage may claim and what it must never be used to claim.
 
 ## Using it well
 
