@@ -288,6 +288,52 @@ def cmd_edges(args) -> int:
     return 0
 
 
+def cmd_graph(args) -> int:
+    from . import fileio, graph, manifest
+
+    started = manifest.now()
+    fileio.require(args.edges)
+    rows = graph.rows_from(args.edges)
+    if not rows:
+        raise fileio.InputError(f"{args.edges}: no readable edges row (is this 'vb6d edges' output?)")
+    whole = graph.whole_graph(rows)
+    if args.from_ or args.depth is not None:
+        start = args.from_
+        if start is None:
+            raise fileio.InputError("--depth needs --from: a slice has to start somewhere")
+        depth = 2 if args.depth is None else args.depth
+        try:
+            drawn = graph.slice_graph(whole, start, depth, direction=args.direction)
+        except graph.GraphError as exc:
+            raise fileio.InputError(str(exc)) from exc
+        kind = f"slice from {start} ({args.direction}, depth {depth})"
+    elif args.all:
+        drawn = whole
+        kind = "the whole graph"
+        print(f"# warning: --all on {len(rows)} procedures - the picture is as large as the "
+              f"program; prefer --from with --depth", file=sys.stderr)
+    else:
+        raise fileio.InputError("nothing to draw: pass --from NAME_OR_VA (with --depth) or --all")
+
+    body = graph.as_dot(drawn) if args.format == "dot" else graph.as_mermaid(drawn)
+    if args.out:
+        fileio.refuse_overwrite_inputs(args.out, [args.edges])
+        with fileio.atomic_out(args.out, newline="") as fh:
+            fh.write(body)
+        print(f"# wrote {args.out}", file=sys.stderr)
+        written = manifest.write(args.out, skip=args.no_manifest, command="graph",
+                                 inputs=[args.edges], encoding=None, started=started,
+                                 records={**drawn.counts(), "rows_read": len(rows)},
+                                 full_paths=args.manifest_paths)
+        if written:
+            print(f"# manifest: {written}", file=sys.stderr)
+    else:
+        print(body, end="")
+    print(f"# {kind}: {graph.compare(drawn, whole)}; {drawn.counts()['imports']} imported "
+          f"helpers, {drawn.counts()['unresolved']} unresolved nodes", file=sys.stderr)
+    return 0
+
+
 def cmd_outline(args) -> int:
     from . import fileio, manifest, outline
 
@@ -390,12 +436,79 @@ def cmd_stitch(args) -> int:
     return 0
 
 
+def _html_views(forms, blob_exe: str | None) -> tuple[list, list]:
+    """``(views, notes)`` for the HTML mode: .frm geometry, cross-checked with blobs.
+
+    The two sources are read by different parsers and stored differently (``.frm``
+    geometry lives in each control's properties, blob geometry is flat fields), so
+    the comparison happens here on the numbers themselves. A form that only the
+    blob knows still gets a page: dropping it would hide recovered evidence.
+    """
+    from . import blob as blob_mod
+    from . import htmlview
+
+    views: dict[str, htmlview.FormView] = {}
+    for form in forms:
+        boxes = []
+        for control in form.controls:
+            bounds = control.bounds
+            caption = control.prop("Caption")
+            visible = control.prop("Visible")
+            index = control.prop("Index")
+            boxes.append(htmlview.Box(
+                name=control.name, type=control.type,
+                caption=str(caption.value) if caption is not None else None,
+                left=bounds[0] if bounds else None, top=bounds[1] if bounds else None,
+                width=bounds[2] if bounds else None, height=bounds[3] if bounds else None,
+                visible=bool(visible.value) if visible is not None else None,
+                index=int(index.value) if index is not None and isinstance(index.value, int) else None,
+                parent=control.parent))
+        size = form.client_size
+        views[form.name.lower()] = htmlview.FormView(
+            name=form.name, source=".frm design text", width=size[0] if size else None,
+            height=size[1] if size else None, boxes=boxes)
+
+    notes: list[str] = []
+    if blob_exe:
+        blobs = blob_mod.iter_form_blobs(blob_exe)
+        codec = blob_mod.codec_for(blob_exe)[0]
+        for blob in blobs:
+            parsed = blob_mod.extract_form(blob, encoding=codec)
+            if parsed is None:
+                continue
+            key = parsed.name.lower()
+            view = views.get(key)
+            if view is None:
+                views[key] = htmlview.FormView(
+                    name=parsed.name, source="binary form blob",
+                    width=parsed.width, height=parsed.height,
+                    boxes=[htmlview.Box(name=c.name, type=c.type, caption=c.caption,
+                                        left=c.left, top=c.top, width=c.width, height=c.height,
+                                        visible=c.visible, index=c.index) for c in parsed.controls],
+                    notes=[("no .frm design block for this form: the geometry above comes from "
+                            "the executable's own form-data blob")])
+                continue
+            blob_boxes = {c.name.lower(): (c.type, c.left, c.top, c.width, c.height)
+                          for c in parsed.controls}
+            agree = sum(1 for box in view.boxes
+                        if (box.type, box.left, box.top, box.width, box.height)
+                        == blob_boxes.get(box.name.lower()))
+            view.crosscheck = (agree, len(view.boxes))
+            if agree != len(view.boxes):
+                notes.append(f"{view.name}: {agree} of {len(view.boxes)} controls agree with the "
+                             f"blob (a form rebuilt after the .frm in hand is the known cause)")
+        notes.insert(0, f"{len(blobs)} form blobs read from the executable and used to cross-check")
+    return list(views.values()), notes
+
+
 def cmd_frm(args) -> int:
     from . import encoding, frm
 
     codec, source = encoding.choice(args.encoding, None)
     _announce(codec, source)
     res = frm.scan_directory(args.path, recursive=args.recursive, encoding=codec)
+    if args.format == "html" or args.html:
+        return _frm_html(args, res)
     if args.json:
         _emit(
             {
@@ -425,6 +538,58 @@ def cmd_frm(args) -> int:
         f"{len(res.no_design)} without a design block, {len(res.failures)} failed",
         file=sys.stderr,
     )
+    return 0
+
+
+def _frm_html(args, res) -> int:
+    from . import fileio, htmlview, manifest, spec
+
+    if not args.out:
+        raise fileio.InputError("--format html needs --out DIR")
+    started = manifest.now()
+    views, notes = _html_views(res.forms, args.exe)
+    if not views:
+        raise fileio.InputError(f"{args.path}: no form to draw ({res.files_seen} files seen)")
+    # ``args.scale or default`` would turn an explicit 0 into the default and hide a
+    # flag value the user has to fix; --scale is checked, not coerced.
+    scale = htmlview.TWIPS_PER_PX if args.scale is None else args.scale
+    if scale <= 0:
+        raise fileio.InputError(f"--scale {scale}: must be a positive number of twips per pixel")
+    out_dir = args.out
+    if os.path.exists(out_dir) and not os.path.isdir(out_dir):
+        raise fileio.InputError(f"{out_dir}: exists and is not a directory")
+    os.makedirs(out_dir, exist_ok=True)
+
+    # File names reuse the spec stage's Windows-safe helper: a form name comes out
+    # of the build and decides nothing about where a file lands.
+    taken: set[str] = {"index.html"}
+    links: dict[str, str] = {}
+    written = 0
+    for index, view in enumerate(sorted(views, key=lambda v: v.name.lower())):
+        name, _why = spec.safe_file_name(view.name, taken, str(index), suffix=".html")
+        target = os.path.join(out_dir, name)
+        fileio.refuse_overwrite_inputs(target, [args.path, args.exe])
+        with fileio.atomic_out(target, newline="") as fh:
+            fh.write(htmlview.render_form(view, scale=scale))
+        links[view.name] = name
+        written += 1
+    index_path = os.path.join(out_dir, "index.html")
+    with fileio.atomic_out(index_path, newline="") as fh:
+        fh.write(htmlview.render_index(sorted(views, key=lambda v: v.name.lower()),
+                                       scale=scale, links=links))
+    print(htmlview.summary(views), file=sys.stderr)
+    for note in notes:
+        print(f"# {note}", file=sys.stderr)
+    print(f"# {written + 1} pages -> {out_dir} ({scale} twips/px, assumed 96 dpi)", file=sys.stderr)
+    print(f"# {res.files_seen} files: {len(res.forms)} parsed, {len(res.no_design)} without a "
+          f"design block, {len(res.failures)} failed", file=sys.stderr)
+    man = manifest.write(out_dir, skip=args.no_manifest, command="frm --format html",
+                         inputs=[p for p in (args.path, args.exe) if p], encoding=(res.encoding, "flag"),
+                         started=started,
+                         records={"forms": len(views), "pages": written + 1, "scale_twips_per_px": scale},
+                         full_paths=args.manifest_paths)
+    if man:
+        print(f"# manifest: {man}", file=sys.stderr)
     return 0
 
 
@@ -795,6 +960,16 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("path")
     q.add_argument("--recursive", action="store_true")
     q.add_argument("--json", action="store_true")
+    q.add_argument("--format", choices=("html",), default=None,
+                   help="'html' writes a static view (one page per form plus index.html) to --out")
+    q.add_argument("--html", action="store_true", help=argparse.SUPPRESS)  # old spelling, same mode
+    q.add_argument("--out", metavar="DIR", help="output directory for --format html")
+    q.add_argument("--exe", help="the build, to cross-check the .frm geometry against form blobs "
+                                 "and to draw forms that have no .frm at all")
+    q.add_argument("--scale", type=int, default=None,
+                   help="twips per pixel for --format html (default 15, the classic 96 dpi factor; "
+                        "it is assumed, not measured, and every page prints it)")
+    _manifest_flags(q)
     q.add_argument("--encoding", metavar="CODEPAGE", default=None,
                     help="code page of the decoded text (default: header LCID, else cp1254; env VB6D_ENCODING)")
     q.set_defaults(func=cmd_frm)
@@ -883,6 +1058,24 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--out", help="output file (default: stdout)")
     _manifest_flags(q)
     q.set_defaults(func=cmd_schema)
+
+    q = sub.add_parser(
+        "graph",
+        help="call graph around one procedure or object, as DOT or Mermaid",
+    )
+    q.add_argument("edges", help="JSONL produced by vb6d edges")
+    q.add_argument("--format", choices=("dot", "mermaid"), default="dot")
+    q.add_argument("--from", dest="from_", metavar="NAME_OR_VA",
+                   help="procedure VA (bare hex) or object name to start from")
+    q.add_argument("--depth", type=int, default=None,
+                   help="hops to follow from --from (default 2)")
+    q.add_argument("--direction", choices=("out", "in", "both"), default="out",
+                   help="follow calls out of the start, into it, or both ways")
+    q.add_argument("--all", action="store_true",
+                   help="draw every procedure (warns: unreadable on a large program)")
+    q.add_argument("--out", help="output file (default: stdout)")
+    _manifest_flags(q)
+    q.set_defaults(func=cmd_graph)
 
     q = sub.add_parser(
         "unknowns",

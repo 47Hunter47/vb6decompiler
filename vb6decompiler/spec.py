@@ -68,12 +68,13 @@ def markdown_text(value) -> str:
     return "".join(out)
 
 
-def safe_file_name(name: str, taken: set[str], index: str) -> tuple[str, str | None]:
-    """``(file name, repair reason)`` for one object, reusing projectwrite's rules.
+def safe_file_name(name: str, taken: set[str], index: str,
+                   suffix: str = ".md") -> tuple[str, str | None]:
+    """``(file name, repair reason)`` for one output file, reusing projectwrite's rules.
 
     Windows device names, illegal characters and over-long names are decided in
     one place (:func:`projectwrite.safe_stem`); this adds only what a directory of
-    Markdown files needs — a unique stem and the ``.md`` suffix.
+    generated files needs — a unique stem and the suffix the caller writes.
     """
     stem, why = safe_stem(name)
     if stem is None:
@@ -82,10 +83,10 @@ def safe_file_name(name: str, taken: set[str], index: str) -> tuple[str, str | N
         # safe_stem reports the reservation and hands back the name unchanged: the
         # caller decides, because only it knows what else is claimable here.
         stem = f"object_{index}"
-    candidate = f"{stem}.md"
+    candidate = f"{stem}{suffix}"
     n = 1
     while candidate.lower() in taken:
-        candidate = f"{stem}_{n}.md"
+        candidate = f"{stem}_{n}{suffix}"
         n += 1
         why = why or "name already taken in this directory"
     taken.add(candidate.lower())
