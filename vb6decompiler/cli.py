@@ -577,6 +577,38 @@ def cmd_mask(args) -> int:
     return 0 if audit.clean else 1
 
 
+def cmd_schema(args) -> int:
+    from . import fileio, manifest, schema, unknowns
+
+    started = manifest.now()
+    fileio.require(args.dossier)
+    try:
+        records = unknowns._records(args.dossier)
+    except unknowns.ExpectedValueError as exc:
+        raise fileio.InputError(str(exc)) from exc
+    report = schema.build(records)
+    body = schema.as_json(report) if args.format == "json" else schema.as_markdown(report)
+    if args.out:
+        fileio.refuse_overwrite_inputs(args.out, [args.dossier])
+        with fileio.atomic_out(args.out, newline="") as fh:
+            fh.write(body)
+        print(f"# wrote {args.out}", file=sys.stderr)
+        written = manifest.write(args.out, skip=args.no_manifest, command="schema",
+                                 inputs=[args.dossier], encoding=None, started=started,
+                                 records=report.counts(), full_paths=args.manifest_paths)
+        if written:
+            print(f"# manifest: {written}", file=sys.stderr)
+    else:
+        print(body, end="")
+    counts = report.counts()
+    print(f"# {counts['parsed']} parsed + {counts['unparsed']} unparsed + {counts['open']} open "
+          f"= {counts['parsed'] + counts['unparsed'] + counts['open']} of {counts['statements']} "
+          f"statements; {len(report.tables)} tables", file=sys.stderr)
+    for line in report.invariants():
+        print(f"# {line}", file=sys.stderr)
+    return 0
+
+
 def cmd_unknowns(args) -> int:
     from . import fileio, unknowns
 
@@ -752,6 +784,16 @@ def build_parser() -> argparse.ArgumentParser:
     shape.add_argument("--full", action="store_true",
                        help="both inverted indexes at once (large on real builds; default is the procedure rollup)")
     q.set_defaults(func=cmd_xref)
+
+    q = sub.add_parser(
+        "schema",
+        help="data model from the closed SQL: tables, named columns, who reads and writes",
+    )
+    q.add_argument("dossier", help="JSONL produced by vb6d dossier")
+    q.add_argument("--format", choices=("md", "json"), default="md")
+    q.add_argument("--out", help="output file (default: stdout)")
+    _manifest_flags(q)
+    q.set_defaults(func=cmd_schema)
 
     q = sub.add_parser(
         "unknowns",
