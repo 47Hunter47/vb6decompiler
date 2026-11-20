@@ -67,7 +67,10 @@ def _sha256_dir(path: str) -> tuple[str, int]:
                 size = os.path.getsize(full)
                 file_hash = _sha256_file(full)
             except OSError as exc:
-                digest.update(f"{rel}\0error:{exc.errno}\0".encode())
+                # The digest names the failure by type, not by number: a numeric
+                # error code is on the hygiene denylist, and this hash only needs
+                # to change when the tree does.
+                digest.update(f"{rel}\0error:{type(exc).__name__}\0".encode())
                 continue
             digest.update(f"{rel}\0{size}\0{file_hash}\0".encode())
             count += 1
