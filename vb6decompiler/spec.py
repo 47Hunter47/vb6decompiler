@@ -126,6 +126,8 @@ class ObjectSpec:
     design_reason: str = ""
     file_name: str = ""
     name_repair: str | None = None
+    #: Statements of this object the schema could only partly read (0 when none).
+    partial_statements: int = 0
 
     @property
     def statements(self) -> int:
@@ -194,7 +196,8 @@ def _messages(literals: list[dict], sql_texts: set[str]) -> list[str]:
 def build(records: list[dict], *, kinds: dict[str, tuple[str, str]] | None = None,
           design: dict[str, Form] | None = None,
           design_reason: str = "", outline: dict[str, dict] | None = None,
-          known_tables: set[str] | None = None) -> SpecReport:
+          known_tables: set[str] | None = None,
+          partial: dict[str, int] | None = None) -> SpecReport:
     """Assemble the report. Every optional input leaves a named absence behind.
 
     ``kinds`` maps an object name to ``(kind, source)``; ``design`` maps a
@@ -257,6 +260,7 @@ def build(records: list[dict], *, kinds: dict[str, tuple[str, str]] | None = Non
         else:
             spec.design_reason = design_reason
         spec.file_name, spec.name_repair = safe_file_name(name, taken, str(index))
+        spec.partial_statements = (partial or {}).get(name, 0)
         spec.procedures.sort(key=lambda p: p.va)
         report.objects.append(spec)
     report.objects.sort(key=lambda o: o.file_name.lower())
@@ -287,6 +291,9 @@ def render_object(spec: ObjectSpec) -> str:
            f"- kind: **{markdown_text(spec.kind)}** (source: {markdown_text(spec.kind_source)})",
            f"- procedures: {len(spec.procedures)}",
            f"- SQL statements: {spec.closed} closed of {spec.statements}"]
+    if spec.partial_statements:
+        out.append(f"- partial: {spec.partial_statements} of {spec.statements} SQL statements were "
+                   f"only partly read (the schema says which): their tables are a lower bound")
     if spec.name_repair:
         out.append(f"- file name: `{spec.file_name}` ({markdown_text(spec.name_repair)})")
     out.append("")

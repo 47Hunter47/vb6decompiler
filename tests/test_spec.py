@@ -146,6 +146,12 @@ def test_a_schema_cross_check_names_the_tables_it_cannot_place():
     assert any("tOther" in note and "absent from the schema" in note for note in report.notes)
 
 
+def test_an_object_with_a_partial_statement_says_its_tables_are_a_lower_bound():
+    report = spec.build([_row(sql=[_sql("SELECT a FROM tOrder")])], partial={"modA": 1})
+    text = spec.render_object(report.objects[0])
+    assert "partial: 1 of 1" in text and "lower bound" in text
+
+
 def test_messages_are_text_that_reads_like_one_not_sql():
     report = spec.build([_row(literals=["Kayıt bulunamadı", "SELECT a FROM tOrder"],
                               sql=[_sql("SELECT a FROM tOrder")])])

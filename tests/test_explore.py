@@ -50,7 +50,7 @@ def _scan(text: str) -> _Scan:
     return parser
 
 
-def _source(tmp_path, procedures, *, tables=None, forms=None):
+def _source(tmp_path, procedures, *, tables=None, forms=None, partial=None):
     """A run directory built by hand, so the test controls every string in it."""
     root = tmp_path / "out"
     (root / "dossier").mkdir(parents=True)
@@ -59,7 +59,8 @@ def _source(tmp_path, procedures, *, tables=None, forms=None):
     if tables is not None:
         (root / "schema").mkdir()
         (root / "schema" / "schema.json").write_text(
-            json.dumps({"tables": tables, "crud": [], "unparsed": []}), encoding="utf-8")
+            json.dumps({"tables": tables, "crud": [], "unparsed": [],
+                        "partial": partial or []}), encoding="utf-8")
     if forms:
         (root / "frm").mkdir()
         for name in forms:
@@ -269,3 +270,14 @@ def test_an_empty_directory_is_exit_2_not_an_empty_site(tmp_path):
 def test_a_missing_root_is_exit_2(tmp_path):
     code, _out, err = _run(["explore", str(tmp_path / "gone"), "--out", str(tmp_path / "s")])
     assert code == 2 and err.startswith("error: ")
+
+
+def test_a_partial_statement_is_counted_and_the_lists_are_lower_bounds(tmp_path):
+    root = _source(tmp_path, [_proc()], tables={"t": {"columns": ["a"]}},
+                   partial=[{"va": "4013B0", "object": "modA", "tables": [],
+                             "reason": "verb not modelled: EXEC", "sha256": "0123456789ab"}])
+    src = explore.read_source(str(root))
+    assert src.counts()["partial"] == 1
+    page = explore.render_tables(src)
+    assert "1 statements were only partly read" in page
+    assert "Statements only partly read (1)" in page

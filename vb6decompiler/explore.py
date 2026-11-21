@@ -53,6 +53,7 @@ class Source:
     tables: dict = field(default_factory=dict)
     crud: list[dict] = field(default_factory=list)
     unparsed: list[dict] = field(default_factory=list)
+    partial: list[dict] = field(default_factory=list)
     edges: dict[str, dict] = field(default_factory=dict)
     outline: dict[str, dict] = field(default_factory=dict)
     forms: list[str] = field(default_factory=list)
@@ -69,6 +70,7 @@ class Source:
             "crud_rows": len(self.crud),
             "forms": len(self.forms),
             "unparsed": len(self.unparsed),
+            "partial": len(self.partial),
         }
 
 
@@ -138,6 +140,7 @@ def read_source(root: str) -> Source:
                           if isinstance(v, dict)}
             src.crud = [row for row in body.get("crud") or [] if isinstance(row, dict)]
             src.unparsed = [row for row in body.get("unparsed") or [] if isinstance(row, dict)]
+            src.partial = [row for row in body.get("partial") or [] if isinstance(row, dict)]
     else:
         src.missing.append("schema (no schema/schema.json)")
 
@@ -372,14 +375,26 @@ def render_tables(src: Source) -> str:
         f"{htmlview.esc(str(row.get('object') or '-'))} — {htmlview.esc(str(row.get('reason')))}"
         f" <span class='muted'>sha256:{htmlview.esc(str(row.get('sha256')))}</span></li>"
         for row in src.unparsed)
+    partial = "".join(
+        f"<li><code>{htmlview.esc(str(row.get('va')))}</code> "
+        f"{htmlview.esc(str(row.get('object') or '-'))} — {htmlview.esc(str(row.get('reason')))}"
+        f" <span class='muted'>tables found: "
+        f"{htmlview.esc(', '.join(str(t) for t in row.get('tables') or []) or '-')}; "
+        f"sha256:{htmlview.esc(str(row.get('sha256')))}</span></li>"
+        for row in src.partial)
     body = (_nav() + "<main><h1>Tables</h1>"
             "<p class='muted'>Tables and columns the closed SQL names. A column appears "
             "under a table only when the statement said which table it belongs to: with "
             "two tables in one statement an unqualified column stays unattributed.</p>"
-            "<table><thead><tr><th>Table</th><th>Columns seen</th><th>Readers</th>"
+            + (f"<p class='muted'>{len(src.partial)} statements were only partly read: for "
+               "the objects that own them the reader/writer lists below are lower bounds.</p>"
+               if src.partial else "")
+            + "<table><thead><tr><th>Table</th><th>Columns seen</th><th>Readers</th>"
             f"<th>Writers</th></tr></thead><tbody>{rows}</tbody></table>"
             f"<h2>CRUD by object</h2><table><thead><tr><th>Object</th><th>Table</th>"
             f"<th>C</th><th>R</th><th>U</th><th>D</th></tr></thead><tbody>{crud}</tbody></table>"
+            + (f"<h2>Statements only partly read ({len(src.partial)})</h2>"
+               f"<ul>{partial}</ul>" if partial else "")
             + (f"<h2>Statements that could not be parsed ({len(src.unparsed)})</h2>"
                f"<ul>{unparsed}</ul>" if unparsed else "")
             + "</main>")

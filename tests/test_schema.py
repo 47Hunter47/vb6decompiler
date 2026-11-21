@@ -144,12 +144,12 @@ def test_update_targets_come_from_the_set_clause_only():
         ("tOrder", "DepDate"), ("tOrder", "Kind"), ("tOrder", "Id")}
 
 
-def test_a_subquery_is_noted_and_never_descended():
+def test_a_subquery_is_a_read_of_the_same_statement():
     parsed = schema.parse("SELECT a FROM t WHERE a IN (SELECT b FROM u)")
-    assert parsed.tables == ["t"]
-    assert any("not descended" in note for note in parsed.notes)
-    # 'u' is the subquery's table and must not appear as this statement's table.
-    assert "u" not in parsed.tables
+    assert parsed.tables == ["t", "u"]
+    # never the text of a literal that looks like a FROM clause
+    parsed = schema.parse("SELECT a FROM t WHERE a IN (SELECT b FROM u WHERE c = 'FROM tFake')")
+    assert "tFake" not in parsed.tables
 
 
 # --------------------------------------------------------------------------- the report
@@ -168,7 +168,8 @@ def test_the_counts_must_add_up():
         _row(va="401400", sql=[_sql("SELECT a FROM (t")]),
     ])
     counts = report.counts()
-    assert counts == {"statements": 3, "closed": 2, "parsed": 1, "unparsed": 1, "open": 1}
+    assert counts == {"statements": 3, "closed": 2, "parsed": 1, "partial": 0,
+                      "unparsed": 1, "open": 1}
     assert report.invariants() == []
 
 
@@ -258,7 +259,7 @@ def test_cli_prints_the_model_and_a_counted_summary(dossier, capsys):
     assert "| `tOrder` |" in out
     # The synthetic build carries one CLOSED statement and three it could not
     # close (a listing chain ends where a value is concatenated at run time).
-    assert "1 parsed + 0 unparsed + 3 open = 4 of 4 statements" in err
+    assert "1 parsed + 0 partial + 0 unparsed + 3 open = 4 of 4 statements" in err
 
 
 def test_cli_json_is_parseable(dossier, capsys):
@@ -292,3 +293,137 @@ def test_out_may_not_overwrite_the_dossier(dossier, capsys):
     assert code == 2
     assert "error: " in err
     assert dossier.read_text(encoding="utf-8")  # the input is intact
+
+
+# --------------------------------------------------------------------------- the 0.11.0 review table
+#: Every row of the review's reproduction table plus the nested/compound shapes it
+#: asks for. ``bucket`` is the one it must land in, and ``tables`` the base tables
+#: that must be visible in the model — never a keyword, never a literal's text.
+REVIEW_CASES = [
+    ("SELECT a, b FROM tOrder o INNER JOIN tCust c ON o.cid = c.id WHERE o.x = 1",
+     "select", {"tOrder", "tCust"}, "parsed", ""),
+    ("SELECT * FROM tA, tB WHERE tA.k = tB.k", "select", {"tA", "tB"}, "parsed", ""),
+    ("SELECT x FROM tA WHERE y IN (SELECT y FROM tSub WHERE z = 'FROM tFake')",
+     "select", {"tA", "tSub"}, "parsed", ""),
+    ("SELECT a FROM [Order Details] WHERE b = #01/02/2020#",
+     "select", {"Order Details"}, "parsed", ""),
+    ("SELECT a FROM dbo.tSchemaQ WHERE n = 'it''s FROM tTrap'",
+     "select", {"dbo.tSchemaQ"}, "parsed", ""),
+    ("INSERT INTO tLog (a, b) VALUES (1, 'x')", "insert", {"tLog"}, "parsed", ""),
+    ("INSERT INTO tCopy SELECT a, b FROM tSrc", "insert", {"tCopy", "tSrc"}, "parsed", ""),
+    ("UPDATE tUpd SET a = 1, b = 'WHERE tNo' WHERE k = 2", "update", {"tUpd"}, "parsed", ""),
+    ("DELETE FROM tDel WHERE k = 3", "delete", {"tDel"}, "parsed", ""),
+    ("SELECT a FROM tU1 UNION SELECT a FROM tU2", "select", {"tU1", "tU2"}, "parsed", ""),
+    ("SELECT a FROM tU1 UNION ALL SELECT a FROM tU2", "select", {"tU1", "tU2"}, "parsed", ""),
+    ("SELECT a INTO #tmp FROM tReal", "select", {"tReal", "#tmp"}, "parsed", ""),
+    ("SELECT a FROM tCmt -- FROM tCommented\nWHERE b = 1", "select", {"tCmt"}, "parsed", ""),
+    ("/* FROM tBlock */ SELECT a FROM tAfter", "select", {"tAfter"}, "parsed", ""),
+    ("SELECT a FROM t WHERE s = 'a -- b'", "select", {"t"}, "parsed", ""),
+    ("SELECT a FROM t WHERE s = 'x /* y */'", "select", {"t"}, "parsed", ""),
+    ("SELECT a FROM t WHERE s = 'FROM tFake'", "select", {"t"}, "parsed", ""),
+    ("SELECT a FROM t -- FROM tHidden\n", "select", {"t"}, "parsed", ""),
+    ("SELECT a FROM t WHERE EXISTS (SELECT 1 FROM tY WHERE tY.k = t.k)",
+     "select", {"t", "tY"}, "parsed", ""),
+    ("SELECT a FROM (SELECT a FROM tD) AS d", "select", {"tD"}, "parsed", ""),
+    ("SELECT a FROM tL LEFT OUTER JOIN tR ON tL.k = tR.k",
+     "select", {"tL", "tR"}, "parsed", ""),
+    ("SELECT a FROM tA a, tB b", "select", {"tA", "tB"}, "parsed", ""),
+    ("WITH c AS (SELECT a FROM tW) SELECT a FROM c", "select", {"tW"}, "parsed", ""),
+    ("SELECT a FROM t1 WHERE x IN (SELECT x FROM t2 WHERE y IN (SELECT y FROM t3))",
+     "select", {"t1", "t2", "t3"}, "parsed", ""),
+    ("UPDATE t1 SET a = 1 FROM t1 JOIN t2 ON t1.k = t2.k", "update", {"t1", "t2"}, "parsed", ""),
+    ("EXEC spDoThing 1, 2", "other", set(), "partial", "verb not modelled"),
+    ("DROP TABLE tGone", "other", set(), "partial", "verb not modelled"),
+    ("SELECT a FROM WHERE x = 1", None, set(), "unparsed",
+     "expected a table name, found a keyword"),
+    ("SELECT a FROM t1 JOIN", None, set(), "unparsed", "found the end of the statement"),
+]
+
+
+@pytest.mark.parametrize("text,kind,tables,bucket,reason", REVIEW_CASES)
+def test_the_review_cases_land_in_the_named_bucket(text, kind, tables, bucket, reason):
+    report = schema.build([_row(sql=[_sql(text)])])
+    counts = report.counts()
+    assert counts[bucket] == 1, (text, counts, report.unparsed, report.partial)
+    found = {name for name in report.tables if name != "(unattributed)"}
+    assert found == tables, text
+    if bucket == "unparsed":
+        assert reason in report.unparsed[0].reason
+    else:
+        assert schema.parse(text).kind == kind
+
+
+def test_a_cte_name_is_never_a_base_table():
+    report = schema.build([_row(sql=[_sql("WITH c AS (SELECT a FROM tW) SELECT a FROM c")])])
+    assert "c" not in report.tables and "tW" in report.tables
+
+
+def test_a_temp_table_carries_the_flag_and_the_write_letter():
+    report = schema.build([_row(sql=[_sql("SELECT a INTO #tmp FROM tReal")])])
+    body = json.loads(schema.as_json(report))
+    assert body["tables"]["#tmp"]["temp"] is True
+    assert "temp" not in body["tables"]["tReal"]
+    assert body["tables"]["#tmp"]["writers"] == ["modA"]
+    assert body["tables"]["tReal"]["readers"] == ["modA"]
+    assert body["crud"] == [
+        {"object": "modA", "table": "#tmp", "C": 1, "R": 0, "U": 0, "D": 0},
+        {"object": "modA", "table": "tReal", "C": 0, "R": 1, "U": 0, "D": 0},
+    ]
+
+
+def test_insert_select_names_the_write_and_the_read_apart():
+    report = schema.build([_row(sql=[_sql("INSERT INTO tCopy SELECT a FROM tSrc")])])
+    body = json.loads(schema.as_json(report))
+    assert body["tables"]["tCopy"] == {"columns": [], "readers": [], "writers": ["modA"]}
+    assert body["tables"]["tSrc"]["readers"] == ["modA"]
+    assert body["tables"]["tSrc"]["writers"] == []
+
+
+def test_a_partial_statement_keeps_its_tables_and_marks_the_lists_lower_bounds():
+    report = schema.build([_row(obj="modP", sql=[
+        _sql("EXEC spDoThing 1, 2"),
+        _sql("SELECT a FROM tOrder"),
+    ])])
+    counts = report.counts()
+    assert counts["partial"] == 1 and counts["parsed"] == 1
+    body = json.loads(schema.as_json(report))
+    assert body["partial"] == [{
+        "va": "4013B0", "object": "modP",
+        "sha256": body["partial"][0]["sha256"],
+        "reason": "verb not modelled: EXEC", "tables": [],
+    }]
+    assert body["tables"]["tOrder"]["lower_bound"] is True
+    assert body["crud"][0]["object"] == "modP" and body["crud"][0]["lower_bound"] is True
+    md = schema.as_markdown(report)
+    assert "## Partial (1 of 2 closed)" in md
+    assert "(lower bound)" in md
+    assert "1 parsed, 1 partial, 0 unparsed" in md
+
+
+def test_a_deterministic_fuzz_never_invents_a_table():
+    """No table name may be a keyword or come out of a string/comment, and the
+    invariant must hold for whatever the fragments produce."""
+    import random
+
+    rng = random.Random(1234)
+    fragments = [
+        "SELECT", "a", "b", "*", "1", "'x'", "FROM", "t1", "t2", "t3", "WHERE", "x", "=",
+        "AND", "OR", "JOIN", "LEFT", "INNER", "ON", "(", ")", ",", "IN", "EXISTS", "UNION",
+        "ALL", "INSERT", "INTO", "UPDATE", "SET", "DELETE", "VALUES", "#t", "#1/2/2020#",
+        "'FROM tFake'", "-- FROM tHidden\n", "/* FROM tBlocked */", "?", ";", "AS", "WITH",
+        "INTERSECT", "EXCEPT", "GROUP", "ORDER", "BY", "TOP", "DISTINCT",
+    ]
+    rows = []
+    for i in range(300):
+        text = " ".join(rng.choice(fragments) for _ in range(rng.randint(3, 18)))
+        rows.append(_row(va="%X" % (0x410000 + i), obj="modF", sql=[_sql(text)]))
+    report = schema.build(rows)
+    assert report.invariants() == []
+    counts = report.counts()
+    assert counts["statements"] == (counts["parsed"] + counts["partial"]
+                                    + counts["unparsed"] + counts["open"])
+    for name in report.tables:
+        if name == "(unattributed)":
+            continue
+        assert name.lower() not in schema.RESERVED, name
+        assert name not in ("tFake", "tHidden", "tBlocked"), name

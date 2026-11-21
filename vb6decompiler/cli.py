@@ -1120,17 +1120,23 @@ def cmd_spec(args) -> int:
                 outline[va.upper()] = record
 
     known_tables: set[str] | None = None
+    partial: dict[str, int] = {}
     if args.schema:
         fileio.require(args.schema)
         try:
             with open(args.schema, encoding="utf-8") as fh:
-                known_tables = {name.lower() for name in (json.load(fh).get("tables") or {})}
+                body = json.load(fh)
         except (OSError, ValueError) as exc:
             raise fileio.InputError(f"{args.schema}: not a schema JSON ({exc})") from exc
+        known_tables = {name.lower() for name in (body.get("tables") or {})}
+        for row in body.get("partial") or []:
+            if isinstance(row, dict):
+                obj = str(row.get("object") or "")
+                partial[obj] = partial.get(obj, 0) + 1
 
     report = spec.build(records, kinds=kinds or None, design=design or None,
                         design_reason=design_reason, outline=outline,
-                        known_tables=known_tables)
+                        known_tables=known_tables, partial=partial or None)
     written = spec.files(report)
     out_dir = args.out
     if os.path.exists(out_dir) and not os.path.isdir(out_dir):
@@ -1181,9 +1187,10 @@ def cmd_schema(args) -> int:
     else:
         print(body, end="")
     counts = report.counts()
-    print(f"# {counts['parsed']} parsed + {counts['unparsed']} unparsed + {counts['open']} open "
-          f"= {counts['parsed'] + counts['unparsed'] + counts['open']} of {counts['statements']} "
-          f"statements; {len(report.tables)} tables", file=sys.stderr)
+    print(f"# {counts['parsed']} parsed + {counts['partial']} partial + {counts['unparsed']} unparsed "
+          f"+ {counts['open']} open "
+          f"= {counts['parsed'] + counts['partial'] + counts['unparsed'] + counts['open']} "
+          f"of {counts['statements']} statements; {len(report.tables)} tables", file=sys.stderr)
     for line in report.invariants():
         print(f"# {line}", file=sys.stderr)
     return 0
