@@ -144,7 +144,7 @@ class ObjectSpec:
             out.append(f"open SQL: {open_sql} of {self.statements} statements need a run-time "
                        f"value (a trace closes them, nothing here did)")
         if self.design is None:
-            out.append(f"design: {self.design_reason or 'not supplied'}")
+            out.append(f"design: {markdown_text(self.design_reason or 'not supplied')}")
         else:
             missing = [c for c in self.design.controls if c.bounds is None]
             if missing:
@@ -244,9 +244,10 @@ def build(records: list[dict], *, kinds: dict[str, tuple[str, str]] | None = Non
                             named.setdefault(table.lower(), table)
         missing = sorted(named[name] for name in named.keys() - known_tables)
         if missing:
+            # raw names: the index escapes the whole note once, at render time
             report.notes.append(
                 f"tables named by statements but absent from the schema: "
-                f"{len(missing)} ({', '.join(markdown_text(t) for t in missing)}) - the schema "
+                f"{len(missing)} ({', '.join(missing)}) - the schema "
                 f"only models CLOSED statements, so an open one can name more")
 
     taken: set[str] = {INDEX_NAME.lower()}
@@ -256,7 +257,7 @@ def build(records: list[dict], *, kinds: dict[str, tuple[str, str]] | None = Non
             spec.design = form
             spec.design_source = ".frm design text (vb6d frm)"
         elif design is not None:
-            spec.design_reason = f"no .frm design block for {markdown_text(name)} in the directory given"
+            spec.design_reason = f"no .frm design block for {name} in the directory given"
         else:
             spec.design_reason = design_reason
         spec.file_name, spec.name_repair = safe_file_name(name, taken, str(index))
@@ -358,6 +359,11 @@ def render_object(spec: ObjectSpec) -> str:
     return "\n".join(out) + "\n"
 
 
+def _link_target(name: str) -> str:
+    """A Markdown link destination. A space or a parenthesis ends it, so encode them."""
+    return "".join(f"%{ord(ch):02X}" if ch in " ()<>" else ch for ch in name)
+
+
 def render_index(report: SpecReport) -> str:
     counts = report.counts()
     out = ["# Specification", "",
@@ -368,7 +374,7 @@ def render_index(report: SpecReport) -> str:
     for spec in report.objects:
         out.append(f"| {markdown_text(spec.name)} | {markdown_text(spec.kind)} | "
                    f"{len(spec.procedures)} | {spec.closed} of {spec.statements} | "
-                   f"[{spec.file_name}]({spec.file_name}) |")
+                   f"[{spec.file_name}]({_link_target(spec.file_name)}) |")
     if report.notes:
         out.append("")
         out.append("## What was not supplied")

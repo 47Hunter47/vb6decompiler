@@ -243,3 +243,30 @@ def test_hostile_names_never_reach_a_file_name(dossier, tmp_path, capsys):
     for written in out.iterdir():
         assert "/" not in written.name and "\\" not in written.name
         assert written.resolve().parent == out.resolve()
+
+
+# --------------------------------------------------------------------------- escaping, once
+def test_a_name_is_escaped_once_everywhere_it_appears():
+    """Measured: the design reason was escaped when it was built and escaped again
+    when it was rendered, so a name read `&amp;amp;` in the prose."""
+    name = 'a&b<c>d"e'
+    report = spec.build([_row(obj=name)], design={})
+    text = spec.render_object(report.objects[0])
+    assert "&amp;amp;" not in text and "&amp;lt;" not in text
+    assert text.splitlines()[0] == "# a&amp;b&lt;c&gt;d\"e"
+    prose = next(line for line in text.splitlines() if "design block for" in line)
+    assert "a&amp;b&lt;c&gt;d\"e" in prose
+    index = spec.render_index(report)
+    assert "&amp;amp;" not in index
+    assert "| a&amp;b&lt;c&gt;d\"e |" in index
+
+
+def test_a_link_destination_cannot_break_on_a_space_or_a_parenthesis():
+    report = spec.build([_row(obj="f Order (x)"), _row(va="401400", obj="f Two")])
+    index = spec.render_index(report)
+    destinations = [line.split("](")[1].split(")")[0] for line in index.splitlines() if "](" in line]
+    assert destinations
+    for dest in destinations:
+        assert " " not in dest and "(" not in dest and ")" not in dest
+    # the link text stays readable
+    assert "[f Order (x).md](" in index
