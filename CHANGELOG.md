@@ -3,6 +3,49 @@
 Newest first. One section per released version; the numbers in a section are the ones
 the workflow published, not drafts.
 
+## 0.11.0
+
+`vb6d schema` no longer drops part of a statement silently, and no longer turns a
+keyword into a table. A subquery after `IN`, `EXISTS`, `ANY` or `ALL`, a scalar
+subquery, a derived table in the FROM list, every `UNION`/`UNION ALL`/`INTERSECT`/
+`EXCEPT` branch, the SELECT half of `INSERT ... SELECT`, the body of a CTE and the
+FROM list of `UPDATE ... FROM` are all read as tables of the same statement, so
+those tables now appear in the model instead of disappearing behind a note. A CTE
+name is never listed as a base table, and a `#tmp` after `INTO`, `FROM`, `JOIN` or
+`UPDATE` is recorded as a temp table (`temp: true`) rather than refused as an
+unterminated date literal. Line and block comments are skipped by the tokenizer, so
+`-- FROM tX` can no longer become a table named `FROM`; a quoted string or a quoted
+identifier still holds comment characters as text. A keyword where a table name
+belongs is now a named error instead of a table.
+
+Statements that were previously counted as `parsed` may now be `partial`: the ones
+the parser only partly understands (`EXEC`, DDL, a shape it does not model) are kept
+with the tables that *were* found and the reason the rest was not, in a bucket of
+their own. The **schema JSON gained a key** — `counts.partial` and a top-level
+`partial` array — and the invariant is now statements = parsed + partial + unparsed
++ open, printed with the report. A reader/writer list or CRUD cell for an object
+that owns a partial statement is marked a lower bound, in the JSON
+(`lower_bound`) and in the Markdown. `spec` notes the partial count per object and
+`explore` counts the partial statements on its tables page.
+
+`vb6d run`'s status table shows what each stage found, and `run.manifest.json`
+carries it. The `records` column was `-` for every stage — and `{}` in the manifest
+— although each stage printed its own counts on stderr: now every stage hands those
+same numbers to the run, a resumed stage reads them back from its own manifest, and
+the table gains the `records` and `output` columns the documentation already
+described.
+
+`vb6d graph --format mermaid` no longer breaks when a procedure name carries a raw
+line break or another control character: those characters are replaced by a space
+before the label is written, so a name from a binary cannot end the line it sits in.
+The DOT writer keeps its `\n` escape and does the same for the rest.
+
+`vb6d spec` escapes each object name once. The design-reason sentence used to be
+escaped when it was built and again when it was rendered, so the prose showed
+`&amp;amp;` where the heading showed `&amp;`. A file name containing a space or a
+parenthesis no longer breaks the index's Markdown link: those characters are
+percent-encoded in the destination, and the link text stays readable.
+
 ## 0.10.3
 
 `vb6d run` now reports the contract's two kinds of trouble as two codes. A stage that
