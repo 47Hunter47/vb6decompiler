@@ -51,11 +51,18 @@ vb6d explore out --out out/explore                     # the same results as a s
 `vb6d run` writes one directory per stage and a table like this:
 
 ```
-stage      status        time  records                            note
-pe         ok            0.1s  -
-dossier    ok            0.1s  -
+stage      status        time  records                            output
+pe         ok            0.1s  12 images, 12 vb6, 0 unreadable    pe/pe.csv
+procs      ok            0.1s  37 objects, 1204 methods           procs/procs.csv
+dossier    ok            4.2s  12040 procedures, 3317 with_clos... dossier/dossier.jsonl
 datareport skipped          -  -                                  not configured
 ```
+
+`records` is the same count the stage prints on its own stderr line, in the form
+`4 procedures` or `1 images, 1 vb6` — at most three numbers, because the table is a
+glance and the stage manifest holds the full set. `output` is the path relative to
+the run directory. A stage reported `up to date` reads its counts back from its own
+manifest, so a resumed run shows the same numbers it showed the first time.
 
 A stage that fails does not cancel the others, and anything that needed it is reported
 `skipped: <stage> failed`. Run it again and the stages already done say `up to date` —

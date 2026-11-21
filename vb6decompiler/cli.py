@@ -18,6 +18,16 @@ import sys
 
 from .errors import ExpectedInput
 
+#: The counts the most recent run of each stage reported, keyed by stage name.
+#: ``run`` copies them into its own manifest instead of recomputing them a second
+#: way; a parallel wave runs in threads, so the key is the stage's name.
+STAGE_RECORDS: dict[str, dict] = {}
+
+
+def _stage_records(name: str, records: dict) -> None:
+    """Keep one stage's counts for ``run``: the numbers its stderr summary prints."""
+    STAGE_RECORDS[name] = records
+
 
 def _emit(rows, as_json: bool, fields: list[str] | None = None) -> None:
     if as_json:
@@ -56,10 +66,11 @@ def cmd_pe(args) -> int:
 
     rows = pe.scan_directory(args.path, recursive=args.recursive)
     _emit(rows, args.json)
+    vb6 = [r for r in rows if r.get("vb6")]
+    errs = [r for r in rows if r.get("error")]
     if not args.json:
-        vb6 = [r for r in rows if r.get("vb6")]
-        errs = [r for r in rows if r.get("error")]
         print(f"# {len(rows)} images, {len(vb6)} import a VB6 runtime, {len(errs)} unreadable", file=sys.stderr)
+    _stage_records("pe", {"images": len(rows), "vb6": len(vb6), "unreadable": len(errs)})
     return 0
 
 
@@ -73,6 +84,7 @@ def cmd_procs(args) -> int:
     source = "env" if (not args.encoding and encoding.env_codepage()) else project.encoding_source
     _announce(project.encoding, source)
     stats = project.stats()
+    _stage_records("procs", {"objects": stats["objects"], "methods": stats["methods"]})
     if args.names:
         names = procs.merge_listing_names(args.names)
         stats["names_from_listing"] = len(names)
@@ -279,9 +291,11 @@ def cmd_edges(args) -> int:
           f"{totals['edges']} attributed to listed procedures, {totals['late_bound']} late-bound, "
           f"{totals['obj_named']} on object-table functions of known objects, "
           f"{totals['uncensus']} still unnamed{ev}", file=sys.stderr)
+    records = {"procedures": len(rows), "unreadable_lines": bad, **totals}
+    _stage_records("edges", records)
     written = manifest.write(out, skip=args.no_manifest, command="edges",
                              inputs=[args.exe, args.dossier], encoding=None, started=started,
-                             records={"procedures": len(rows), "unreadable_lines": bad, **totals},
+                             records=records,
                              full_paths=args.manifest_paths)
     if written:
         print(f"# manifest: {written}", file=sys.stderr)
@@ -383,12 +397,14 @@ def cmd_outline(args) -> int:
     print(f"# {rows} procedures -> {out}; {categorized} runtime hits bucketed by "
           f"category (third-party notes - unverified), {unlisted} runtime hits the table "
           f"does not categorize, {api} hits on other dlls", file=sys.stderr)
+    records = {"procedures": rows, "unreadable_lines": bad,
+               "categorized_calls": categorized,
+               "uncategorized_calls": unlisted,
+               "external_calls": api}
+    _stage_records("outline", records)
     written = manifest.write(out, skip=args.no_manifest, command="outline",
                              inputs=[args.edges], encoding=None, started=started,
-                             records={"procedures": rows, "unreadable_lines": bad,
-                                      "categorized_calls": categorized,
-                                      "uncategorized_calls": unlisted,
-                                      "external_calls": api},
+                             records=records,
                              full_paths=args.manifest_paths)
     if written:
         print(f"# manifest: {written}", file=sys.stderr)
@@ -411,6 +427,7 @@ def cmd_literals(args) -> int:
         lits = [l for l in lits if l.is_sql]
     _emit([l.as_row() for l in lits], False)
     print(f"# {len(lits)} literals", file=sys.stderr)
+    _stage_records("literals", {"literals": len(lits)})
     return 0
 
 
@@ -429,10 +446,12 @@ def cmd_stitch(args) -> int:
         lits = literals.scan_binary(src)
         print("# binary input: no procedure ownership outside a listing, so chaining can only yield nothing — point stitch at a listing directory (binary text: vb6d literals <exe>)", file=sys.stderr)
     cands = sqlstitch.stitch_all(lits, max_more=args.max_more)
+    summary = sqlstitch.summarise(cands)
     rows = [c.as_row() for c in cands]
     _emit(rows, args.json)
     if not args.json:
-        print(f"# {sqlstitch.summarise(cands)}", file=sys.stderr)
+        print(f"# {summary}", file=sys.stderr)
+    _stage_records("stitch", {"candidates": summary["candidates"], "closed": summary["closed"]})
     return 0
 
 
@@ -542,6 +561,8 @@ def cmd_frm(args) -> int:
         f"{len(res.no_design)} without a design block, {len(res.failures)} failed",
         file=sys.stderr,
     )
+    _stage_records("frm", {"files": res.files_seen, "parsed": len(res.forms),
+                           "no_design": len(res.no_design), "failed": len(res.failures)})
     return 0
 
 
@@ -590,10 +611,13 @@ def _frm_html(args, res) -> int:
     print(f"# {written + 1} pages -> {out_dir} ({scale} twips/px, assumed 96 dpi)", file=sys.stderr)
     print(f"# {res.files_seen} files: {len(res.forms)} parsed, {len(res.no_design)} without a "
           f"design block, {len(res.failures)} failed", file=sys.stderr)
+    records = {"files": res.files_seen, "parsed": len(res.forms),
+               "no_design": len(res.no_design), "failed": len(res.failures),
+               "forms": len(views), "pages": written + 1, "scale_twips_per_px": scale}
+    _stage_records("frm", records)
     man = manifest.write(out_dir, skip=args.no_manifest, command="frm --format html",
                          inputs=[p for p in (args.path, args.exe) if p], encoding=(res.encoding, "flag"),
-                         started=started,
-                         records={"forms": len(views), "pages": written + 1, "scale_twips_per_px": scale},
+                         started=started, records=records,
                          full_paths=args.manifest_paths)
     if man:
         print(f"# manifest: {man}", file=sys.stderr)
@@ -649,6 +673,7 @@ def cmd_blob(args) -> int:
             False,
         )
     print(f"# {len(forms)} forms from form-data blobs", file=sys.stderr)
+    _stage_records("blob", {"forms": len(forms)})
     return 0
 
 
@@ -657,12 +682,14 @@ def cmd_datareport(args) -> int:
 
     files = datareport.iter_files([args.path]) if os.path.isdir(args.path) else [args.path]
     designs = datareport.read_paths(files, jobs=args.jobs)
+    summary = datareport.summary(designs)
+    _stage_records("datareport", summary)
     if args.json:
-        _emit({"summary": datareport.summary(designs), "designs": [d.as_dict() for d in designs]}, True)
+        _emit({"summary": summary, "designs": [d.as_dict() for d in designs]}, True)
         return 0
     for d in designs:
         print(f"{os.path.basename(d.path)}	{d.name}	records={len(d.records)}	sections={len(d.sections)}	controls={len(d.controls)}")
-    for k, v in datareport.summary(designs).items():
+    for k, v in summary.items():
         print(f"# {k}	{v}", file=sys.stderr)
     return 0
 
@@ -695,12 +722,14 @@ def cmd_dossier(args) -> int:
     for line in report.lines():
         print(line, file=sys.stderr)
     print(f"# wrote {out_path}", file=sys.stderr)
+    records = {"procedures": report.procedures, "with_literal": report.with_literal,
+               "with_closed_sql": report.with_closed_sql, "failed": len(report.failed)}
+    _stage_records("dossier", records)
     written = manifest.write(
         out_path, skip=args.no_manifest, command="dossier",
         inputs=[args.listings] + ([args.inventory] if args.inventory else []),
         encoding=(codec, source), started=started,
-        records={"procedures": report.procedures, "with_literal": report.with_literal,
-                 "with_closed_sql": report.with_closed_sql, "failed": len(report.failed)},
+        records=records,
         full_paths=args.manifest_paths)
     if written:
         print(f"# manifest: {written}", file=sys.stderr)
@@ -966,7 +995,8 @@ def cmd_run(args) -> int:
                 fresh, why = pipeline.up_to_date(resume_target, inputs, tool)
                 if fresh:
                     rows.append(pipeline.StageRun(name=stage["name"], status="up to date",
-                                                  detail=os.path.basename(resume_target)))
+                                                  detail=_relative(resume_target, out_dir),
+                                                  records=pipeline.records_of(resume_target)))
                     continue
         stage_out = _stage_output(argv)
         if stage_out:
@@ -994,6 +1024,8 @@ def cmd_run(args) -> int:
         failed.update(r.name for r in done if r.status == pipeline.FAILED)
         for row in done:
             if row.status == pipeline.OK:
+                target = _stage_output(argv_by_name[row.name]) or _capture_path(row.name, out_dir)
+                row.detail = _relative(target, out_dir)
                 _record_captured(row, out_dir, cfg, tool)
 
     for stage, why in skipped:
@@ -1023,6 +1055,16 @@ def cmd_run(args) -> int:
 
 #: Stages whose --out names a directory rather than a file.
 DIR_OUT_STAGES = ("frm", "spec")
+
+
+def _relative(path: str | None, out_dir: str) -> str:
+    """An output path relative to the run directory, as the status table shows it."""
+    if not path:
+        return ""
+    try:
+        return os.path.relpath(path, out_dir).replace(os.sep, "/")
+    except ValueError:                  # another drive has no relative path
+        return path
 
 
 def _ensure_out(path: str, stage: str) -> None:
@@ -1065,7 +1107,7 @@ def _record_captured(row, out_dir: str, cfg, tool: str) -> None:
         return
     inputs = [p for p in (cfg.target, cfg.listings, cfg.frm_dir, cfg.report_dir) if p]
     manifest.write(captured, command=row.name, inputs=inputs, encoding=None,
-                   started=manifest.now(), records={})
+                   started=manifest.now(), records=row.records)
 
 
 def _stage_output(argv: list[str]) -> str | None:
@@ -1173,6 +1215,7 @@ def cmd_schema(args) -> int:
     except unknowns.ExpectedValueError as exc:
         raise fileio.InputError(str(exc)) from exc
     report = schema.build(records)
+    _stage_records("schema", report.counts())
     body = schema.as_json(report) if args.format == "json" else schema.as_markdown(report)
     if args.out:
         fileio.refuse_overwrite_inputs(args.out, [args.dossier])

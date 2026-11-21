@@ -46,6 +46,31 @@ MANUAL = ("decode", "xref", "project", "spec", "graph", "mask")
 
 RUNNING, OK, FAILED, SKIPPED = "running", "ok", "failed", "skipped"
 
+#: The two or three counts worth showing per stage, most useful first. Anything a
+#: stage reports that is not named here still reaches its manifest.
+RECORD_KEYS: dict[str, tuple[str, ...]] = {
+    "pe": ("images", "vb6", "unreadable"),
+    "procs": ("objects", "methods"),
+    "literals": ("literals",),
+    "stitch": ("candidates", "closed"),
+    "frm": ("parsed", "failed", "pages"),
+    "blob": ("forms",),
+    "datareport": ("designs", "controls"),
+    "dossier": ("procedures", "with_closed_sql", "failed"),
+    "schema": ("parsed", "partial", "unparsed"),
+    "edges": ("procedures", "edges", "late_bound"),
+    "outline": ("procedures", "categorized_calls", "external_calls"),
+}
+#: A table cell is a glance, not a report: three counts, this many characters.
+CELL_WIDTH = 40
+
+
+def records_cell(name: str, records: dict) -> str:
+    """``4 procedures`` or ``1 images, 1 vb6``: the counts a reader needs first."""
+    keys = [key for key in RECORD_KEYS.get(name, ()) if key in records]
+    keys = keys or list(records)[:3]
+    return ", ".join(f"{records[key]} {key}" for key in keys[:3])[:CELL_WIDTH]
+
 
 @dataclass
 class StageRun:
@@ -60,7 +85,7 @@ class StageRun:
 
     def row(self) -> str:
         seconds = f"{self.seconds:.1f}s" if self.status != SKIPPED else "-"
-        counts = ", ".join(f"{k}={v}" for k, v in sorted(self.records.items())) or "-"
+        counts = records_cell(self.name, self.records) or "-"
         return f"{self.name:<10} {self.status:<10} {seconds:>7}  {counts:<34} {self.detail}"
 
 
@@ -124,6 +149,12 @@ def _manifest_of(output: str) -> dict:
     return body if isinstance(body, dict) else {}
 
 
+def records_of(output: str) -> dict:
+    """The counts a stage wrote into its own manifest: what a resumed run shows."""
+    records = _manifest_of(output).get("records")
+    return dict(records) if isinstance(records, dict) else {}
+
+
 def up_to_date(output: str, inputs: list[str], tool: str) -> tuple[bool, str]:
     """Whether an existing output can be kept, and why not when it cannot.
 
@@ -180,6 +211,9 @@ def run_stage(argv: list[str], capture: str | None = None) -> StageRun:
 
     row = StageRun(name=argv[0])
     started = time.monotonic()
+    # The stage's counts are what it prints; a stale entry from an earlier call must
+    # not stand in for a run that failed before reaching its summary.
+    cli.STAGE_RECORDS.pop(argv[0], None)
     if capture:
         import contextlib
         import io
@@ -198,6 +232,7 @@ def run_stage(argv: list[str], capture: str | None = None) -> StageRun:
     row.seconds = time.monotonic() - started
     row.status = OK if code == 0 else FAILED
     row.code = code
+    row.records = dict(cli.STAGE_RECORDS.get(argv[0], {}))
     if code:
         row.detail = f"exit {code}"
     return row
@@ -224,7 +259,7 @@ def blocked(stage: dict, failed: set[str]) -> str | None:
 
 
 def table(rows: list[StageRun]) -> str:
-    head = f"{'stage':<10} {'status':<10} {'time':>7}  {'records':<34} note"
+    head = f"{'stage':<10} {'status':<10} {'time':>7}  {'records':<34} output"
     return head + "\n" + "\n".join(r.row() for r in rows)
 
 

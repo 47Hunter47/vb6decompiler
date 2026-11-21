@@ -251,3 +251,49 @@ def test_init_refuses_to_clobber_an_existing_workspace(tmp_path):
     code, _out, err = _quiet(["init", "--dir", str(ws)])
     assert code == 2
     assert "already exists" in err
+
+
+# --------------------------------------------------------------------------- records
+def test_the_cell_is_the_two_or_three_counts_a_reader_needs_first():
+    assert pipeline.records_cell("pe", {"images": 1, "vb6": 1, "unreadable": 0}) == \
+        "1 images, 1 vb6, 0 unreadable"
+    assert pipeline.records_cell("procs", {"objects": 4, "methods": 19}) == "4 objects, 19 methods"
+    # never more than the width the table can show
+    long = {"procedures": 1234567, "with_closed_sql": 1234567, "failed": 1234567}
+    assert len(pipeline.records_cell("dossier", long)) <= pipeline.CELL_WIDTH
+    assert pipeline.records_cell("pe", {}) == ""
+
+
+def test_the_table_header_names_the_output_column():
+    rows = [pipeline.StageRun(name="pe", status=pipeline.OK, seconds=0.5, detail="pe/pe.csv")]
+    head = pipeline.table(rows).splitlines()[0]
+    assert head.split()[-1] == "output"
+
+
+def test_every_ok_stage_reports_the_counts_it_printed(workspace):
+    """`records` used to be `{}` for every stage while each one printed its own
+    counts on stderr; the manifest must carry the same numbers."""
+    _target, cfg, ws = workspace
+    assert _quiet(["run", "--config", str(cfg)])[0] == 0
+    stages = json.loads((ws / "out" / "run.manifest.json").read_text(encoding="utf-8"))["stages"]
+    empty = [row["name"] for row in stages if row["status"] == "ok" and not row["records"]]
+    assert empty == []
+    by_name = {row["name"]: row for row in stages}
+    # the numbers are the ones the stage itself reports, not a second computation
+    assert by_name["dossier"]["records"]["procedures"] == 4
+    assert by_name["pe"]["records"]["images"] == 1
+    assert by_name["schema"]["records"]["statements"] == 4
+    assert by_name["frm"]["records"]["pages"] == 2
+
+
+def test_a_resumed_run_reads_the_counts_back_from_the_stage_manifest(workspace):
+    _target, cfg, ws = workspace
+    assert _quiet(["run", "--config", str(cfg)])[0] == 0
+    first = {row["name"]: row["records"] for row in json.loads(
+        (ws / "out" / "run.manifest.json").read_text(encoding="utf-8"))["stages"]}
+    assert _quiet(["run", "--config", str(cfg)])[0] == 0
+    stages = json.loads((ws / "out" / "run.manifest.json").read_text(encoding="utf-8"))["stages"]
+    resumed = [row for row in stages if row["status"] == "up to date"]
+    assert resumed
+    for row in resumed:
+        assert row["records"] == first[row["name"]], row["name"]
