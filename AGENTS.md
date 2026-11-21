@@ -18,11 +18,14 @@ and test results live elsewhere.
   counts run to tens of thousands; `literals` is CSV-only for the same reason.
 * Exit codes: `0` = the run completed whatever it found (a missing thing is a
   result — report it, do not retry); `1` = mask audit found live values (the
-  artefacts are not publishable); `2` = unusable input or a wrong invocation
-  (one line on stderr, no traceback; `VB6D_DEBUG=1` re-raises for bug reports);
-  `3` = the toolkit's own failure (a bug, or an output it could not write) -
-  stderr prints `internal error:` naming the exception type; `VB6D_DEBUG=1`
-  re-raises. Report it rather than retrying with different flags.
+  artefacts are not publishable), and, for `doctor` only, warnings and nothing
+  worse; `2` = unusable input or a wrong invocation (one line on stderr, no
+  traceback; `VB6D_DEBUG=1` re-raises for bug reports); `3` = the toolkit's own
+  failure (a bug, or an output it could not write) - stderr prints
+  `internal error:` naming the exception type; `VB6D_DEBUG=1` re-raises. Report it
+  rather than retrying with different flags. `run` repeats the worst code its stages
+  returned, so a stage that said 2 (the workspace is wrong) reaches the caller as 2,
+  and 3 wins only when a stage itself hit a toolkit failure.
   An input file named explicitly on the command line that is missing, unreadable,
   or not a PE image is exactly that case (exit 2, one line naming the path as
   typed); a directory scan instead counts its unreadable files and completes at 0,
