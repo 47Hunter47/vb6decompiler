@@ -219,3 +219,40 @@ def test_cli_all_warns_about_size(edges, capsys):
     capsys.readouterr()
     assert cli.main(["graph", str(path), "--all"]) == 0
     assert "the picture is as large as the program" in capsys.readouterr()[1]
+
+
+# --------------------------------------------------------------------------- control characters
+#: Every character a label can carry out of a binary that would otherwise end the
+#: line the writer is in the middle of.
+CONTROLS = ["\x00", "\x01", "\x1f", "\x7f", "\x85", "\r", "\n", "\u2028", "\u2029"]
+
+
+@pytest.mark.parametrize("ch", CONTROLS)
+@pytest.mark.parametrize("fmt", ["dot", "mermaid"])
+def test_a_control_character_stays_inside_its_label(ch, fmt):
+    g = graph.Graph()
+    g.add_node(graph.Node("1", "a" + ch + "b"))
+    g.add_node(graph.Node("2", "x"))
+    g.add_edge("1", "2")
+    text = graph.as_dot(g) if fmt == "dot" else graph.as_mermaid(g)
+    lines = text.rstrip("\n").split("\n")
+    assert len(lines) == (7 if fmt == "dot" else 4), lines
+    forbidden = ("subgraph", "click", "style", "classDef", "linkStyle", "end")
+    assert not [line for line in lines if line.split(" ", 1)[0] in forbidden]
+
+
+def test_a_hostile_name_cannot_start_a_statement_of_its_own():
+    g = graph.Graph()
+    g.add_node(graph.Node("1", 'a\nb"] ; subgraph'))
+    g.add_node(graph.Node("2", 'x"]; evil -> "pwn'))
+    g.add_edge("1", "2")
+    assert len(graph.as_dot(g).rstrip("\n").split("\n")) == 7
+    assert len(graph.as_mermaid(g).rstrip("\n").split("\n")) == 4
+
+
+def test_dot_keeps_a_literal_backslash_sequence_literal():
+    g = graph.Graph()
+    g.add_node(graph.Node("1", "a" + chr(92) + "l" + chr(92) + "r"))
+    dot = graph.as_dot(g)
+    # an escaped backslash, not a DOT line-break escape
+    assert chr(92) * 2 + "l" in dot and chr(92) * 2 + "r" in dot

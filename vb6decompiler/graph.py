@@ -23,6 +23,10 @@ from dataclasses import dataclass, field
 #: Node kinds, spelled in the output so a reader can filter.
 PROCEDURE, IMPORT, UNRESOLVED = "proc", "import", "unresolved"
 
+#: Characters a label can carry out of a binary and that would end the line the
+#: renderer writes: both writers neutralise them, each in its own format's way.
+_CONTROL = re.compile("[\x00-\x1f\x7f\x85\u2028\u2029]")
+
 
 class GraphError(ValueError):
     """The request cannot be answered from the edges file (not a syntax problem)."""
@@ -195,7 +199,10 @@ def _dot_id(node_id: str) -> str:
 
 def _dot_quote(text: str) -> str:
     """DOT string escaping: a quote ends the string, a backslash ends the line."""
-    return '"' + text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n") + '"'
+    body = text.replace("\\", "\\\\").replace('"', '\\"')
+    # a raw line break stays the DOT escape; every other control character is a space
+    body = _CONTROL.sub(lambda m: "\\n" if m.group(0) == "\n" else " ", body)
+    return '"' + body + '"'
 
 
 def as_dot(graph: Graph) -> str:
@@ -222,7 +229,8 @@ def _mermaid_id(node_id: str) -> str:
 
 
 def _mermaid_text(text: str) -> str:
-    """Mermaid labels break on quotes, brackets and pipes; neutralise them."""
+    """Mermaid labels break on quotes, brackets, pipes and a raw line break."""
+    text = _CONTROL.sub(" ", text)
     return re.sub(r'["\[\]{}()|<>]', lambda m: {"<": "#lt;", ">": "#gt;"}.get(m.group(0), "_"), text)
 
 
